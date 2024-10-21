@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Operator Logs{% endblock %}
+
+{% block content %}
+    <h1>Operator Logs</h1>
+
+    <h2>Add New Log Entry</h2>
+    <form hx-post="/operator/logs/" hx-swap="afterend">
+        <select name="machine_id" required>
+            <option value="">Select Machine</option>
+            <!-- Machine options will be populated dynamically -->
+        </select>
+        <textarea name="log_entry" placeholder="Log Entry" required></textarea>
+        <button type="submit">Add Log Entry</button>
+    </form>
+
+    <h2>Log Entries</h2>
+    <div id="log-list" hx-get="/operator/logs/" hx-trigger="load, logAdded from:body">
+        <!-- Log entries will be loaded here -->
+    </div>
+
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+    <script>
+        document.body.addEventListener('htmx:afterOnLoad', function(event) {
+            if (event.detail.elt.id === 'log-list') {
+                const logs = JSON.parse(event.detail.xhr.responseText);
+                let logListHtml = '<ul>';
+                logs.forEach(log => {
+                    logListHtml += `
+                        <li>
+                            ${log.timestamp} - Machine: ${log.machine_name} - ${log.log_entry}
+                        </li>`;
+                });
+                logListHtml += '</ul>';
+                event.detail.elt.innerHTML = logListHtml;
+            }
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function(event) {
+            if (event.detail.pathInfo.requestPath === '/operator/logs/' && event.detail.xhr.status === 200) {
+                document.querySelector('form').reset();
+                document.body.dispatchEvent(new Event('logAdded'));
+            }
+        });
+
+        // Populate machine options
+        fetch('/engineer/machines/')
+            .then(response => response.json())
+            .then(machines => {
+                const select = document.querySelector('select[name="machine_id"]');
+                machines.forEach(machine => {
+                    const option = document.createElement('option');
+                    option.value = machine.id;
+                    option.textContent = machine.name;
+                    select.appendChild(option);
+                });
+            });
+    </script>
+
+    <p><a href="/">Back to Home</a></p>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "engineer/base.html" %}
+{% block title %}{{ item_type }} Management{% endblock %}
+{% block content %}
+<h1>{{ item_type }}s</h1>
+<button id="createButton" class="btn-submit">Add New {{ item_type }}</button>
+
+<div id="createModal" class="modal">
+    <div class="modal-content">
+        <span class="close" data-modal="createModal">&times;</span>
+        <h2>Add New {{ item_type }}</h2>
+        {% include 'engineer/partials/data_entry_modal.html.j2' with context %}
+    </div>
+</div>
+
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close" data-modal="editModal">&times;</span>
+        <h2>Edit {{ item_type }}</h2>
+        <div id="editFormContainer">
+            <!-- Edit form will be loaded here -->
+            {% include 'engineer/partials/data_entry_modal.html.j2' with context %}
+        </div>
+    </div>
+</div>
+<h2>{{ item_type }} List</h2>
+<div id="{{ item_type }}-list" hx-get="/engineer/{{ item_type|lower() }}s/list" hx-trigger="load, Added from:body, Deleted from:body, Edited from:body">
+    <!-- {{ item_type }} list will be loaded here -->
+</div>
+{% endblock %}

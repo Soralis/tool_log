@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ item_type }} Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+    <script src="{{ url_for('static', path='js/engineer.js') }}" defer></script>
+</head>
+<body>    
+    <div class="container">
+        <nav class="burger-menu">
+            <div class="burger-icon" onclick="toggleMenu()">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+            <ul class="menu-items">
+                <li><a href="/">Home</a></li>
+                <li><a href="/engineer/machines/">Machines</a></li>
+                <li><a href="/engineer/users/">Users</a></li>
+                <li><a href="/engineer/manufacturers/">Manufacturers</a></li>
+                <li><a href="/engineer/tools/">Tools</a></li>
+                <!-- Add more menu items here as needed -->
+            </ul>
+        </nav>
+        <div class="content">
+            {% block content %} {% endblock %}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<form id="{{ form_id }}" 
+      {% if item %}
+      hx-put="{{ form_action }}/{{ item.id }}"
+      {% else %}
+      hx-post="{{ form_action }}"
+      {% endif %}
+      hx-swap="none"
+      {% if item %}data-machine-id="{{ item.id }}"{% endif %}>
+    {% for field_name, field in model.model_fields.items() %}
+        {% if field_name != "id" %}
+            <div class="form-group">
+                {% set field_str = field|string %}
+                {% set is_required = 'required=True' in field_str %}
+                <label for="{{ field_name }}">{{ field_name.capitalize()|replace('_', ' ') }}{% if is_required %} * {% endif %}:</label>
+                {% if field_name in enum_fields %}
+                    <select id="{{ field_name }}" 
+                            name="{{ field_name }}" 
+                            {% if is_required %}required{% endif %}>
+                        {% for enum_value in enum_fields[field_name] %}
+                            <option value="{{ enum_value.value }}" {% if item and item[field_name] == enum_value %}selected{% endif %}>
+                                {{ enum_value.value }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                {% elif field_name in relationship_fields %}
+                    <select id="{{ field_name }}" 
+                            name="{{ field_name }}" 
+                            {% if is_required %}required{% endif %}>
+                        {% for option in relationship_fields[field_name]['options'] %}
+                            <option value="{{ option[relationship_fields[field_name]['option_value']] }}" 
+                                    {% if item and item[field_name] == option[relationship_fields[field_name]['option_value']] %}selected{% endif %}>
+                                {{ option[relationship_fields[field_name]['option_text']] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                {% elif field.annotation | field_types == 'select' %}
+                    <div class="mb-3">
+                        <div id="{{ item.id if item else '' }}-{{ field_name }}-container" class="mb-2">
+                            {% if item and item[field_name] %}
+                                {% for value in item[field_name] %}
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control" name="{{ field_name }}[]" value="{{ value }}">
+                                        <button type="button" class="btn-list-action btn-remove" onclick="removeListField(this)">x</button>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" name="{{ field_name }}[]">
+                                    <button type="button" class="btn-list-action btn-remove" onclick="removeListField(this)">x</button>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <button type="button" class="btn-add-field" onclick="addListField('{{ item.id if item else '' }}-{{ field_name }}-container', '{{ field_name }}')">Add {{ field_name.capitalize()|replace('_', ' ') }}</button>
+                    </div>
+                {% else %}
+                    {% if field.annotation | field_types == 'checkbox' %}
+                    <input type="hidden" name="{{ field_name }}" value="false">
+                    {% endif %}
+                    <input type="{{ field.annotation | field_types }}"
+                        id="{{ field_name }}" 
+                        name="{{ field_name }}" 
+                        {% if is_required %}required{% endif %}
+                        {% if field.annotation | field_types == 'date' %}
+                        value="{{ item[field_name].strftime('%Y-%m-%d') if item and item[field_name] else '' }}"
+                        {% elif field.annotation | field_types == 'checkbox' %}
+                        {% if item and item[field_name] %}checked{% endif %}
+                        {% else %}
+                        value="{{ item[field_name] if item else '' }}"
+                        {% endif %}>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% endfor %}
+    {% if item %}
+    <input type="hidden" name="id" value="{{ item.id }}">
+    {% endif %}
+    <button type="submit" class="btn-submit">{{ submit_text if submit_text else 'Add' }}</button>
+</form>
+
+<script>
+// Function to add a list field input
+function addListField(containerId, fieldName) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+        console.error(`Container with id "${containerId}" not found`);
+        return;
+    }
+    
+    const inputGroup = document.createElement('div');
+    inputGroup.className = 'input-group mb-2';
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-control';
+    input.name = `${fieldName}[]`;
+    
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'btn-list-action btn-remove';
+    removeButton.textContent = 'x';
+    removeButton.onclick = function() { removeListField(this); };
+    
+    inputGroup.appendChild(input);
+    inputGroup.appendChild(removeButton);
+    
+    container.appendChild(inputGroup);
+    console.log(`New input field added to ${containerId}`);
+}
+
+// Function to remove a list field input
+function removeListField(button) {
+    const inputGroup = button.closest('.input-group');
+    if (inputGroup) {
+        inputGroup.remove();
+        console.log('Input field removed');
+    } else {
+        console.error('Could not find parent input group to remove');
+    }
+}
+</script>
