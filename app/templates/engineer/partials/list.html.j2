@@ -1,12 +1,15 @@
-<ul class="touch-friendly-list">
+<ul class="touch-friendly-list" id="itemList">
     {% for item in items %}
         <li id="{{ item_type }}-{{ item.id }}" class="list-item"
-                        hx-get="/engineer/{{ item_type.lower() }}s/{{ item.id }}/edit"
-                        hx-target="#editFormContainer"
+                        hx-get="/engineer/{{ item_type.lower() }}s/{{ item.id }}/info"
+                        hx-target="#infoContainer"
                         hx-trigger="click"
-                        onclick="openModal('edit')">
+                        onclick="openModal('info')">
             <div class="item-content">
                 <strong>{{ item.name }}</strong>
+                {# {% for field, options in filter_options.items() %}
+                    <span class="item-detail">{{ field }}: {{ item[field] }}</span>
+                {% endfor %} #}
             </div>
             <div class="item-actions">
                 <button class="action-button delete-button overlay-button"

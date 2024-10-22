@@ -1,8 +1,17 @@
 {% extends "engineer/base.html" %}
 {% block title %}{{ item_type }} Management{% endblock %}
 {% block content %}
-<h1>{{ item_type }}s</h1>
-<button id="createButton" class="btn-submit">Add New {{ item_type }}</button>
+<h1>{{ item_type.replace('_', ' ') }}s</h1>
+<button id="createButton" class="btn-submit">Add New {{ item_type.replace('_', ' ') }}</button>
+
+<div id="infoModal" class="modal">
+    <div class="modal-content">
+        <span class="close" data-modal="infoModal">&times;</span>
+        <div id="infoContainer">
+            {% include 'engineer/partials/info_modal.html.j2' with context %}
+        </div>
+    </div>
+</div>
 
 <div id="createModal" class="modal">
     <div class="modal-content">
@@ -12,18 +21,33 @@
     </div>
 </div>
 
-<div id="editModal" class="modal">
+<!-- New Filter/Edit Modal -->
+<div id="filterModal" class="modal">
     <div class="modal-content">
-        <span class="close" data-modal="editModal">&times;</span>
-        <h2>Edit {{ item_type }}</h2>
-        <div id="editFormContainer">
-            <!-- Edit form will be loaded here -->
-            {% include 'engineer/partials/data_entry_modal.html.j2' with context %}
+        <span class="close" data-modal="filterModal">&times;</span>
+        <h2>Filter {{ item_type }}s</h2>
+        <div id="filter-container" hx-get="/engineer/{{ item_type|lower() }}s/filter" hx-trigger="load">
+            <!-- Filter will be loaded here -->
         </div>
     </div>
 </div>
-<h2>{{ item_type }} List</h2>
+
+<div class="list-header">
+    <button id="filterButton" class="header-button" onclick="openModal('filter')">
+        <h2>{{ item_type.replace('_', ' ') }} List</h2>
+    </button>
+</div>
+
 <div id="{{ item_type }}-list" hx-get="/engineer/{{ item_type|lower() }}s/list" hx-trigger="load, Added from:body, Deleted from:body, Edited from:body">
     <!-- {{ item_type }} list will be loaded here -->
 </div>
+
+<script>
+function openRelatedModal(relation) {
+    console.log('Opening related modal for:', relation);
+    document.getElementById('createRelatedTitle').textContent = `Create New ${relation}`;
+    openModal('createRelated');
+}
+</script>
+
 {% endblock %}

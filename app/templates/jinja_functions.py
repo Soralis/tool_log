@@ -1,5 +1,5 @@
 from fastapi.templating import Jinja2Templates
-from typing import get_origin, get_args, Union
+from typing import get_origin, get_args, Union, List
 import datetime
 
 templates = Jinja2Templates(directory="app/templates")
@@ -14,7 +14,7 @@ def field_types(thing):
             thing = args[0]
 
     # Handle List type
-    if get_origin(thing) is list:
+    if get_origin(thing) is List:
         return "select"
 
     # Map Python types to HTML input types
