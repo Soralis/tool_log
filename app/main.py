@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from app.templates.jinja_functions import templates
 from app.database_config import init_db
 from app.router.engineer import _engineer
+from app.router import device
 
 app = FastAPI()
 
@@ -13,10 +14,16 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 init_db()
 
 # Include the routers
-app.include_router(_engineer.router, prefix="/engineer", tags=["engieer"])
+app.include_router(_engineer.router, prefix="/engineer", tags=["engineer"])
+app.include_router(device.router, prefix="/device", tags=["device-info"])
 
 
 @app.get("/")
 async def root(request: Request):
     return templates.TemplateResponse(
         request=request, name="index.html")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

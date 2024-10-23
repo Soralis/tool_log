@@ -110,7 +110,7 @@ def create_generic_router(
 
         for column in columns:
             if column.name != 'id':  # Exclude id from filters
-                if isinstance(column.type, (sqltypes.String, sqltypes.Integer, sqltypes.Enum, sqltypes.JSON, AutoString)):
+                if isinstance(column.type, (sqltypes.String, sqltypes.Integer, sqltypes.Enum, sqltypes.JSON, sqltypes.DateTime, AutoString)):
                     # Query unique values for this column
                     unique_values = session.query(func.distinct(getattr(model, column.name))).all()
                     # Flatten the result and convert to strings

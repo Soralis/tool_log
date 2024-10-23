@@ -38,6 +38,21 @@ class UserUpdate(UserBase):
     id: int
     active: bool
 
+################## LOG DEVICE ########################
+class LogDevice(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True, unique=True)
+    description: Optional[str] = None
+    ip_address: Optional[str] = None
+    port: Optional[int] = None
+    active: bool = Field(default=True, nullable=False)
+
+    machine_id: Optional[int] = Field(default=None, foreign_key="machine.id")
+    machine: Optional["Machine"] = Relationship(back_populates="log_device")
+
+class LogDeviceSetMachine(SQLModel):
+    machine_id: int
+
 
 ############# MACHINES ################
 
@@ -53,6 +68,7 @@ class MachineBase(SQLModel):
 
 class Machine(MachineBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    log_device: Optional["LogDevice"] = Relationship(back_populates="machine")
 
     tool_lifes: List["ToolLife"] = Relationship(back_populates="machine")
     recipes: List["Recipe"] = Relationship(back_populates="machine")

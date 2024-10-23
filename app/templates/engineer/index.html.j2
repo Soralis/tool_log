@@ -1,0 +1,9 @@
+{% extends "engineer/base.html" %}
+{% block title %}{{ item_type.replace('_', ' ') }} Management{% endblock %}
+{% block content %}
+<h1>Device Management</h1>
+{% if device_name %}
+    <a href="/device/getDeviceInfo" class="btn-submit" id="connectButton">Edit Device Info</a>
+{% endif %}
+<a href="/device/getDeviceInfo" class="btn-submit" id="connectButton">Edit Device Info</a>
+{% endblock %}

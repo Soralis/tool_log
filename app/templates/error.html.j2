@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ error_title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #b83232;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .error-container {
+            background-color: rgb(85, 19, 19);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            text-align: center;
+            max-width: 80%;
+        }
+        h1 {
+            color: #e74c3c;
+        }
+        p {
+            color: #c4c117;
+        }
+
+        .btn-submit {
+            display: inline-block;
+            background-color: #e74c3c;
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+        }
+        .btn-submit:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <h1>{{ error_heading }}</h1>
+        <p>{{ error_message }}</p>
+        {% if error_details %}
+            <p><small>{{ error_details }}</small></p>
+        {% endif %}
+        <a href="/engineer" class="btn-submit" id="connectButton">Ok, you got me!</a>
+    </div>
+</body>
+</html>
