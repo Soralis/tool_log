@@ -21,7 +21,7 @@ app.include_router(device.router, prefix="/device", tags=["device-info"])
 @app.get("/")
 async def root(request: Request):
     return templates.TemplateResponse(
-        request=request, name="index.html")
+        request=request, name="index.html.j2")
 
 
 if __name__ == "__main__":

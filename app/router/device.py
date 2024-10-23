@@ -20,7 +20,7 @@ async def root(request: Request):
 
     # Device name must be set like this:
     # --header="X-Device-Name: RaspberryPi1"
-    device_name = request.headers.get("X-Device-Name", False)
+    device_name = request.headers.get("X-Device-ID")
     if not device_name:
         return templates.TemplateResponse(
             request=request,
@@ -92,7 +92,7 @@ async def root(request: Request):
 
 @router.post("/setMachine")
 async def set_machine(request: Request, form_data: Annotated[LogDeviceSetMachine, Form()]):
-    device_name = request.headers.get("x-device-name", False)
+    device_name = request.headers.get("X-Device-ID")
     with Session(engine) as session:
         machine: Machine = session.exec(select(Machine).filter(Machine.id == form_data.machine_id)).one_or_none()
         if machine is None:
@@ -110,7 +110,7 @@ async def set_machine(request: Request, form_data: Annotated[LogDeviceSetMachine
 
 @router.post("/disconnectMachine")
 async def disconnect_machine(request: Request):
-    device_name = request.headers.get("x-device-name", False)
+    device_name = request.headers.get("X-Device-ID")
     if not device_name:
         return {"message": "This Page can only be viewed on a named Log Device - but a name was not provided"}
     

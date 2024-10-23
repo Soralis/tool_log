@@ -1,0 +1,32 @@
+{% extends "base.html.j2" %}
+
+{% block title %}{{ item_type.replace('_', ' ') }} Management{% endblock %}
+
+{% block extra_head %}
+    <!-- Add any additional head content specific to engineer pages here -->
+{% endblock %}
+
+{% block body %}
+    <nav class="burger-menu">
+        <div class="burger-icon" onclick="toggleMenu()">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
+        <ul class="menu-items">
+            <li><a href="/">Home</a></li>
+            <li><a href="/engineer/change_overs/">Changeovers</a></li>
+            <li><a href="/engineer/machines/">Machines</a></li>
+            <li><a href="/engineer/manufacturers/">Manufacturers</a></li>
+            <li><a href="/engineer/recipes/">Recipes</a></li>
+            <li><a href="/engineer/tools/">Tools</a></li>
+            <li><a href="/engineer/tool_lifes/">Tool Lifes</a></li>
+            <li><a href="/engineer/tool_orders/">Tool Orders</a></li>
+            <li><a href="/engineer/users/">Users</a></li>
+            <!-- Add more menu items here as needed -->
+        </ul>
+    </nav>
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+{% endblock %}
