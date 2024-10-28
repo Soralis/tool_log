@@ -6,7 +6,12 @@ from sqlmodel.sql.sqltypes import AutoString
 from sqlalchemy.orm.collections import InstrumentedList
 from app.database_config import engine
 from app.templates.jinja_functions import templates
-from app.models.models import Manufacturer, Machine, User, Tool, ToolLife, Recipe
+from app.models.manufacturer import Manufacturer
+from app.models.machine import Machine
+from app.models.user import User
+from app.models.tool import Tool
+from app.models.tool_life import ToolLife
+from app.models.recipe import Recipe
 from typing import Annotated, Type, Dict, Any, get_args, get_origin, List
 
 # Create a mapping of string names to SQLModel classes

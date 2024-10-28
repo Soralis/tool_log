@@ -1,0 +1,42 @@
+{% extends "base.html.j2" %}
+
+{% block title %}Operator Login{% endblock %}
+
+{% block body %}
+<div class="login-container">
+    <h2>Operator Login</h2>
+    <form id="login-form" hx-post="/authenticateOperator" hx-swap="outerHTML">
+        <div class="form-group">
+            <label for="initials">Initials:</label>
+            <input type="text" id="initials" name="initials" required>
+        </div>
+        <div class="form-group">
+            <label for="pin">PIN:</label>
+            <input type="password" id="pin" name="pin" required>
+        </div>
+        <button type="submit" class="btn-submit">Login</button>
+    </form>
+    <div id="login-error" class="error-message" style="display: none;"></div>
+</div>
+
+<script>
+    document.body.addEventListener('htmx:responseError', function(evt) {
+        const errorDiv = document.getElementById('login-error');
+        errorDiv.textContent = 'Login failed. Please check your initials and PIN.';
+        errorDiv.style.display = 'block';
+    });
+
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.successful) {
+            try {
+                const response = JSON.parse(evt.detail.xhr.response);
+                if (response.redirect) {
+                    window.location.href = response.redirect;
+                }
+            } catch (error) {
+                console.error('Error parsing JSON response:', error);
+            }
+        }
+    });
+</script>
+{% endblock %}

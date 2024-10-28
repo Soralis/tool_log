@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Request
 from app.templates.jinja_functions import templates
-from app.models.models import User, UserCreate, UserUpdate, UserRole
-from app.models.models import Machine, MachineCreate, MachineUpdate
-from app.models.models import Manufacturer, ManufacturerCreate, ManufacturerUpdate
-from app.models.models import Tool, ToolCreate, ToolUpdate, ToolType
-from app.models.models import ToolOrder, ToolOrderCreate, ToolOrderUpdate
-from app.models.models import Recipe, RecipeCreate, RecipeUpdate
-from app.models.models import ToolLife, ToolLifeCreate, ChangeReasons
-from app.models.models import ChangeOver, ChangeOverCreate
+from app.models.user import User, UserCreate, UserUpdate, UserRole
+from app.models.machine import Machine, MachineCreate, MachineUpdate
+from app.models.manufacturer import Manufacturer, ManufacturerCreate, ManufacturerUpdate
+from app.models.tool import Tool, ToolCreate, ToolUpdate, ToolType
+from app.models.tool_order import ToolOrder, ToolOrderCreate, ToolOrderUpdate
+from app.models.recipe import Recipe, RecipeCreate, RecipeUpdate
+from app.models.tool_life import ToolLife, ToolLifeCreate, ChangeReasons
+from app.models.change_over import ChangeOver, ChangeOverCreate
 from .generic_router import create_generic_router
 
 router = APIRouter()
@@ -36,14 +36,12 @@ router.include_router(change_over_router, prefix="/change_overs", tags=["change_
 
 @router.get("/")
 async def root(request: Request):
-    device_name = request.headers.get("x-device-name", None)
     return templates.TemplateResponse(
         request=request,
         name="engineer/index.html.j2",
         context= {
             'item_type': 'Device',
-        },
-        device_name=device_name
+        }
     )
 
 

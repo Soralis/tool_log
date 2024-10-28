@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import HTTPException
 from app.models.models import LogDevice, LogDeviceSetMachine, Machine
 from sqlmodel import Session, select
 from typing import Annotated
@@ -18,10 +19,8 @@ async def root(request: Request):
         'list_relationships': []
     }
 
-    # Device name must be set like this:
-    # --header="X-Device-Name: RaspberryPi1"
-    device_name = request.headers.get("X-Device-ID")
-    if not device_name:
+    device_token = request.cookies.get("device_token")
+    if not device_token:
         return templates.TemplateResponse(
             request=request,
             name="error.html.j2",
@@ -33,16 +32,17 @@ async def root(request: Request):
             }
         )
 
-    statement = select(LogDevice).where(LogDevice.name == device_name)
+    statement = select(LogDevice).where(LogDevice.token == device_token)
     with Session(engine) as session:
         log_device = session.exec(statement).one_or_none()
         
-        if not log_device and device_name:
+        if not log_device and device_token:
             # Create a new LogDevice if it doesn't exist
-            log_device = LogDevice(name=device_name)
-            session.add(log_device)
-            await session.commit()
-            await session.refresh(log_device)
+            # log_device = LogDevice(name=device_token)
+            # session.add(log_device)
+            # await session.commit()
+            # await session.refresh(log_device)
+            raise HTTPException(status_code=404, detail="Device not found")
 
         # Fetch related items
         item_dict = log_device.model_dump()

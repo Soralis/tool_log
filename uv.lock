@@ -639,6 +639,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "passlib", extra = ["bcrypt"] },
     { name = "pytest" },
+    { name = "python-dotenv" },
     { name = "python-jose", extra = ["cryptography"] },
     { name = "sqlmodel" },
 ]
@@ -647,8 +648,9 @@ dependencies = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.13.3" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.2" },
-    { name = "passlib", extras = ["bcrypt"] },
+    { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
     { name = "pytest", specifier = ">=8.3.3" },
+    { name = "python-dotenv" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3.0" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
 ]
