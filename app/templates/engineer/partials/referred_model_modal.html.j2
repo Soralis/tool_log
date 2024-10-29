@@ -1,0 +1,14 @@
+<form id="referredModelForm" data-field-name="{{ field_name }}" onsubmit="event.preventDefault(); storeReferredModel(this);">
+    {% for field_name, field in model.model_fields.items() %}
+        {% if field_name != "id" and not field_name.endswith('_id') %}
+            <div class="form-group">
+                <label for="{{ field_name }}">{{ field_name.capitalize()|replace('_', ' ') }}:</label>
+                <input type="{{ field.annotation | field_types }}"
+                       id="{{ field_name }}"
+                       name="{{ field_name }}"
+                       {% if 'required=True' in field|string %}required{% endif %}>
+            </div>
+        {% endif %}
+    {% endfor %}
+    <button type="submit" class="btn-submit">Add</button>
+</form>

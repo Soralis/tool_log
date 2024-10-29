@@ -21,6 +21,15 @@
     </div>
 </div>
 
+<!-- Add the referred model modal -->
+<div id="referredModelModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 id="referredModelTitle"></h2>
+        <form id="referredModelForm" onsubmit="event.preventDefault(); storeReferredModel(this);"></form>
+    </div>
+</div>
+
 <!-- New Filter/Edit Modal -->
 <div id="filterModal" class="modal">
     <div class="modal-content">
@@ -47,6 +56,89 @@ function openRelatedModal(relation) {
     console.log('Opening related modal for:', relation);
     document.getElementById('createRelatedTitle').textContent = `Create New ${relation}`;
     openModal('createRelated');
+}
+
+function openReferredModelModal(fieldName, modelName, sourceModalId) {
+    const modal = document.getElementById('referredModelModal');
+    const title = document.getElementById('referredModelTitle');
+    const form = document.getElementById('referredModelForm');
+
+    title.textContent = `Add ${modelName}`;
+    form.innerHTML = ''; // Clear previous content
+
+    // Fetch the form for the referred model
+    fetch(`/engineer/tools/${fieldName.toLowerCase()}/referred_form`)
+        .then(response => response.text())
+        .then(html => {
+            form.innerHTML = html;
+            form.setAttribute('data-field-name', fieldName);
+            form.setAttribute('data-source-modal', sourceModalId);
+            modal.style.display = 'block';
+        });
+}
+
+// Close the modal when clicking on <span> (x)
+document.querySelector('#referredModelModal .close').onclick = function() {
+    document.getElementById('referredModelModal').style.display = 'none';
+}
+
+// Close the modal when clicking outside of it
+window.onclick = function(event) {
+    const modal = document.getElementById('referredModelModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function storeReferredModel(form) {
+    const formData = new FormData(form);
+    const modelData = Object.fromEntries(formData.entries());
+    const fieldName = form.getAttribute('data-field-name');
+    const sourceModalId = form.getAttribute('data-source-modal');
+    console.log('Storing referred model data for field:', fieldName, 'Data:', modelData, 'Source Modal:', sourceModalId);
+    
+    // Get the current stored models or initialize an empty array
+    let storedModels = JSON.parse(localStorage.getItem(`${fieldName}_models`) || '[]');
+    
+    // Add the new model data
+    storedModels.push(modelData);
+    
+    // Store the updated array back in localStorage
+    localStorage.setItem(`${fieldName}_models`, JSON.stringify(storedModels));
+
+    // Update the main form to show the new item
+    addReferredModelToMainForm(fieldName, modelData, sourceModalId);
+    
+    // Close the referred model modal
+    document.getElementById('referredModelModal').style.display = 'none';
+    
+    // Clear the form
+    form.reset();
+}
+
+function addReferredModelToMainForm(fieldName, modelData, sourceModalId) {
+    const sourceModal = document.getElementById(sourceModalId);
+    if (!sourceModal) {
+        console.error(`Source modal ${sourceModalId} not found`);
+        return;
+    }
+
+    const container = sourceModal.querySelector(`#${fieldName}-container`);
+    if (!container) {
+        console.error(`Container for ${fieldName} not found in ${sourceModalId}`);
+        return;
+    }
+    
+    const div = document.createElement('div');
+    div.className = 'input-group mb-2';
+    div.innerHTML = `
+        <input type="text" class="form-control" value="${modelData.name || 'New item'}" readonly>
+        <input type="hidden" name="${fieldName}[]" value="${modelData.id || ''}">
+        <button type="button" class="btn-list-action btn-remove" onclick="removeListField(this)">x</button>
+    `;
+    container.appendChild(div);
+    
+    console.log('Added new item to container in', sourceModalId, ':', container);
 }
 </script>
 

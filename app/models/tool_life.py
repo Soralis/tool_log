@@ -17,7 +17,7 @@ class ToolLifeBase(SQLModel):
     channel: Optional[int] = None
     reason: Optional[ChangeReasons] = None
 
-class ToolLife(SQLModel, table=True):
+class ToolLife(ToolLifeBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     timestamp: datetime = Field(default_factory=datetime.now, nullable=False)
     tool_order_id: int = Field(foreign_key="toolorder.id")

@@ -8,11 +8,8 @@ class MachineBase(SQLModel):
     name: str = Field(index=True, unique=True)
     description: Optional[str] = None
     model: Optional[str] = Field(default=None)
-    # serial_number: Optional[str] = Field(default=None)
     manufacturer: Optional[str] = Field(default=None)
-    # purchase_date: Optional[datetime] = Field(default=None)
     channels: int = Field(gt=0)
-    positions: List[str] = Field(default=[], sa_column=Column(JSON))
 
 class Machine(MachineBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

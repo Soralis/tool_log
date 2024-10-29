@@ -5,7 +5,8 @@
       hx-post="{{ form_action }}"
       {% endif %}
       hx-swap="none"
-      {% if item %}data-machine-id="{{ item.id }}"{% endif %}>
+      {% if item %}data-machine-id="{{ item.id }}"{% endif %}
+      onsubmit="event.preventDefault(); submitMainForm(this);">
     {% for field_name, field in model.model_fields.items() %}
         {% if field_name != "id" %}
             <div class="form-group">
@@ -35,7 +36,7 @@
                     </select>
                 {% elif field_name in list_relationships %}
                     <div class="mb-3">
-                        <div id="{{ item.id if item else '' }}-{{ field_name }}-container" class="mb-2">
+                        <div id="{{ field_name }}-container" class="mb-2">
                             {% if item and item[field_name] %}
                                 {% for related_item in item[field_name] %}
                                     <div class="input-group mb-2">
@@ -49,22 +50,15 @@
                                         <button type="button" class="btn-list-action btn-remove" onclick="removeListField(this)">x</button>
                                     </div>
                                 {% endfor %}
-                            {% else %}
-                                <div class="input-group mb-2">
-                                    <select class="form-control" name="{{ field_name }}[]">
-                                        {% for option in relationship_options[field_name] %}
-                                            <option value="{{ option.id }}">{{ option.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    <button type="button" class="btn-list-action btn-remove" onclick="removeListField(this)">x</button>
-                                </div>
                             {% endif %}
                         </div>
-                        <button type="button" class="btn-add-field" onclick="addListRelationshipField('{{ item.id if item else '' }}-{{ field_name }}-container', '{{ field_name }}')">Add {{ field_name.capitalize()|replace('_', ' ') }}</button>
+                        {% if field_name in referred_models %}
+                            <button type="button" class="btn-add-new" onclick="openReferredModelModal('{{ field_name }}', '{{ referred_models[field_name].name }}', '{{ 'createModal' if not item else 'infoModal' }}')">Add {{ referred_models[field_name].name }}</button>
+                        {% endif %}
                     </div>
                 {% elif field.annotation | field_types == 'select' %}
                     <div class="mb-3">
-                        <div id="{{ item.id if item else '' }}-{{ field_name }}-container" class="mb-2">
+                        <div id="{{ item.id if item else '' }}-{{ field_name }}-container-Gay2" class="mb-2">
                             {% if item and item[field_name] %}
                                 {% for value in item[field_name] %}
                                     <div class="input-group mb-2">
@@ -79,7 +73,7 @@
                                 </div>
                             {% endif %}
                         </div>
-                        <button type="button" class="btn-add-field" onclick="addListField('{{ item.id if item else '' }}-{{ field_name }}-container', '{{ field_name }}')">Add {{ field_name.capitalize()|replace('_', ' ') }}</button>
+                        <button type="button" class="btn-add-field" onclick="addListField('{{ item.id if item else '' }}-{{ field_name }}-container-Gay3', '{{ field_name }}')">Add {{ field_name.capitalize()|replace('_', ' ') }}</button>
                     </div>
                 {% else %}
                     {% if field.annotation | field_types == 'checkbox' %}
@@ -139,7 +133,7 @@ function addListField(containerId, fieldName) {
     console.log(`New input field added to ${containerId}`);
 }
 
-function addListRelationshipField(containerId, fieldName) {
+{# function addListRelationshipField(containerId, fieldName) {
     const container = document.getElementById(containerId);
     if (!container) {
         console.error(`Container with id "${containerId}" not found`);
@@ -172,7 +166,7 @@ function addListRelationshipField(containerId, fieldName) {
     
     container.appendChild(inputGroup);
     console.log(`New relationship field added to ${containerId}`);
-}
+} #}
 
 // Function to remove a list field input
 function removeListField(button) {
@@ -183,5 +177,66 @@ function removeListField(button) {
     } else {
         console.error('Could not find parent input group to remove');
     }
+}
+
+{# function addReferredModel(fieldName, modelData) {
+    const container = document.getElementById(`${fieldName}-container-Gay1`);
+    const select = container.querySelector('select');
+    
+    if (select) {
+        const option = document.createElement('option');
+        option.value = modelData.id;
+        option.textContent = modelData.name;
+        option.selected = true;
+        select.appendChild(option);
+    } else {
+        addListRelationshipField(`-${fieldName}-container-Gay3`, fieldName);
+        const newSelect = container.querySelector('select:last-child');
+        if (newSelect) {
+            const option = document.createElement('option');
+            option.value = modelData.id;
+            option.textContent = modelData.name;
+            option.selected = true;
+            newSelect.appendChild(option);
+        }
+    }
+
+    // Close the referred model modal
+    document.getElementById('referredModelModal').style.display = 'none';
+} #}
+
+function submitMainForm(form) {
+    const formData = new FormData(form);
+    console.log('formData: submitting...')
+    // Add stored referred models to the form data
+    {% for field_name in list_relationships %}
+    console.log('checking local storage for: ', '{{ field_name }}_models')
+        if ('{{ field_name }}_models' in localStorage) {
+            console.log('found fieldname in storage')
+            const storedModels = JSON.parse(localStorage.getItem('{{ field_name }}_models') || '[]');
+            formData.append('{{ field_name }}_new', JSON.stringify(storedModels));
+        }
+    {% endfor %}
+    
+    fetch(form.getAttribute('hx-post') || form.getAttribute('hx-put'), {
+        method: form.getAttribute('hx-post') ? 'POST' : 'PUT',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            alert(data.message);
+            // Clear stored models after successful submission
+            {% for field_name in list_relationships %}
+                localStorage.removeItem('{{ field_name }}_models');
+            {% endfor %}
+            // Refresh the page or update the UI as needed
+        } else {
+            console.error('Invalid response from server');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
 }
 </script>

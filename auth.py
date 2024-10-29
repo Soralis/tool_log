@@ -4,7 +4,8 @@ from sqlmodel import Session, select
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from app.database_config import get_db
-from app.models.models import LogDevice, User, UserRole
+from app.models import LogDevice
+from app.models import User, UserRole
 from dotenv import dotenv_values
 
 env = dotenv_values('.env')
@@ -80,11 +81,11 @@ async def authenticate_or_create_device(device_name: str, db: Session = Depends(
 async def authenticate_operator(initials: str, pin: str, db: Session = Depends(get_db)):
     operator = db.exec(select(User).where(User.initials == initials, User.pin == pin)).one_or_none()
     if operator is None:
-        # operator = User(initials=initials, pin=pin, role=UserRole.ENGINEER, name='Christopher Kunde')
-        # db.add(operator)
-        # db.commit()
-        # db.refresh(operator)
-        raise HTTPException(status_code=401, detail="Invalid initials or PIN")
+        operator = User(initials=initials, pin=pin, role=UserRole.ENGINEER, name='Christopher Kunde')
+        db.add(operator)
+        db.commit()
+        db.refresh(operator)
+        # raise HTTPException(status_code=401, detail="Invalid initials or PIN")
     
     access_token, expire = create_token(
         data={"sub": operator.pin},

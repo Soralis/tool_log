@@ -8,7 +8,7 @@ from app.templates.jinja_functions import templates
 from app.database_config import init_db, get_db
 from app.router.engineer import _engineer
 from app.router import device
-from auth import authenticate_or_create_device, authenticate_operator, get_current_device, get_current_operator
+from auth import authenticate_or_create_device, authenticate_operator, get_current_operator
 
 app = FastAPI()
 
