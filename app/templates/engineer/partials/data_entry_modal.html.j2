@@ -1,12 +1,12 @@
 <form id="{{ form_id }}" 
       {% if item %}
-      hx-put="{{ form_action }}/{{ item.id }}"
+      hx-put="{{ form_action }}/{{ item.id }}/"
       {% else %}
-      hx-post="{{ form_action }}"
+      hx-post="{{ form_action }}/"
       {% endif %}
       hx-swap="none"
       {% if item %}data-machine-id="{{ item.id }}"{% endif %}
-      onsubmit="event.preventDefault(); submitMainForm(this);">
+      >
     {% for field_name, field in model.model_fields.items() %}
         {% if field_name != "id" %}
             <div class="form-group">
@@ -97,7 +97,7 @@
     {% if item %}
     <input type="hidden" name="id" value="{{ item.id }}">
     {% endif %}
-    <button type="submit" class="btn-submit">{{ submit_text if submit_text else 'Add' }}</button>
+    <button type="submit" class="btn-submit" onclick="event.preventDefault(); submitMainForm(this.form);">{{ submit_text if submit_text else 'Add' }}</button>
 </form>
 
 {% block content %}
@@ -179,35 +179,8 @@ function removeListField(button) {
     }
 }
 
-{# function addReferredModel(fieldName, modelData) {
-    const container = document.getElementById(`${fieldName}-container-Gay1`);
-    const select = container.querySelector('select');
-    
-    if (select) {
-        const option = document.createElement('option');
-        option.value = modelData.id;
-        option.textContent = modelData.name;
-        option.selected = true;
-        select.appendChild(option);
-    } else {
-        addListRelationshipField(`-${fieldName}-container-Gay3`, fieldName);
-        const newSelect = container.querySelector('select:last-child');
-        if (newSelect) {
-            const option = document.createElement('option');
-            option.value = modelData.id;
-            option.textContent = modelData.name;
-            option.selected = true;
-            newSelect.appendChild(option);
-        }
-    }
-
-    // Close the referred model modal
-    document.getElementById('referredModelModal').style.display = 'none';
-} #}
-
 function submitMainForm(form) {
     const formData = new FormData(form);
-    console.log('formData: submitting...')
     // Add stored referred models to the form data
     {% for field_name in list_relationships %}
     console.log('checking local storage for: ', '{{ field_name }}_models')
@@ -225,12 +198,24 @@ function submitMainForm(form) {
     .then(response => response.json())
     .then(data => {
         if (data.message) {
-            alert(data.message);
             // Clear stored models after successful submission
+            console.log('looking for shit in local storage ...')
             {% for field_name in list_relationships %}
+                console.log('removing local storage for: ', '{{ field_name }}_models')
                 localStorage.removeItem('{{ field_name }}_models');
             {% endfor %}
-            // Refresh the page or update the UI as needed
+            alert(data.message);
+            // Close the modal
+            const modal = form.closest('.modal');
+            if (modal) {
+                modal.style.display = 'none';
+                console.log('Modal closed');
+            } else {
+                console.error('Modal element not found');
+            }
+
+            // Trigger a custom event to refresh the list
+            document.body.dispatchEvent(new Event('Added'));
         } else {
             console.error('Invalid response from server');
         }
@@ -239,4 +224,7 @@ function submitMainForm(form) {
         console.error('Error:', error);
     });
 }
+
+
+
 </script>

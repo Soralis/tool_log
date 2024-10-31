@@ -12,6 +12,13 @@ from auth import authenticate_or_create_device, authenticate_operator, get_curre
 
 app = FastAPI()
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"Request received: {request.method} {request.url}")
+    response = await call_next(request)
+    print(f"Response status: {response.status_code}")
+    return response
+
 # Add this right after creating the FastAPI app instance
 app.add_middleware(
     CORSMiddleware,

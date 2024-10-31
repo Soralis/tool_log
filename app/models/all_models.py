@@ -6,7 +6,6 @@ from datetime import datetime
 
 
 #################### CHANGE OVERS ########################
-
 class ChangeOverBase(SQLModel):
     machine_id: int = Field(foreign_key="machine.id")
     recipe_id: int = Field(foreign_key="recipe.id")
@@ -41,7 +40,6 @@ class LogDeviceSetMachine(SQLModel):
     machine_id: int
 
 ############# MACHINES ################
-
 class MachineBase(SQLModel):
     name: str = Field(index=True, unique=True)
     description: Optional[str] = None
@@ -70,7 +68,6 @@ class MachineRead(MachineBase):
 
 
 ###### MANUFACTURER #######
-
 class ManufacturerBase(SQLModel):
     name: str = Field(index=True, unique=True)
     description: Optional[str] = None
@@ -98,7 +95,6 @@ class RecipeTool(SQLModel, table=True):
 
 
 ############## RECIPES #################
-
 class RecipeBase(SQLModel):
     name: str = Field(index=True)
     description: Optional[str] = None
@@ -170,16 +166,10 @@ class Token(SQLModel):
 
 
 ############# TOOLLIFES ################
-class ChangeReasons(str, Enum):
-    BROKEN = "Broken"
-    BURR = "Burr"
-    SPINDLE_LOAD = "Spindle Load"
-
 class ToolLifeBase(SQLModel):
     pieces_machined: Optional[int] = None
     spindle_load: Optional[float] = None
     channel: Optional[int] = None
-    reason: Optional[ChangeReasons] = None
 
 class ToolLife(ToolLifeBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -190,12 +180,14 @@ class ToolLife(ToolLifeBase, table=True):
     machine_id: int = Field(foreign_key="machine.id")
     tool_id: int = Field(foreign_key="tool.id")
     recipe_id: int = Field(foreign_key="recipe.id")
+    change_reason_id: int = Field(foreign_key="changereason.id")
 
     creator: "User" = Relationship(back_populates="tool_lifes")
     machine: "Machine" = Relationship(back_populates="tool_lifes")
     tool: "Tool" = Relationship(back_populates="tool_lifes")
     recipe: "Recipe" = Relationship(back_populates="tool_lifes")
     tool_order: "ToolOrder" = Relationship(back_populates="tool_lifes")
+    change_reason: "ChangeReason" = Relationship(back_populates="tool_lifes")
 
 class ToolLifeCreate(ToolLifeBase):
     pass
@@ -226,35 +218,61 @@ class ToolOrderUpdate(ToolOrderBase):
     delivery_date: Optional[datetime] = Field(default=None)
 
 
-############# TOOLS ################
+############# TOOL TYPE ##############
+class ToolTypeBase(SQLModel):
+    type: str = Field(index=True)
+    perishable: bool = Field(default=True)
 
-class ToolType(str, Enum):
-    MILL = "Mill"
-    DRILL = "Drill"
-    LATHE = "Lathe"
-    BRUSH = "Brush"
-    OTHER = "Other"
+class ToolType(ToolTypeBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    active: bool = Field(default=True, nullable=False)
+
+    tool_attributes: List["ToolAttribute"] = Relationship(back_populates="tool_type")
+    change_reasons: List["ChangeReason"] = Relationship(back_populates="tool_type")
+    tools: List["Tool"] = Relationship(back_populates="tool_type")
+
+class ToolTypeCreate(ToolTypeBase):
+    change_reasons: List["ChangeReason"] = []
+    tool_attributes: List["ToolAttribute"] = []
+
+############# TOOLS ################
+class ChangeReasonBase(SQLModel):
+    name: str = Field(index=True)
+
+class ChangeReason(ChangeReasonBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    active: bool = Field(default=True, nullable=False)
+
+    tool_type_id: int = Field(foreign_key="tooltype.id")
+    tool_type: "ToolType" = Relationship(back_populates="change_reasons")
+
+    tool_lifes: List["ToolLife"] = Relationship(back_populates="change_reason")
+
+class ChangeReasonCreate(ChangeReasonBase):
+    pass
+
 
 class ToolBase(SQLModel):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True, unique=True)
     description: Optional[str] = None
-    tool_type: ToolType
-    perishable: bool = Field(default=True)
+    tool_type_id: int = Field(foreign_key="tooltype.id")
     manufacturer_id: int = Field(foreign_key="manufacturer.id")
+
 
 class Tool(ToolBase, table=True):
     manufacturer: "Manufacturer" = Relationship(back_populates="tools")
+    tool_type: "ToolType" = Relationship(back_populates="tools")
     active: bool = Field(default=True, nullable=False)
     recipes: List["Recipe"] = Relationship(back_populates="tools", link_model=RecipeTool)
     tool_settings: List["ToolSettings"] = Relationship(back_populates="tool")
     tool_lifes: List["ToolLife"] = Relationship(back_populates="tool")
     tool_orders: List["ToolOrder"] = Relationship(back_populates="tool")
     tool_positions: List["ToolPosition"] = Relationship(back_populates="tool")
-    tool_attributes: List["ToolAttribute"] = Relationship(back_populates="tool")
+    
     
 class ToolCreate(ToolBase):
-    tool_attributes: List["ToolAttribute"] = []
+    pass
 
 class ToolUpdate(ToolCreate):
     id: int
@@ -265,13 +283,13 @@ class ToolAttribute(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     unit: str
-    tool_id: int = Field(foreign_key="tool.id")
-    tool: "Tool" = Relationship(back_populates="tool_attributes")
+    tool_type_id: int = Field(foreign_key="tooltype.id", ondelete='CASCADE')
+    tool_type: "ToolType" = Relationship(back_populates="tool_attributes")
 
 class ToolAttributeCreate(SQLModel):
     name: str
     unit: str
-    tool_id: int
+    tool_type_id: int
 
 ############# USERS ################
 class UserRole(str, Enum):
@@ -313,7 +331,9 @@ class UserUpdate(UserBase):
 ################# WORKPIECE #####################
 class WorkpieceBase(SQLModel):
     name: str
-    description: str
+    description: Optional[str] = None
+    material: Optional[str] = None
+    dimensions: Optional[str] = None
 
 class Workpiece(WorkpieceBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -321,5 +341,8 @@ class Workpiece(WorkpieceBase, table=True):
     recipes: List["Recipe"] = Relationship(back_populates="workpiece")
 
 
-class WorkPieceCreate(WorkpieceBase):
+class WorkpieceCreate(WorkpieceBase):
     pass
+
+class WorkpieceUpdate(WorkpieceCreate):
+    id: int

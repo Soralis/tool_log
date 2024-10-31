@@ -13,6 +13,7 @@ from app.models import Machine, MachineCreate
 from app.models import User, UserCreate
 from app.models import Tool, ToolCreate, ToolAttribute, ToolAttributeCreate
 from app.models import ToolLife, ToolLifeCreate
+from app.models import ToolType, ToolTypeCreate
 from app.models import Recipe, RecipeCreate
 from typing import Annotated, Type, Dict, Any, ForwardRef, get_origin, get_args
 
@@ -24,6 +25,7 @@ model_mapping = {
     'tool': {"model": Tool, "create": ToolCreate},
     'toollife': {"model": ToolLife, "create": ToolLifeCreate},
     'toolattribute': {"model": ToolAttribute, "create": ToolAttributeCreate},
+    'tooltype': {"model": ToolType, "create": ToolTypeCreate},
     'recipe': {"model": Recipe, "create": RecipeCreate}
     # Add other mappings as needed
 }
@@ -78,7 +80,7 @@ def create_generic_router(
                                 'name': related_model.__name__
                             }
                     elif field_name.endswith('_id'):
-                        related_model_name = field_name[:-3].capitalize()
+                        related_model_name = ''.join(word.capitalize() for word in field_name[:-3].split('_'))
                         related_model = globals().get(related_model_name)
                         if related_model:
                             related_items = session.exec(select(related_model)).all()
@@ -229,8 +231,9 @@ def create_generic_router(
                 context=context
             )
 
-    @router.post("/")
+    @router.post("/", response_class=JSONResponse)
     async def create_item(request: Request):
+        
         form_data = await request.form()
         form_dict: Dict[str, Any] = {}
         references_dict: Dict[str, Any] = {}
@@ -314,6 +317,7 @@ def create_generic_router(
 
     @router.delete("/{item_id}")
     def delete_item(item_id: int):
+        print('delete item was called')
         statement = select(model).where(model.id == item_id)
         with Session(engine) as session:
             results = session.exec(statement)

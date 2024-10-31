@@ -242,6 +242,20 @@ textarea {
     background-color: #3498db;
 }
 
+.btn-add-new {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 15px;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-add-new:hover {
+    background-color: #2ecc71;
+}
+
 /* Filter styles */
 .filter-container {
     background-color: #34495e;
@@ -805,8 +819,7 @@ textarea {
         margin: 30px;
         padding: 20px;
         border: none;
-        border-radius: 0;
-        height: 100vh;
+        height: 87vh;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -899,6 +912,10 @@ textarea {
     .btn-submit {
         padding: 12px 15px;
         font-size: 16px;
+    }
+    .btn-add-new {
+        padding: 12px 15px;
+        font-size: 14px;
     }
 
     .form-group {

@@ -1,241 +1,186 @@
 <!-- templates/home.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recipe Creator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-        .modal-content {
-            background-color: #1e1e1e;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-        }
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close:hover,
-        .close:focus {
-            color: #fff;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        input, select, button {
-            margin: 10px 0;
-            padding: 5px;
-            background-color: #333;
-            color: #fff;
-            border: 1px solid #555;
-        }
-        button {
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #555;
-        }
-    </style>
-</head>
-<body>
-    <h1>Recipe Creator</h1>
-    <button id="createRecipeBtn">Create Recipe</button>
+{% extends "engineer/base.html.j2" %}
+{% block title %}{{ item_type }}Recipe Creator{% endblock %}
 
-    <div id="recipeModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Create Recipe</h2>
-            <form id="recipeForm">
-                <label for="name">Name:</label>
-                <input type="text" id="name" name="name" required>
-                
-                <label for="description">Description:</label>
-                <textarea id="description" name="description"></textarea>
-                
-                <label for="workpiece">Workpiece:</label>
-                <select id="workpiece" name="workpiece_id" required>
-                    <option value="">Select Workpiece</option>
-                </select>
-                
-                <label for="machine">Machine:</label>
-                <select id="machine" name="machine_id" required>
-                    <option value="">Select Machine</option>
-                </select>
-                
-                <h3>Tool Positions</h3>
-                <div id="toolPositions"></div>
-                <button type="button" id="addToolPositionBtn">Add Tool Position</button>
-                
-                <button type="submit">Create Recipe</button>
-            </form>
-        </div>
+{% block content %}
+<h1>Recipe Creator</h1>
+<button id="createRecipeBtn" class="btn-submit">Create Recipe</button>
+
+<div id="recipeModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Create Recipe</h2>
+        <form id="recipeForm">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required>
+            
+            <label for="description">Description:</label>
+            <textarea id="description" name="description"></textarea>
+            
+            <label for="workpiece">Workpiece:</label>
+            <select id="workpiece" name="workpiece_id" required>
+                <option value="">Select Workpiece</option>
+            </select>
+            
+            <label for="machine">Machine:</label>
+            <select id="machine" name="machine_id" required>
+                <option value="">Select Machine</option>
+            </select>
+            
+            <h3>Tool Positions</h3>
+            <div id="toolPositions"></div>
+            <button type="button"  class="btn-add-new" id="addToolPositionBtn">Add Tool Position</button>
+            
+            <button type="submit"  class="btn-submit">Create Recipe</button>
+        </form>
     </div>
+</div>
 
-    <div id="toolPositionModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Create Tool Position</h2>
-            <form id="toolPositionForm">
-                <label for="tpName">Name:</label>
-                <input type="text" id="tpName" name="name" required>
-                
-                <label for="tool">Tool:</label>
-                <select id="tool" name="tool_id" required>
-                    <option value="">Select Tool</option>
-                </select>
-                
-                <h3>Tool Settings</h3>
-                <div id="toolSettings"></div>
-                <button type="button" id="addToolSettingBtn">Add Tool Setting</button>
-                
-                <h3>Tool Life Expectancy</h3>
-                <label for="expectedLife">Expected Life:</label>
-                <input type="number" id="expectedLife" name="expected_life" required>
-                
-                <button type="submit">Add Tool Position</button>
-            </form>
-        </div>
+<div id="toolPositionModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Create Tool Position</h2>
+        <form id="toolPositionForm">
+            <label for="tpName">Name:</label>
+            <input type="text" id="tpName" name="name" required>
+            
+            <label for="tool">Tool:</label>
+            <select id="tool" name="tool_id" required>
+                <option value="">Select Tool</option>
+            </select>
+            
+            <h3>Tool Settings</h3>
+            <div id="toolSettings"></div>
+            <button type="button" id="addToolSettingBtn">Add Tool Setting</button>
+            
+            <h3>Tool Life Expectancy</h3>
+            <label for="expectedLife">Expected Life:</label>
+            <input type="number" id="expectedLife" name="expected_life" required>
+            
+            <button type="submit">Add Tool Position</button>
+        </form>
     </div>
+</div>
 
-    <script>
-        // JavaScript code for handling modals, form submissions, and API calls
-        const createRecipeBtn = document.getElementById('createRecipeBtn');
-        const recipeModal = document.getElementById('recipeModal');
-        const toolPositionModal = document.getElementById('toolPositionModal');
-        const closeButtons = document.getElementsByClassName('close');
-        const addToolPositionBtn = document.getElementById('addToolPositionBtn');
-        const addToolSettingBtn = document.getElementById('addToolSettingBtn');
-        const recipeForm = document.getElementById('recipeForm');
-        const toolPositionForm = document.getElementById('toolPositionForm');
-        const toolPositions = document.getElementById('toolPositions');
-        const toolSettings = document.getElementById('toolSettings');
+<script>
+    // JavaScript code for handling modals, form submissions, and API calls
+    const createRecipeBtn = document.getElementById('createRecipeBtn');
+    const recipeModal = document.getElementById('recipeModal');
+    const toolPositionModal = document.getElementById('toolPositionModal');
+    const closeButtons = document.getElementsByClassName('close');
+    const addToolPositionBtn = document.getElementById('addToolPositionBtn');
+    const addToolSettingBtn = document.getElementById('addToolSettingBtn');
+    const recipeForm = document.getElementById('recipeForm');
+    const toolPositionForm = document.getElementById('toolPositionForm');
+    const toolPositions = document.getElementById('toolPositions');
+    const toolSettings = document.getElementById('toolSettings');
 
-        createRecipeBtn.onclick = () => recipeModal.style.display = 'block';
-        addToolPositionBtn.onclick = () => toolPositionModal.style.display = 'block';
+    createRecipeBtn.onclick = () => recipeModal.style.display = 'block';
+    addToolPositionBtn.onclick = () => toolPositionModal.style.display = 'block';
 
-        for (let closeButton of closeButtons) {
-            closeButton.onclick = function() {
-                this.parentElement.parentElement.style.display = 'none';
-            }
+    for (let closeButton of closeButtons) {
+        closeButton.onclick = function() {
+            this.parentElement.parentElement.style.display = 'none';
         }
+    }
 
-        window.onclick = (event) => {
-            if (event.target == recipeModal || event.target == toolPositionModal) {
-                event.target.style.display = 'none';
-            }
+    window.onclick = (event) => {
+        if (event.target == recipeModal || event.target == toolPositionModal) {
+            event.target.style.display = 'none';
         }
+    }
 
-        // Function to fetch data for dropdowns
-        async function fetchDropdownData(url, selectElement) {
-            const response = await fetch(url);
-            const data = await response.json();
-            data.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.id;
-                option.textContent = item.name;
-                selectElement.appendChild(option);
+    // Function to fetch data for dropdowns
+    async function fetchDropdownData(url, selectElement) {
+        const response = await fetch(url);
+        const data = await response.json();
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = item.name;
+            selectElement.appendChild(option);
+        });
+    }
+
+    // Populate dropdowns
+    fetchDropdownData('/engineer/recipes/workpieces', document.getElementById('workpiece'));
+    fetchDropdownData('/engineer/recipes/machines', document.getElementById('machine'));
+    fetchDropdownData('/engineer/recipes/tools', document.getElementById('tool'));
+
+    // Handle adding tool settings
+    addToolSettingBtn.onclick = () => {
+        const settingDiv = document.createElement('div');
+        settingDiv.innerHTML = `
+            <label for="tsName">Name:</label>
+            <input type="text" name="tsName" required>
+            <label for="tsValues">Values:</label>
+            <input type="text" name="tsValues" required>
+        `;
+        toolSettings.appendChild(settingDiv);
+    }
+
+    // Handle adding tool positions
+    toolPositionForm.onsubmit = (e) => {
+        e.preventDefault();
+        const toolPositionDiv = document.createElement('div');
+        toolPositionDiv.innerHTML = `
+            <h4>${e.target.tpName.value}</h4>
+            <p>Tool: ${e.target.tool.options[e.target.tool.selectedIndex].text}</p>
+            <p>Expected Life: ${e.target.expectedLife.value}</p>
+        `;
+        toolPositions.appendChild(toolPositionDiv);
+        toolPositionModal.style.display = 'none';
+        toolPositionForm.reset();
+    }
+
+    // Handle recipe form submission
+    recipeForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const recipe = {
+            name: formData.get('name'),
+            description: formData.get('description'),
+            workpiece_id: parseInt(formData.get('workpiece_id')),
+            machine_id: parseInt(formData.get('machine_id')),
+        };
+        const toolPositions = Array.from(document.querySelectorAll('#toolPositions > div')).map(tp => ({
+            name: tp.querySelector('h4').textContent,
+            tool_id: parseInt(tp.querySelector('p').textContent.split(':')[1].trim()),
+        }));
+        const toolSettings = Array.from(document.querySelectorAll('#toolSettings > div')).map(ts => ({
+            name: ts.querySelector('input[name="tsName"]').value,
+            values: ts.querySelector('input[name="tsValues"]').value,
+        }));
+        const toolLifeExpectancies = Array.from(document.querySelectorAll('#toolPositions > div')).map(tp => ({
+            expected_life: parseInt(tp.querySelectorAll('p')[1].textContent.split(':')[1].trim()),
+        }));
+
+        try {
+            const response = await fetch('/recipe/recipes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    recipe,
+                    tool_positions: toolPositions,
+                    tool_settings: toolSettings,
+                    tool_life_expectancies: toolLifeExpectancies,
+                }),
             });
-        }
-
-        // Populate dropdowns
-        fetchDropdownData('/engineer/recipes/workpieces', document.getElementById('workpiece'));
-        fetchDropdownData('/engineer/recipes/machines', document.getElementById('machine'));
-        fetchDropdownData('/engineer/recipes/tools', document.getElementById('tool'));
-
-        // Handle adding tool settings
-        addToolSettingBtn.onclick = () => {
-            const settingDiv = document.createElement('div');
-            settingDiv.innerHTML = `
-                <label for="tsName">Name:</label>
-                <input type="text" name="tsName" required>
-                <label for="tsValues">Values:</label>
-                <input type="text" name="tsValues" required>
-            `;
-            toolSettings.appendChild(settingDiv);
-        }
-
-        // Handle adding tool positions
-        toolPositionForm.onsubmit = (e) => {
-            e.preventDefault();
-            const toolPositionDiv = document.createElement('div');
-            toolPositionDiv.innerHTML = `
-                <h4>${e.target.tpName.value}</h4>
-                <p>Tool: ${e.target.tool.options[e.target.tool.selectedIndex].text}</p>
-                <p>Expected Life: ${e.target.expectedLife.value}</p>
-            `;
-            toolPositions.appendChild(toolPositionDiv);
-            toolPositionModal.style.display = 'none';
-            toolPositionForm.reset();
-        }
-
-        // Handle recipe form submission
-        recipeForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const recipe = {
-                name: formData.get('name'),
-                description: formData.get('description'),
-                workpiece_id: parseInt(formData.get('workpiece_id')),
-                machine_id: parseInt(formData.get('machine_id')),
-            };
-            const toolPositions = Array.from(document.querySelectorAll('#toolPositions > div')).map(tp => ({
-                name: tp.querySelector('h4').textContent,
-                tool_id: parseInt(tp.querySelector('p').textContent.split(':')[1].trim()),
-            }));
-            const toolSettings = Array.from(document.querySelectorAll('#toolSettings > div')).map(ts => ({
-                name: ts.querySelector('input[name="tsName"]').value,
-                values: ts.querySelector('input[name="tsValues"]').value,
-            }));
-            const toolLifeExpectancies = Array.from(document.querySelectorAll('#toolPositions > div')).map(tp => ({
-                expected_life: parseInt(tp.querySelectorAll('p')[1].textContent.split(':')[1].trim()),
-            }));
-
-            try {
-                const response = await fetch('/recipe/recipes', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        recipe,
-                        tool_positions: toolPositions,
-                        tool_settings: toolSettings,
-                        tool_life_expectancies: toolLifeExpectancies,
-                    }),
-                });
-                const result = await response.json();
-                if (response.ok) {
-                    alert('Recipe created successfully!');
-                    recipeModal.style.display = 'none';
-                    recipeForm.reset();
-                    toolPositions.innerHTML = '';
-                } else {
-                    alert('Error creating recipe: ' + result.detail);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred while creating the recipe.');
+            const result = await response.json();
+            if (response.ok) {
+                alert('Recipe created successfully!');
+                recipeModal.style.display = 'none';
+                recipeForm.reset();
+                toolPositions.innerHTML = '';
+            } else {
+                alert('Error creating recipe: ' + result.detail);
             }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while creating the recipe.');
         }
-    </script>
-</body>
-</html>
+    }
+</script>
+{% endblock %}

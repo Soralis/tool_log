@@ -8,8 +8,10 @@ from app.models import ToolAttribute, ToolAttributeCreate
 from app.models import ToolSettings, ToolSettingsCreate
 from app.models import ToolOrder, ToolOrderCreate, ToolOrderUpdate
 # from app.models import Recipe, RecipeCreate, RecipeUpdate
-from app.models import ToolLife, ToolLifeCreate, ChangeReasons
+from app.models import ToolLife, ToolLifeCreate
+from app.models import ToolType, ToolTypeCreate
 from app.models import ChangeOver, ChangeOverCreate
+from app.models import Workpiece, WorkpieceCreate
 from .generic_router import create_generic_router
 from .recipes import router as recipes_router
 
@@ -19,13 +21,15 @@ router = APIRouter()
 users_router = create_generic_router(User, UserCreate, UserUpdate, "User", {"enum_fields": {"role": UserRole}})
 machines_router = create_generic_router(Machine, MachineCreate, MachineUpdate, "Machine")
 manufacturers_router = create_generic_router(Manufacturer, ManufacturerCreate, ManufacturerUpdate, "Manufacturer")
-tools_router = create_generic_router(Tool, ToolCreate, ToolUpdate, "Tool", {"enum_fields": {"tool_type": ToolType}})
+tools_router = create_generic_router(Tool, ToolCreate, ToolUpdate, "Tool")
 tool_attributes_router = create_generic_router(ToolAttribute, ToolAttributeCreate, None, "Tool_Attribute")
 tool_settings_router = create_generic_router(ToolSettings, ToolSettingsCreate, None, "Tool_Settings")
 tool_orders_router = create_generic_router(ToolOrder, ToolOrderCreate, ToolOrderUpdate, "Tool_Order")
 # recipe_router = create_generic_router(Recipe, RecipeCreate, RecipeUpdate, "Recipe")
-tool_life_router = create_generic_router(ToolLife, ToolLifeCreate, None, "Tool_Life", {"enum_fields": {"reason": ChangeReasons}})
+tool_life_router = create_generic_router(ToolLife, ToolLifeCreate, None, "Tool_Life")
+tool_type_router = create_generic_router(ToolType, ToolTypeCreate, None, "Tool_Type")
 change_over_router = create_generic_router(ChangeOver, ChangeOverCreate, None, "Change_Over")
+workpiece_router = create_generic_router(Workpiece, WorkpieceCreate, None, "Workpiece")
 
 
 # Include the generic routers
@@ -38,7 +42,9 @@ router.include_router(tool_settings_router, prefix="/tool_settings", tags=["tool
 router.include_router(tool_orders_router, prefix="/tool_orders", tags=["tool_orders"])
 # router.include_router(recipe_router, prefix="/recipes", tags=["recipes"])
 router.include_router(tool_life_router, prefix="/tool_lifes", tags=["tool_lifes"])
+router.include_router(tool_type_router, prefix="/tool_types", tags=["tool_types"])
 router.include_router(change_over_router, prefix="/change_overs", tags=["change_overs"])
+router.include_router(workpiece_router, prefix="/workpieces", tags=["workpieces"])
 
 router.include_router(recipes_router, prefix="/recipes", tags=["recipes"])
 
