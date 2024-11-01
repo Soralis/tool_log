@@ -34,14 +34,21 @@
                             </option>
                         {% endfor %}
                     </select>
-                {% elif field_name in list_relationships %}
+                {% elif field_name in children %}
                     <div class="mb-3">
                         <div id="{{ field_name }}-container" class="mb-2">
+                            {% for child in children[field_name]['instances'] %}
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" value="{{ children[field_name]['name'] }}" readonly>
+                                    <input type="hidden" name="{{ field_name }}[]" value="{{ child['id'] }}">
+                                    <button type="button" class="btn-list-action btn-remove" onclick="removeListField(this)">x</button>
+                                </div>
+                            {% endfor %}                        
                             {% if item and item[field_name] %}
                                 {% for related_item in item[field_name] %}
                                     <div class="input-group mb-2">
                                         <select class="form-control" name="{{ field_name }}[]">
-                                            {% for option in relationship_options[field_name] %}
+                                            {% for child in children[field_name] %}
                                                 <option value="{{ option.id }}" {% if related_item.id == option.id %}selected{% endif %}>
                                                     {{ option.name }}
                                                 </option>
@@ -52,9 +59,9 @@
                                 {% endfor %}
                             {% endif %}
                         </div>
-                        {% if field_name in referred_models %}
-                            <button type="button" class="btn-add-new" onclick="openReferredModelModal('{{ field_name }}', '{{ referred_models[field_name].name }}', '{{ 'createModal' if not item else 'infoModal' }}')">Add {{ referred_models[field_name].name }}</button>
-                        {% endif %}
+                        <button type="button" 
+                        class="btn-add-new" 
+                        onclick="openReferredModelModal('{{ field_name }}', '{{ 'createModal' if not item else 'infoModal' }}')">Add {{ children[field_name].name }}</button>
                     </div>
                 {% elif field.annotation | field_types == 'select' %}
                     <div class="mb-3">
@@ -133,41 +140,6 @@ function addListField(containerId, fieldName) {
     console.log(`New input field added to ${containerId}`);
 }
 
-{# function addListRelationshipField(containerId, fieldName) {
-    const container = document.getElementById(containerId);
-    if (!container) {
-        console.error(`Container with id "${containerId}" not found`);
-        return;
-    }
-    
-    const inputGroup = document.createElement('div');
-    inputGroup.className = 'input-group mb-2';
-    
-    const select = document.createElement('select');
-    select.className = 'form-control';
-    select.name = `${fieldName}[]`;
-    
-    // Clone options from the first select in the container
-    const firstSelect = container.querySelector('select');
-    if (firstSelect) {
-        firstSelect.querySelectorAll('option').forEach(option => {
-            select.appendChild(option.cloneNode(true));
-        });
-    }
-    
-    const removeButton = document.createElement('button');
-    removeButton.type = 'button';
-    removeButton.className = 'btn-list-action btn-remove';
-    removeButton.textContent = 'x';
-    removeButton.onclick = function() { removeListField(this); };
-    
-    inputGroup.appendChild(select);
-    inputGroup.appendChild(removeButton);
-    
-    container.appendChild(inputGroup);
-    console.log(`New relationship field added to ${containerId}`);
-} #}
-
 // Function to remove a list field input
 function removeListField(button) {
     const inputGroup = button.closest('.input-group');
@@ -197,22 +169,48 @@ function submitMainForm(form) {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.message) {
+         if (data.message) {
             // Clear stored models after successful submission
             console.log('looking for shit in local storage ...')
             {% for field_name in list_relationships %}
                 console.log('removing local storage for: ', '{{ field_name }}_models')
                 localStorage.removeItem('{{ field_name }}_models');
             {% endfor %}
-            alert(data.message);
+            
+            // Clear form fields (Improved)
+            form.reset();
+            form.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea').forEach(input => {
+                input.value = '';
+            });
+            // Clear any custom select elements or other fields not cleared by form.reset()
+            form.querySelectorAll('select').forEach(select => {
+                select.selectedIndex = 0;
+            });
+            form.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
+                input.checked = false;
+            });
+
+            // Clear dynamically added list fields (Existing Code - Keep this)
+            const listContainers = form.querySelectorAll('[id$="-container"]');
+            listContainers.forEach(container => {
+                const inputs = container.querySelectorAll('.input-group');
+                inputs.forEach((input, index) => {
+                    if (index > 0) { // Keep the first input, remove others
+                        input.remove();
+                    } else { // Clear the value of the first input
+                        const field = input.querySelector('input, select');
+                        if (field) {
+                            field.value = ''; // or field.value = field.defaultValue; to reset to defaults
+                        }
+                    }
+
+                });
+            });
+
+            showToast(data.message);
             // Close the modal
-            const modal = form.closest('.modal');
-            if (modal) {
-                modal.style.display = 'none';
-                console.log('Modal closed');
-            } else {
-                console.error('Modal element not found');
-            }
+            const modalId = form.closest('.modal').id;
+            closeModal(modalId);
 
             // Trigger a custom event to refresh the list
             document.body.dispatchEvent(new Event('Added'));
@@ -224,7 +222,5 @@ function submitMainForm(form) {
         console.error('Error:', error);
     });
 }
-
-
 
 </script>

@@ -39,11 +39,11 @@ async def root(request: Request):
         
         if not log_device and device_token:
             # Create a new LogDevice if it doesn't exist
-            # log_device = LogDevice(name=device_token)
-            # session.add(log_device)
-            # await session.commit()
-            # await session.refresh(log_device)
-            raise HTTPException(status_code=404, detail="Device not found")
+            log_device = LogDevice(name=device_token)
+            session.add(log_device)
+            await session.commit()
+            await session.refresh(log_device)
+            # raise HTTPException(status_code=404, detail="Device not found")
 
         # Fetch related items
         item_dict = log_device.model_dump()

@@ -16,7 +16,7 @@
 <div id="createModal" class="modal">
     <div class="modal-content">
         <span class="close" data-modal="createModal">&times;</span>
-        <h2>Add New {{ item_type }}</h2>
+        <h2>Add New {{ item_type.replace('_', ' ') }}</h2>
         {% include 'engineer/partials/data_entry_modal.html.j2' with context %}
     </div>
 </div>
@@ -52,6 +52,29 @@
 </div>
 
 <script>
+function openModal(type) {
+    console.log(type)
+    const modalId = `${type}Modal`;
+    console.log('Opening modal:', modalId);
+    // document.getElementById(modalId).style.display = "flex";
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+function closeModal(modalId) { // Takes modalId directly
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+        // Reset forms when closing if needed
+        const form = modal.querySelector('form'); 
+        if (form) {
+            form.reset();
+        }
+    }
+}
+
 function openRelatedModal(relation) {
     console.log('Opening related modal for:', relation);
     document.getElementById('createRelatedTitle').textContent = `Create New ${relation}`;
@@ -63,32 +86,46 @@ function openReferredModelModal(fieldName, modelName, sourceModalId) {
     const title = document.getElementById('referredModelTitle');
     const form = document.getElementById('referredModelForm');
 
+    console.log('referrererefed modal')
+
     title.textContent = `Add ${modelName}`;
     form.innerHTML = ''; // Clear previous content
 
     // Fetch the form for the referred model
-    fetch(`/engineer/tools/${fieldName.toLowerCase()}/referred_form`)
+    fetch(`${window.location.pathname}${fieldName.toLowerCase()}/referred_form`)
         .then(response => response.text())
         .then(html => {
             form.innerHTML = html;
             form.setAttribute('data-field-name', fieldName);
             form.setAttribute('data-source-modal', sourceModalId);
-            modal.style.display = 'block';
+            if (modal) {
+                modal.classList.add('active');
+            }
         });
 }
 
-// Close the modal when clicking on <span> (x)
-document.querySelector('#referredModelModal .close').onclick = function() {
-    document.getElementById('referredModelModal').style.display = 'none';
-}
+// Consolidated Event Listener for Close Buttons and Outside Clicks
+document.addEventListener('click', function(event) {
+    // Close buttons
+    if (event.target.classList.contains('close')) {
+        const modalId = event.target.dataset.modal || event.target.closest('.modal').id; // Get modalId
+        closeModal(modalId);
+        event.stopPropagation(); // Prevent closing modal immediately after opening due to outside click handler
 
-// Close the modal when clicking outside of it
-window.onclick = function(event) {
-    const modal = document.getElementById('referredModelModal');
-    if (event.target == modal) {
-        modal.style.display = 'none';
+        if (modalId === "createModal" && document.getElementById('referredModelModal')) { // Reset ReferredModelModal form if there is any related model field in the main modal
+            document.getElementById('referredModelForm').reset();
+        }
+
     }
-}
+
+    // Outside click (Only if modal is active)
+    const activeModals = document.querySelectorAll('.modal.active'); // Select *active* modals only
+    activeModals.forEach(modal => {
+        if (event.target === modal) {
+            closeModal(modal.id);
+        }
+    });
+});
 
 function storeReferredModel(form) {
     const formData = new FormData(form);
@@ -110,7 +147,8 @@ function storeReferredModel(form) {
     addReferredModelToMainForm(fieldName, modelData, sourceModalId);
     
     // Close the referred model modal
-    document.getElementById('referredModelModal').style.display = 'none';
+    const ref_modal_id = document.getElementById('referredModelModal').id
+    closeModal(ref_modal_id)
     
     // Clear the form
     form.reset();

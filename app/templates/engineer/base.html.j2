@@ -7,28 +7,73 @@
 {% endblock %}
 
 {% block body %}
-    <nav class="burger-menu">
-        <div class="burger-icon" onclick="toggleMenu()">
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-        </div>
-        <ul class="menu-items">
-            <li><a href="/">Home</a></li>
-            <li><a href="/engineer/change_overs/">Changeovers</a></li>
-            <li><a href="/engineer/machines/">Machines</a></li>
-            <li><a href="/engineer/manufacturers/">Manufacturers</a></li>
-            <li><a href="/engineer/recipes/">Recipes</a></li>
-            <li><a href="/engineer/tools/">Tools</a></li>
-            <li><a href="/engineer/tool_lifes/">Tool Lifes</a></li>
-            <li><a href="/engineer/tool_orders/">Tool Orders</a></li>
-            <li><a href="/engineer/tool_types/">Tool Types</a></li>
-            <li><a href="/engineer/users/">Users</a></li>
-            <li><a href="/engineer/workpieces">Workpieces</a></li>
-            <!-- Add more menu items here as needed -->
-        </ul>
-    </nav>
-    <div class="content">
-        {% block content %}{% endblock %}
+<nav class="burger-menu">
+    <div class="burger-icon" onclick="toggleMenu()">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
     </div>
+    <ul class="menu-items">
+        <li><a href="/">Home</a></li>
+        <li><a href="/engineer/change_overs/">Changeovers</a></li>
+        <li><a href="/engineer/machines/">Machines</a></li>
+        <li><a href="/engineer/manufacturers/">Manufacturers</a></li>
+        <li><a href="/engineer/recipes/">Recipes</a></li>
+        <li><a href="/engineer/tools/">Tools</a></li>
+        <li><a href="/engineer/tool_lifes/">Tool Lifes</a></li>
+        <li><a href="/engineer/tool_orders/">Tool Orders</a></li>
+        <li><a href="/engineer/tool_types/">Tool Types</a></li>
+        <li><a href="/engineer/users/">Users</a></li>
+        <li><a href="/engineer/workpieces">Workpieces</a></li>
+        <!-- Add more menu items here as needed -->
+    </ul>
+</nav>
+<div class="content">
+    {% block content %}{% endblock %}
+</div>
+
+<script>
+// Burger Menu
+function toggleMenu() {
+    const menuItems = document.querySelector('.menu-items');
+    menuItems.classList.toggle('show');
+}
+
+// Close menu on click outside
+document.addEventListener('click', function(event) {
+    const menuItems = document.querySelector('.menu-items');
+    const burgerMenu = document.querySelector('.burger-menu');
+
+    if (menuItems.classList.contains('show') &&
+        !burgerMenu.contains(event.target) &&
+        !event.target.closest('.burger-icon')
+    ) {
+        menuItems.classList.remove('show');
+    }
+});
+
+document.body.addEventListener('htmx:afterRequest', function(event) {
+    if (event.detail.xhr.status === 200) {
+        document.body.dispatchEvent(new Event(`Loaded`))
+    } else if (event.detail.xhr.status === 201) {
+        showToast('Added successfully!');
+        closeModal(`createModal`);
+        document.querySelector(`#createModal form`).reset();
+        document.body.dispatchEvent(new Event(`Added`));
+    } else if (event.detail.xhr.status === 202) {
+        showToast('Updated successfully!');
+        closeModal(`editModal`);
+        document.body.dispatchEvent(new Event(`Edited`));
+    } else if (event.detail.xhr.status === 204) {
+        document.body.dispatchEvent(new Event(`Deleted`));
+    } else {
+        showToast('Error: ' + event.detail.xhr.responseText, 'error');
+    }
+});
+
+// Open modal
+document.getElementById('createButton').addEventListener('click', function() {
+    openModal('create');
+});
+</script>
 {% endblock %}

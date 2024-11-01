@@ -74,11 +74,14 @@
     </script>
     {% block extra_head %}{% endblock %}
 </head>
-<body hx-ext="auth-headers">
-    {% block body %}{% endblock %}
+<body class="body">
+    <div id="toast-container"></div>
+    <div id="page-container">
+        {% block body %}{% endblock %}
+    </div>
 
     <div id="virtual-keyboard" class="virtual-keyboard">
-        <div id="'full-keyboard">
+        <div id="full-keyboard">
             <div class="keyboard-row">
                 <button class="key">1</button>
                 <button class="key">2</button>
@@ -152,10 +155,29 @@
                 <button class="key special-key" id="backspace">⌫</button>
             </div>
             <div class="keyboard-row">
-                <button class="key special-key" id="close">Close</button>
+                <button class="key special-key" id="close">Exit</button>
             </div>
         </div>
     </div>
+<script>
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
 
+    // Append to the toast container
+    document.getElementById('toast-container').appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                document.getElementById('toast-container').removeChild(toast);
+            }, 300);
+        }, 3000);
+    }, 100);
+}
+</script>
 </body>
 </html>

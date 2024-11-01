@@ -3,15 +3,16 @@ from app.templates.jinja_functions import templates
 from app.models import User, UserCreate, UserUpdate, UserRole
 from app.models import Machine, MachineCreate, MachineUpdate
 from app.models import Manufacturer, ManufacturerCreate, ManufacturerUpdate
-from app.models import Tool, ToolCreate, ToolUpdate, ToolType
-from app.models import ToolAttribute, ToolAttributeCreate
-from app.models import ToolSettings, ToolSettingsCreate
+from app.models import Tool, ToolCreate, ToolUpdate
+from app.models import ToolAttribute, ToolAttributeCreate, ToolAttributeUpdate
+from app.models import ToolSettings, ToolSettingsCreate, ToolSettingsUpdate
 from app.models import ToolOrder, ToolOrderCreate, ToolOrderUpdate
 # from app.models import Recipe, RecipeCreate, RecipeUpdate
-from app.models import ToolLife, ToolLifeCreate
-from app.models import ToolType, ToolTypeCreate
-from app.models import ChangeOver, ChangeOverCreate
-from app.models import Workpiece, WorkpieceCreate
+from app.models import ToolLife, ToolLifeCreate, ToolLifeUpdate
+from app.models import ToolType, ToolTypeCreate, ToolTypeUpdate
+from app.models import ChangeReason, ChangeReasonCreate, ChangeReasonUpdate
+from app.models import ChangeOver, ChangeOverCreate, ChangeOverUpdate
+from app.models import Workpiece, WorkpieceCreate, WorkpieceUpdate
 from .generic_router import create_generic_router
 from .recipes import router as recipes_router
 
@@ -22,14 +23,15 @@ users_router = create_generic_router(User, UserCreate, UserUpdate, "User", {"enu
 machines_router = create_generic_router(Machine, MachineCreate, MachineUpdate, "Machine")
 manufacturers_router = create_generic_router(Manufacturer, ManufacturerCreate, ManufacturerUpdate, "Manufacturer")
 tools_router = create_generic_router(Tool, ToolCreate, ToolUpdate, "Tool")
-tool_attributes_router = create_generic_router(ToolAttribute, ToolAttributeCreate, None, "Tool_Attribute")
-tool_settings_router = create_generic_router(ToolSettings, ToolSettingsCreate, None, "Tool_Settings")
+tool_attributes_router = create_generic_router(ToolAttribute, ToolAttributeCreate, ToolAttributeUpdate, "Tool_Attribute")
+tool_settings_router = create_generic_router(ToolSettings, ToolSettingsCreate, ToolSettingsUpdate, "Tool_Settings")
+tool_type_router = create_generic_router(ToolType, ToolTypeCreate, ToolTypeUpdate, "Tool_Type")
+tool_life_router = create_generic_router(ToolLife, ToolLifeCreate, ToolLifeUpdate, "Tool_Life")
+change_reason_router = create_generic_router(ChangeReason, ChangeReasonCreate, ChangeReasonUpdate, "Change_Reason")
 tool_orders_router = create_generic_router(ToolOrder, ToolOrderCreate, ToolOrderUpdate, "Tool_Order")
 # recipe_router = create_generic_router(Recipe, RecipeCreate, RecipeUpdate, "Recipe")
-tool_life_router = create_generic_router(ToolLife, ToolLifeCreate, None, "Tool_Life")
-tool_type_router = create_generic_router(ToolType, ToolTypeCreate, None, "Tool_Type")
-change_over_router = create_generic_router(ChangeOver, ChangeOverCreate, None, "Change_Over")
-workpiece_router = create_generic_router(Workpiece, WorkpieceCreate, None, "Workpiece")
+change_over_router = create_generic_router(ChangeOver, ChangeOverCreate, ChangeOverUpdate, "Change_Over")
+workpiece_router = create_generic_router(Workpiece, WorkpieceCreate, WorkpieceUpdate, "Workpiece")
 
 
 # Include the generic routers
@@ -39,6 +41,7 @@ router.include_router(manufacturers_router, prefix="/manufacturers", tags=["manu
 router.include_router(tools_router, prefix="/tools", tags=["tools"])
 router.include_router(tool_attributes_router, prefix="/tool_attributes", tags=["tool_attributes"])
 router.include_router(tool_settings_router, prefix="/tool_settings", tags=["tool_settings"])
+router.include_router(change_reason_router, prefix="/change_reasons", tags=["change_reasons"])
 router.include_router(tool_orders_router, prefix="/tool_orders", tags=["tool_orders"])
 # router.include_router(recipe_router, prefix="/recipes", tags=["recipes"])
 router.include_router(tool_life_router, prefix="/tool_lifes", tags=["tool_lifes"])
