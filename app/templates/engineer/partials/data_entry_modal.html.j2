@@ -6,7 +6,7 @@
       {% endif %}
       hx-swap="none"
       {% if item %}data-machine-id="{{ item.id }}"{% endif %}
-      >
+    >
     {% for field_name, field in model.model_fields.items() %}
         {% if field_name != "id" %}
             <div class="form-group">
@@ -39,12 +39,12 @@
                         <div id="{{ field_name }}-container" class="mb-2">
                             {% for child in children[field_name]['instances'] %}
                                 <div class="input-group mb-2">
-                                    <input type="text" class="form-control" value="{{ children[field_name]['name'] }}" readonly>
+                                    <input type="text" class="form-control" value="{{ child['name'] }}" readonly>
                                     <input type="hidden" name="{{ field_name }}[]" value="{{ child['id'] }}">
                                     <button type="button" class="btn-list-action btn-remove" onclick="removeListField(this)">x</button>
                                 </div>
                             {% endfor %}                        
-                            {% if item and item[field_name] %}
+                            {# {% if item and item[field_name] %}
                                 {% for related_item in item[field_name] %}
                                     <div class="input-group mb-2">
                                         <select class="form-control" name="{{ field_name }}[]">
@@ -57,11 +57,11 @@
                                         <button type="button" class="btn-list-action btn-remove" onclick="removeListField(this)">x</button>
                                     </div>
                                 {% endfor %}
-                            {% endif %}
+                            {% endif %} #}
                         </div>
                         <button type="button" 
                         class="btn-add-new" 
-                        onclick="openReferredModelModal('{{ field_name }}', '{{ 'createModal' if not item else 'infoModal' }}')">Add {{ children[field_name].name }}</button>
+                        onclick="openReferredModelModal('{{ field_name }}', '{{ field_name.capitalize()|replace('_id', ' ')|replace('_', ' ') }}', '{{ 'createModal' if not item else 'infoModal' }}')">Add {{ children[field_name].name }}</button>
                     </div>
                 {% elif field.annotation | field_types == 'select' %}
                     <div class="mb-3">
@@ -152,16 +152,20 @@ function removeListField(button) {
 }
 
 function submitMainForm(form) {
+    console.log("entering submitMainForm")
     const formData = new FormData(form);
     // Add stored referred models to the form data
-    {% for field_name in list_relationships %}
-    console.log('checking local storage for: ', '{{ field_name }}_models')
+    console.log('step 1')
+    {% for field_name in children %}
+        console.log('checking local storage for: ', '{{ field_name }}_models')
         if ('{{ field_name }}_models' in localStorage) {
-            console.log('found fieldname in storage')
+            console.log(`found some_models in storage`)
             const storedModels = JSON.parse(localStorage.getItem('{{ field_name }}_models') || '[]');
             formData.append('{{ field_name }}_new', JSON.stringify(storedModels));
+            console.log(`added ${storedModels} to form`)
         }
     {% endfor %}
+    console.log('step 2')
     
     fetch(form.getAttribute('hx-post') || form.getAttribute('hx-put'), {
         method: form.getAttribute('hx-post') ? 'POST' : 'PUT',
@@ -172,7 +176,7 @@ function submitMainForm(form) {
          if (data.message) {
             // Clear stored models after successful submission
             console.log('looking for shit in local storage ...')
-            {% for field_name in list_relationships %}
+            {% for field_name in children %}
                 console.log('removing local storage for: ', '{{ field_name }}_models')
                 localStorage.removeItem('{{ field_name }}_models');
             {% endfor %}

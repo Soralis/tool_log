@@ -206,14 +206,15 @@ class ToolLifeUpdate(ToolLifeCreate):
 class ToolOrderBase(SQLModel):
     tool_id: int = Field(foreign_key="tool.id", ondelete='CASCADE')
     quantity: int
+    remaining_quantity: int
     batch_number: Optional[str] = Field(default=None)
     gross_price: Decimal = Field(max_digits=10, decimal_places=2)
+    
 
 class ToolOrder(ToolOrderBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tool: "Tool" = Relationship(back_populates="tool_orders")
     tool_lifes: List["ToolLife"] = Relationship(back_populates="tool_order")
-    remaining_quantity: int
     fulfilled: bool = Field(default=False, nullable=False)
     order_date: datetime = Field(default_factory=datetime.now, nullable=False)
     delivery_date: Optional[datetime] = Field(default=None)

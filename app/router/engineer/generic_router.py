@@ -41,6 +41,14 @@ def create_generic_router(
 ):
     router = APIRouter()
 
+    router.context = {
+        'model': create_model,
+        'item_type': item_type,
+        'form_action': f'/engineer/{item_type.lower()}s',
+        'relationship_options': {},
+        'children': {},
+    }
+
     def get_relations_and_children(id:int = None):
         relations = {}
         children = {}
@@ -63,11 +71,14 @@ def create_generic_router(
                         related_model_info = model_mapping.get(related_model_name.lower())
                         if related_model_info:
                             related_model = related_model_info['model']
-                            related_items = session.exec(select(related_model)).all()
-                            relations[field_name] = [
-                                {"id": item.id, "name": getattr(item, 'name', str(item))}
-                                for item in related_items
-                            ]
+                            if id:
+                                related_items = session.exec(select(related_model).where(getattr(related_model, f"{item_type.lower()}_id") == id)).all()
+                                relations[field_name] = [
+                                    {"id": item.id, "name": getattr(item, 'name', str(item))}
+                                    for item in related_items
+                                ]
+                                children[field_name]['instances'] = relations[field_name]
+                                
                             # Add referred model information
                             children[field_name]['create_model'] = related_model_info['create']
                             children[field_name]['name'] = related_model.__name__
@@ -90,29 +101,18 @@ def create_generic_router(
 
     @router.get("/", response_class=HTMLResponse)
     async def get_items(request: Request):
-        context = {
-            'model': create_model,
-            'item_type': item_type,
-            'form_action': f'/engineer/{item_type.lower()}s',
-            'relationship_options': {},
-            'children': {},
-        }
-
-        context['relationship_options'], context['children'] = get_relations_and_children()
+        router.context['relationship_options'], router.context['children'] = get_relations_and_children()
 
         if extra_context:
-            context.update(extra_context)
+            router.context.update(extra_context)
 
         # Add this debug print
-        print(f"create Context: {context}")
-
-        # Store the context in a closure so it can be accessed by other endpoints
-        router.context = context
+        print(f"create Context: {router.context}")
 
         return templates.TemplateResponse(
             request=request,
             name="engineer/data.html.j2",
-            context=context
+            context=router.context
         )
 
     @router.get("/{field_name}/referred_form", response_class=HTMLResponse)
@@ -188,92 +188,51 @@ def create_generic_router(
 
     @router.get("/{item_id}/info", response_class=HTMLResponse)
     async def get_item_info(item_id: int, request: Request):
-        statement = select(model).where(model.id == item_id)
+        context = router.context.copy()
+        context['relationship_options'], context['children'] = get_relations_and_children(item_id)
         
         with Session(engine) as session:
-            results = session.exec(statement)
-            db_item = results.one_or_none()
-
-            context = {
-            'model': create_model,
-            'item_type': item_type,
-            'form_action': f'/engineer/{item_type.lower()}s',
-            'relationship_options': {},
-            'children': {},
-        }
+            db_item = session.exec(select(model).where(model.id == item_id)).one_or_none()
             
-            if not db_item:
-                raise HTTPException(status_code=404, detail=f"{item_type} not found")
+        if not db_item:
+            raise HTTPException(status_code=404, detail=f"{item_type} with id {item_id} not found")
+        
+        context['item'] = db_item
+        context['model'] = update_model
             
-            # Fetch related items
-            context['item'] = db_item.model_dump()
-            
-            # Dynamically fetch all relationships
-            for relation in db_item.__class__.__mapper__.relationships.keys():
-                related_objects = getattr(db_item, relation)
-                if related_objects is not None:
-                    if isinstance(related_objects, InstrumentedList):
-                        # It's an iterable (like InstrumentedList)
-                        context['related_items'][relation] = {"amount": len(related_objects)}
-                    else:
-                        # It's a singular item
-                        context['related_items'][relation] = {
-                            "id": related_objects.id, 
-                            "name": getattr(related_objects, 'name', str(related_objects))
-                        }
-                        # pass
-                    
-                    # Fetch all possible options for this relationship
-                    related_model = db_item.__class__.__mapper__.relationships[relation].mapper.class_
-                    options_statement = select(related_model)
-                    options = session.exec(options_statement).all()
-                    list_relationships[relation] = [{"id": opt.id, "name": getattr(opt, 'name', str(opt))} for opt in options]
+        # Add this debug print
+        print(f"Update Context: {context}")
+        
+        return templates.TemplateResponse(
+            request=request,
+            name="engineer/partials/info_modal.html.j2",
+            context=context
+        )
 
-                    
-            
-                    related_model_info = model_mapping.get(relation.replace("_","").rstrip('s'))
-                    if related_model_info:
-                        related_model = related_model_info['model']
-                        related_items = session.exec(select(related_model)).all()
-                        # context['relationship_options'][relation] = [
-                        #     {"id": item.id, "name": getattr(item, 'name', str(item))}
-                        #     for item in related_items
-                        # ]
-                        # Add referred model information
-                        context['referred_models'][relation] = {
-                            'model': related_model_info['create'],
-                            'name': related_model.__name__
-                        }
+    async def get_form_data(request: Request):
+        form_data = await request.form()
+        form_dict: Dict[str, Any] = {}
+        existing_relations: Dict[str, Any] = {}
+        new_relations: Dict[str, Any] = {}
 
+        for field_name, value in form_data._list:
+            if not value:
+                continue
+            if field_name in update_model.model_fields:
+                if update_model.model_fields[field_name].annotation is bool:
+                    form_dict[field_name] = form_data[field_name] == 'on'
+                else: 
+                    form_dict[field_name] = form_data[field_name]
+            elif field_name.endswith('[]'):
+                list_field_name = field_name.rstrip('[]')
+                if list_field_name not in existing_relations:
+                    existing_relations[list_field_name] = []
+                existing_relations[list_field_name].append(int(value))
+            elif field_name.endswith('_new'):
+                new_relations[field_name.rstrip('_new')] = json.loads(value)
 
-
-
-
-
-            # I dont need the same field as relation and as attribute
-            for item in context['item'].keys():
-                if item.replace('_id', '') in related_items.keys():
-                    del context['related_items'][item.replace('_id', '')]
-
-            context = {
-                'referred_models': referred_models,
-                "item_type": item_type,
-                "model": update_model,
-                "form_action": f'/engineer/{item_type.lower()}s',
-                "submit_text": "Update"
-            }
-            
-            if extra_context:
-                context.update(extra_context)
-
-            # Add this debug print
-            print(f"Update Context: {context}")
-            
-            return templates.TemplateResponse(
-                request=request,
-                name="engineer/partials/info_modal.html.j2",
-                context=context
-            )
+        return form_dict, existing_relations, new_relations
+    
 
     @router.post("/", response_class=JSONResponse)
     async def create_item(request: Request):
@@ -345,66 +304,66 @@ def create_generic_router(
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @router.put("/{item_id}")
-    async def update_item(item_id: int, 
-                          request: Request):
-        form_data = await request.form()
-        form_dict: Dict[str, Any] = {}
-        references_dict: Dict[str, Any] = {}
-
-        for field_name in update_model.model_fields.keys():
-            if field_name in form_data:
-                # Handle regular fields
-                form_dict[field_name] = form_data[field_name]
-            elif f"{field_name}[]" in form_data:
-                if form_data.get(f"{field_name}[]"):
-                    form_dict[field_name] = json.loads(form_data.get(f"{field_name}[]"))
-            if f"{field_name}_new" in form_data:
-                # Handle array fields
-                references_dict[f"{field_name}"] = json.loads(form_data.get(f"{field_name}_new"))
+    async def update_item(item_id: int, request: Request):
+        form_dict, existing_relations, new_relations = await get_form_data(request)
 
         if item_id != int(form_dict['id']):
             raise HTTPException(status_code=400, detail=f"Path {item_type.lower()}_id does not match form data id")
         
-         # Validate the data manually
-        try:
-            validated_data = update_model(**form_dict)
-            item = model(**validated_data.model_dump())
-        except ValidationError as e:
-            raise HTTPException(status_code=422, detail=str(e))
-
-
-
-
-        item_data = form_data.model_dump(exclude_unset=True)
-
-        # Handle new referred models
-        for field_name in update_model.model_fields:
-            if field_name.endswith('_new'):
-                base_field = field_name[:-4]
-                new_models_json = request.form.get(field_name)
-                if new_models_json:
-                    new_models = json.loads(new_models_json)
-                    if base_field not in item_data:
-                        item_data[base_field] = []
-                    item_data[base_field].extend(new_models)
-
-        statement = select(model).where(model.id == item_id)
         with Session(engine) as session:
-            results = session.exec(statement)
-            item = results.one_or_none()
+            item = session.exec(select(model).where(model.id == item_id)).one_or_none()
             if not item:
                 raise HTTPException(status_code=404, detail=f"{item_type} not found")
             
-            for key, value in item_data.items():
-                setattr(item, key, value)
+            # Update main item fields
+            try:
+                validated_data = update_model(**form_dict)
+                for key, value in validated_data.model_dump().items():
+                    if key in form_dict and key != 'id':  # Only update fields that were sent in the form
+                        setattr(item, key, value)
+            except ValidationError as e:
+                raise HTTPException(status_code=422, detail=str(e))
 
-            print('update:', item)
+            # Update existing relations
+            for relation_name, relation_ids in existing_relations.items():
+                relation_list = getattr(item, relation_name)
+                to_keep = []
+                to_delete = []
+                for instance in relation_list:
+                    if instance.id in relation_ids:
+                        to_keep.append(instance)
+                    else:
+                        to_delete.append(instance)
+
+                # Delete instances not in relation_ids
+                for instance in to_delete:
+                    session.delete(instance)
+                
+                # Update relation_list with instances to keep
+                relation_list[:] = to_keep
+
+            # Add new relations
+            for relation_name, new_items in new_relations.items():
+                relation_list = getattr(item, relation_name)
+                related_model_info = model_mapping.get(relation_name.replace("_","").rstrip('s').lower())
+                if related_model_info:
+                    related_create_model = related_model_info['create']
+                    for new_item_data in new_items:
+                        new_item_data[f'{item_type.lower()}_id'] = item_id
+                        try:
+                            validated_new_item = related_create_model(**new_item_data)
+                            new_item = related_model_info['model'](**validated_new_item.model_dump())
+                            relation_list.append(new_item)
+                        except ValidationError as e:
+                            raise HTTPException(status_code=422, detail=f"Validation error in {relation_name}: {str(e)}")
+
             try:
                 session.add(item)
                 session.commit()
                 session.refresh(item)
             except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
+                session.rollback()
+                raise HTTPException(status_code=500, detail=f"An error occurred while updating the {item_type}: {str(e)}")
 
         return JSONResponse(content={"message": f"{item_type} updated successfully"}, status_code=202)
 
