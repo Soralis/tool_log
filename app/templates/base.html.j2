@@ -4,12 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Digital ToolLog IFA{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/virtual-keyboard.css') }}">
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
     <script src="{{ url_for('static', path='js/engineer.js') }}" defer></script>
     <script src="{{ url_for('static', path='js/virtual-keyboard.js') }}" defer></script>
     <script>
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+
+            // Append to the toast container
+            document.getElementById('toast-container').appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        document.getElementById('toast-container').removeChild(toast);
+                    }, 300);
+                }, type === 'success' ? 3000 : 10000);
+            }, 100);
+        }
+
+        function openModal(type) {
+            console.log(type)
+            const modalId = `${type}Modal`;
+            console.log('Opening modal:', modalId);
+            // document.getElementById(modalId).style.display = "flex";
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+            }
+        }
+
+        function closeModal(modalId) { // Takes modalId directly
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+                // Reset forms when closing if needed
+                const form = modal.querySelector('form'); 
+                if (form) {
+                    form.reset();
+                }
+            }
+        }
+
         async function getDeviceToken() {
             const deviceName = new URLSearchParams(window.location.search).get('device_name');
             if (deviceName) {
@@ -37,12 +80,9 @@
                     },
                     credentials: 'include'
                 });
-                console.log("Auth check response:", response);
-                console.log("Auth check status:", response.status);
-                console.log("Auth check ok:", response.ok);
                 return response.ok;
             } catch (error) {
-                console.error('Error checking operator auth:', error);
+                showToast(`Error checking operator auth: ${error}`, 'error')
                 return false;
             }
         }
@@ -71,12 +111,27 @@
                 }
             }
         });
+
+        async function logout() {
+            try {
+                // Delete the operator_token from local storage
+                localStorage.removeItem('operator_token');
+
+                // Redirect to the login page
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('Error logging out:', error);
+            }
+        }
     </script>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="body">
     <div id="toast-container"></div>
-    <div id="page-container">
+    <div id="page-container_x">
+        <div class="logout-button">
+            <button onclick="logout()">Logout</button>
+        </div>
         {% block body %}{% endblock %}
     </div>
 
@@ -159,25 +214,5 @@
             </div>
         </div>
     </div>
-<script>
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-
-    // Append to the toast container
-    document.getElementById('toast-container').appendChild(toast);
-
-    setTimeout(() => {
-        toast.classList.add('show');
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => {
-                document.getElementById('toast-container').removeChild(toast);
-            }, 300);
-        }, 3000);
-    }, 100);
-}
-</script>
 </body>
 </html>

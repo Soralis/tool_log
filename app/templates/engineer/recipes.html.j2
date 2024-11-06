@@ -1,10 +1,20 @@
 <!-- templates/home.html -->
 {% extends "engineer/base.html.j2" %}
-{% block title %}{{ item_type }}Recipe Creator{% endblock %}
+{% block title %}{{ item_type }}Recipe Manager{% endblock %}
 
 {% block content %}
-<h1>Recipe Creator</h1>
+<h1>Recipe Manager</h1>
 <button id="createRecipeBtn" class="btn-submit">Create Recipe</button>
+
+<div class="list-header"></div>
+    <button id="filterButton" class="header-button" onclick="openModal('create')">
+        <h2>Recipe List</h2>
+    </button>
+</div>
+
+<div id="{{ item_type }}-list" hx-get="/engineer/recipes/list" hx-trigger="load, Added from:body, Deleted from:body, Edited from:body">
+    <!-- {{ item_type }} list will be loaded here -->
+</div>
 
 <div id="recipeModal" class="modal">
     <div class="modal-content">
@@ -49,15 +59,14 @@
                 <option value="">Select Tool</option>
             </select>
             
-            <h3>Tool Settings</h3>
-            <div id="toolSettings"></div>
-            <button type="button" id="addToolSettingBtn">Add Tool Setting</button>
+            <h3>Tool Attributes</h3>
+            <div id="toolAttributes"></div>
             
             <h3>Tool Life Expectancy</h3>
             <label for="expectedLife">Expected Life:</label>
             <input type="number" id="expectedLife" name="expected_life" required>
             
-            <button type="submit">Add Tool Position</button>
+            <button type="submit" class="btn-submit">Add</button>
         </form>
     </div>
 </div>
@@ -75,18 +84,18 @@
     const toolPositions = document.getElementById('toolPositions');
     const toolSettings = document.getElementById('toolSettings');
 
-    createRecipeBtn.onclick = () => recipeModal.style.display = 'block';
-    addToolPositionBtn.onclick = () => toolPositionModal.style.display = 'block';
+    createRecipeBtn.onclick = () => recipeModal.classList.add('active');
+    addToolPositionBtn.onclick = () => toolPositionModal.classList.add('active');
 
     for (let closeButton of closeButtons) {
         closeButton.onclick = function() {
-            this.parentElement.parentElement.style.display = 'none';
+            this.parentElement.parentElement.classList.remove('active');
         }
     }
 
     window.onclick = (event) => {
         if (event.target == recipeModal || event.target == toolPositionModal) {
-            event.target.style.display = 'none';
+            event.target.classList.remove('active');
         }
     }
 
@@ -94,46 +103,75 @@
     async function fetchDropdownData(url, selectElement) {
         const response = await fetch(url);
         const data = await response.json();
-        data.forEach(item => {
+        Object.entries(data).forEach(([id, item]) => {
             const option = document.createElement('option');
+            if ('id' in item) {
             option.value = item.id;
+            } else {
+                option.value = id;
+            }
             option.textContent = item.name;
             selectElement.appendChild(option);
         });
+        return data;
     }
+
+    // Store the tools data
+    let toolsData;
 
     // Populate dropdowns
     fetchDropdownData('/engineer/recipes/workpieces', document.getElementById('workpiece'));
     fetchDropdownData('/engineer/recipes/machines', document.getElementById('machine'));
-    fetchDropdownData('/engineer/recipes/tools', document.getElementById('tool'));
+    fetchDropdownData('/engineer/recipes/tools', document.getElementById('tool')).then(data => {
+        toolsData = data;
+    });
 
-    // Handle adding tool settings
-    addToolSettingBtn.onclick = () => {
-        const settingDiv = document.createElement('div');
-        settingDiv.innerHTML = `
-            <label for="tsName">Name:</label>
-            <input type="text" name="tsName" required>
-            <label for="tsValues">Values:</label>
-            <input type="text" name="tsValues" required>
-        `;
-        toolSettings.appendChild(settingDiv);
-    }
+    // Handle tool selection change
+    document.getElementById('tool').addEventListener('change', function() {
+        const toolId = this.value;
+        const tool = toolsData[toolId];
+        const toolAttributesDiv = document.getElementById('toolAttributes');
+        toolAttributesDiv.innerHTML = '';
+
+        if (tool && tool.attributes) {
+            tool.attributes.forEach(attr => {
+                const attrDiv = document.createElement('div');
+                attrDiv.innerHTML = `
+                    <label for="${attr.name}">${attr.name} (${attr.unit}):</label>
+                    <input type="number" id="${attr.name}" name="${attr.name}" required>
+                `;
+                toolAttributesDiv.appendChild(attrDiv);
+            });
+        }
+    });
 
     // Handle adding tool positions
     toolPositionForm.onsubmit = (e) => {
         e.preventDefault();
         const toolPositionDiv = document.createElement('div');
+        const toolSelect = e.target.tool;
+        const toolName = toolSelect.options[toolSelect.selectedIndex].text;
+        
+        let attributesHtml = '';
+        const toolAttributes = document.getElementById('toolAttributes').querySelectorAll('input');
+        toolAttributes.forEach(attr => {
+            attributesHtml += `<p>${attr.name}: ${attr.value} ${attr.previousElementSibling.textContent.match(/\((.*?)\)/)[1]}</p>`;
+        });
+
         toolPositionDiv.innerHTML = `
             <h4>${e.target.tpName.value}</h4>
-            <p>Tool: ${e.target.tool.options[e.target.tool.selectedIndex].text}</p>
+            <p hidden>Tool:${toolSelect.selectedIndex}</p> 
+            <p>Tool: ${toolName}</p>
+            ${attributesHtml}
             <p>Expected Life: ${e.target.expectedLife.value}</p>
         `;
         toolPositions.appendChild(toolPositionDiv);
-        toolPositionModal.style.display = 'none';
+        toolPositionModal.classList.remove('active');
         toolPositionForm.reset();
+        document.getElementById('toolAttributes').innerHTML = '';
     }
 
-    // Handle recipe form submission
+     // Modify the recipe form submission to include tool attributes
     recipeForm.onsubmit = async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -143,20 +181,24 @@
             workpiece_id: parseInt(formData.get('workpiece_id')),
             machine_id: parseInt(formData.get('machine_id')),
         };
-        const toolPositions = Array.from(document.querySelectorAll('#toolPositions > div')).map(tp => ({
-            name: tp.querySelector('h4').textContent,
-            tool_id: parseInt(tp.querySelector('p').textContent.split(':')[1].trim()),
-        }));
-        const toolSettings = Array.from(document.querySelectorAll('#toolSettings > div')).map(ts => ({
-            name: ts.querySelector('input[name="tsName"]').value,
-            values: ts.querySelector('input[name="tsValues"]').value,
-        }));
-        const toolLifeExpectancies = Array.from(document.querySelectorAll('#toolPositions > div')).map(tp => ({
-            expected_life: parseInt(tp.querySelectorAll('p')[1].textContent.split(':')[1].trim()),
-        }));
+        const toolPositions = Array.from(document.querySelectorAll('#toolPositions > div')).map(tp => {
+            const toolAttributes = {};
+            tp.querySelectorAll('p').forEach(p => {
+                if (!p.textContent.startsWith('Tool:') && !p.textContent.startsWith('Expected Life:')) {
+                    const [name, value] = p.textContent.split(':');
+                    toolAttributes[name.trim()] = parseFloat(value.trim().split(' ')[0]);
+                }
+            });
+            return {
+                name: tp.querySelector('h4').textContent,
+                tool_id: tp.querySelector('p').textContent.split(':')[1].trim(),
+                tool_settings: toolAttributes,
+                expected_life: parseInt(tp.querySelectorAll('p')[tp.querySelectorAll('p').length - 1].textContent.split(':')[1].trim()),
+            };
+        });
 
         try {
-            const response = await fetch('/recipe/recipes', {
+            const response = await fetch('/engineer/recipes/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -164,22 +206,22 @@
                 body: JSON.stringify({
                     recipe,
                     tool_positions: toolPositions,
-                    tool_settings: toolSettings,
-                    tool_life_expectancies: toolLifeExpectancies,
                 }),
             });
             const result = await response.json();
             if (response.ok) {
-                alert('Recipe created successfully!');
-                recipeModal.style.display = 'none';
+                showToast('Recipe created successfully!');
+                recipeModal.classList.remove('active');
                 recipeForm.reset();
                 toolPositions.innerHTML = '';
+                // Trigger a custom event to refresh the list
+                document.body.dispatchEvent(new Event('Added'));
             } else {
-                alert('Error creating recipe: ' + result.detail);
+                showToast('Error creating recipe: ' + result.detail);
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred while creating the recipe.');
+            showToast('An error occurred while creating the recipe.');
         }
     }
 </script>

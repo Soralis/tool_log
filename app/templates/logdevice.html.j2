@@ -1,0 +1,61 @@
+{% extends "base.html.j2" %}
+
+{% block title %}Log Device{% endblock %}
+
+{% block body %}
+    <a href="/"><button>Go home</button></a>
+    <div class="container mt-5">
+        <form id="logDeviceForm" action="{{ form_action }}" method="POST">
+            <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ item.name }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description">{{ item.description }}</textarea>
+            </div>
+            <div class="mb-3 form-check">
+                <label class="form-check-label" for="active">Active</label>
+                <input type="checkbox" class="form-check-input" id="active" name="active" {% if item.active %}checked{% endif %}>
+            </div>
+            <div class="mb-3">
+                <label for="machine_ids" class="form-label">Machines</label>
+                <select multiple class="form-select" id="machine_ids" name="machine_ids">
+                    {% for option in relationship_options.machines %}
+                        <option value="{{ option.id }}" {% if option.id in related_items.machines|map(attribute='id') %}selected{% endif %}>
+                            {{ option.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">{{ submit_text }}</button>
+        </form>
+    </div>
+    <script>
+        document.getElementById('logDeviceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(`Error: ${data.error}`, 'error')
+                } else {
+                    showToast(`${data.message}`)
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An Error occured, please try again')
+            });
+        });
+    </script>
+{% endblock %}

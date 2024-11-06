@@ -1,4 +1,6 @@
 from sqlmodel import SQLModel, Session, create_engine
+from sqlalchemy import event
+from sqlalchemy.orm import sessionmaker
 
 # Database configuration
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
@@ -7,7 +9,21 @@ CONNECT_ARGS = {"check_same_thread": False}
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Create engine
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=CONNECT_ARGS)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args=CONNECT_ARGS,
+    future=True,
+    execution_options={"sqlite_autoincrement": True}  # Add this option
+)
+
+# Enable foreign key constraints for SQLite
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Create SessionLocal
 def get_session():
@@ -25,9 +41,3 @@ def get_db():
 # Initialize database
 def init_db():
     SQLModel.metadata.create_all(bind=engine)
-
-# Usage example in a FastAPI route:
-# @app.get("/some_route")
-# def some_route(db: Session = Depends(get_db)):
-#     # Use the db session here
-#     pass

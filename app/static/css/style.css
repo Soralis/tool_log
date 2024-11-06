@@ -10,7 +10,7 @@ body {
     color: #e0e0e0;
 }
 
-#page-container {
+#page-container_x {
     flex: 1;
 }
 
@@ -73,7 +73,7 @@ nav a.active {
     background-color: #2980b9;
 }
 
-.content {
+.content_x {
     flex: 1;
     padding: 20px;
 }
@@ -476,6 +476,30 @@ textarea {
     display: none;
 }
 
+.logout-button {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    z-index: 100;
+}
+
+.logout-button button {
+    background-color: #af4c4c;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.logout-button button:hover {
+    background-color: #45a049;
+}
+
 .burger-menu {
     position: fixed;
     top: 20px;
@@ -818,7 +842,7 @@ textarea {
     top: 20px; /* Adjust as needed */
     left: 50%;
     transform: translateX(-50%);
-    z-index: 1000; /* Ensure it's on top */
+    z-index: 1005; /* Ensure it's on top */
   }
   
   .toast {
@@ -987,6 +1011,15 @@ textarea {
 
     .item-content p {
         font-size: 18px;
+    }
+
+    .list-item.inactive {
+        background-color: #000000;
+        color: #961b1b;
+    }
+    
+    .list-item.inactive .item-detail {
+        color: #5c5c5c;
     }
 
     .action-button {

@@ -28,7 +28,7 @@
         <!-- Add more menu items here as needed -->
     </ul>
 </nav>
-<div class="content">
+<div class="content_x">
     {% block content %}{% endblock %}
 </div>
 
@@ -75,5 +75,6 @@ document.body.addEventListener('htmx:afterRequest', function(event) {
 document.getElementById('createButton').addEventListener('click', function() {
     openModal('create');
 });
+
 </script>
 {% endblock %}

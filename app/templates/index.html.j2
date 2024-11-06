@@ -3,5 +3,100 @@
 {% block title %}Tool Log{% endblock %}
 
 {% block body %}
-    <a href="/engineer" class="engineer-button"><button>E</button></a>
+{{context}}
+    <div id="changeoverModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('changeoverModal')">&times;</span>
+            <div id="changeoverContainer">
+                <h1 class="text-3xl font-bold mb-6">Change Over</h1>
+                {% include 'operator/change_over.html.j2' with context %}
+            </div>
+        </div>
+    </div>
+
+    <div id="toollogModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('toollogModal')">&times;</span>
+            <div id="toollogContainer">
+                <!-- Tool log content goes here -->
+                {# {% include 'operator/tool_log.html.j2' with context %} #}
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-center align-items-center vh-100 position-relative">
+        <a href="/engineer" class="top-left">
+            <button class="btn btn-primary">E</button>
+        </a>
+        <div class="d-flex flex-column">
+            <button onclick="openModal('changeover')" class="btn-submit mb-3">Changeover</button>
+            <button onclick="openModal('toollog')" class="btn-submit">Tool Log</button>
+        </div>
+    </div>
+
+
+    <script>
+        // Open modal
+        document.getElementById('changeOverButton').addEventListener('click', function() {
+            openModal('changeover');
+        });
+        // Open modal
+        document.getElementById('toolLogButton').addEventListener('click', function() {
+            openModal('toollog');
+        });
+    </script>
+
+    <style>
+        .d-flex {
+            display: flex !important;
+        }
+
+        .flex-column {
+            flex-direction: column !important;
+        }
+
+        .justify-content-center {
+            justify-content: center !important;
+        }
+
+        .align-items-center {
+            align-items: center !important;
+        }
+
+        .vh-100 {
+            height: 100vh !important;
+        }
+
+        .position-relative {
+            position: relative !important;
+        }
+
+        .top-left {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .button button {
+            background-color: transparent;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            padding: 30px;
+            cursor: pointer;
+        }
+
+        .mb-3 {
+            margin-bottom: 13rem !important;
+        }
+    </style>
 {% endblock %}

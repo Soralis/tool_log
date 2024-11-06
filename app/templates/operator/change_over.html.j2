@@ -1,0 +1,71 @@
+<form 
+    hx-post="/operator/change_over/" 
+    hx-swap="outerHTML" 
+    class="space-y-6">
+    <div>
+        {% if machines|length > 1 %}
+            <label for="machine-select" class="block text-sm font-medium text-gray-700">Select Machine</label>
+            <select id="machine-select" name="machine_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                <option value="">Select a machine</option>
+                {% for machine in machines %}
+                    <option value="{{ machine.id }}">{{ machine.name }}</option>
+                {% endfor %}
+            </select>
+        {% else %}
+            <input type="hidden" id="machine-select" name="machine_id" value="{{ machines[0].id }}">
+            <label for="machine-select" class="block text-sm font-medium text-gray-700">Selected Machine</label>
+            <span id="machine-select" name="machine_id" value="{{ machines[0].id }}">{{ machines[0].name }}</span>
+        {% endif %}
+    </div>
+
+    <div id="recipe-form" class="hidden">
+        <label for="recipe-select" class="block text-sm font-medium text-gray-700">Select Recipe</label>
+        <select id="recipe-select" name="recipe_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+            <option value="">Select a recipe</option>
+        </select>
+    </div>
+
+    <div>
+        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Change Over
+        </button>
+    </div>
+</form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const machineSelect = document.getElementById('machine-select');
+        const recipeSelect = document.getElementById('recipe-select');
+        const recipeForm = document.getElementById('recipe-form');
+
+        // Fetch recipes for the initial machine
+        const initialMachineId = machineSelect.getAttribute('value') || machineSelect.value;
+        if (initialMachineId) {
+            fetchRecipes(initialMachineId);
+        }
+
+        machineSelect.addEventListener('change', function() {
+            const machineId = this.value;
+            if (machineId) {
+                fetchRecipes(machineId);
+            } else {
+                recipeForm.classList.add('hidden');
+            }
+        });
+
+        function fetchRecipes(machineId) {
+            fetch(`/operator/change_over/${machineId}`)
+                .then(response => response.json())
+                .then(data => {
+                    recipeSelect.innerHTML = '<option value="">Select a recipe</option>';
+                    data.forEach(recipe => {
+                        const option = document.createElement('option');
+                        option.value = recipe.id;
+                        option.textContent = recipe.name;
+                        recipeSelect.appendChild(option);
+                    });
+                    recipeForm.classList.remove('hidden');
+                });
+        }
+    });
+</script>

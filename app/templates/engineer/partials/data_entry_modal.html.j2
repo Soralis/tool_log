@@ -175,7 +175,6 @@ function submitMainForm(form) {
     .then(data => {
          if (data.message) {
             // Clear stored models after successful submission
-            console.log('looking for shit in local storage ...')
             {% for field_name in children %}
                 console.log('removing local storage for: ', '{{ field_name }}_models')
                 localStorage.removeItem('{{ field_name }}_models');
@@ -219,11 +218,11 @@ function submitMainForm(form) {
             // Trigger a custom event to refresh the list
             document.body.dispatchEvent(new Event('Added'));
         } else {
-            console.error('Invalid response from server');
+            showToast(data.detail, 'error');
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        showToast(error, 'error');
     });
 }
 

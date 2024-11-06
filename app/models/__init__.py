@@ -20,6 +20,7 @@ __all__ = [
     "Machine", "MachineCreate", "MachineUpdate", "MachineRead",
     "Manufacturer", "ManufacturerCreate", "ManufacturerUpdate",
     "RecipeTool",
+    "Measurable", "MeasurableCreate", "MeasurableUpdate"
     "Workpiece", "WorkPieceCreate",
     "Tool", "ToolCreate", "ToolUpdate", "ToolType",
     "ToolLife", "ToolLifeCreate", "ChangeReasons",

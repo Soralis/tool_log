@@ -465,6 +465,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pytailwindcss"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/55/91e655cfbd8e18a777cae3bdd91be02a85fa69e29a4685ab92a87b2ec8cd/pytailwindcss-0.2.0.tar.gz", hash = "sha256:112718583a33f42c57b2718270dd0e0605574da0023cab4829fad3a98ebe450b", size = 5686 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/51/a5142efe05873e947a71389ca86572866692ca01113037f99dd009cb0f55/pytailwindcss-0.2.0-py3-none-any.whl", hash = "sha256:30e7bd3b78de19a39a7e66329db02d393ee540f010924397b4d780e85041fae4", size = 7288 },
+]
+
+[[package]]
 name = "pytest"
 version = "8.3.3"
 source = { registry = "https://pypi.org/simple" }
@@ -631,6 +640,12 @@ wheels = [
 ]
 
 [[package]]
+name = "tailwindcss"
+version = "0.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a0/f3/aa3b4800e559cd863bb09e3840c52de999e37c68edec5e42e97b510b7331/tailwindcss-0.0.1.tar.gz", hash = "sha256:2ba71105662701a522a13367844f7f5e8830456da69f30048291440431f8875b", size = 3025 }
+
+[[package]]
 name = "tool-log"
 version = "0.1.0"
 source = { virtual = "." }
@@ -638,10 +653,12 @@ dependencies = [
     { name = "alembic" },
     { name = "fastapi", extra = ["standard"] },
     { name = "passlib", extra = ["bcrypt"] },
+    { name = "pytailwindcss" },
     { name = "pytest" },
     { name = "python-dotenv" },
     { name = "python-jose", extra = ["cryptography"] },
     { name = "sqlmodel" },
+    { name = "tailwindcss" },
 ]
 
 [package.metadata]
@@ -649,10 +666,12 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.13.3" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.2" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
+    { name = "pytailwindcss", specifier = ">=0.2.0" },
     { name = "pytest", specifier = ">=8.3.3" },
-    { name = "python-dotenv" },
+    { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3.0" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
+    { name = "tailwindcss", specifier = ">=0.0.1" },
 ]
 
 [[package]]

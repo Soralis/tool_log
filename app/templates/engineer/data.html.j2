@@ -52,29 +52,6 @@
 </div>
 
 <script>
-function openModal(type) {
-    console.log(type)
-    const modalId = `${type}Modal`;
-    console.log('Opening modal:', modalId);
-    // document.getElementById(modalId).style.display = "flex";
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.add('active');
-    }
-}
-
-function closeModal(modalId) { // Takes modalId directly
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.remove('active');
-        // Reset forms when closing if needed
-        const form = modal.querySelector('form'); 
-        if (form) {
-            form.reset();
-        }
-    }
-}
-
 function openRelatedModal(relation) {
     console.log('Opening related modal for:', relation);
     document.getElementById('createRelatedTitle').textContent = `Create New ${relation}`;

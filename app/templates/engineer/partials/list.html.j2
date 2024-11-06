@@ -1,15 +1,17 @@
 <ul class="touch-friendly-list" id="itemList">
     {% for item in items %}
-        <li id="{{ item_type }}-{{ item.id }}" class="list-item"
+        <li id="{{ item_type }}-{{ item.id }}" class="list-item{% if not item.active %} inactive{% endif %}"
                         hx-get="/engineer/{{ item_type.lower() }}s/{{ item.id }}/info"
                         hx-target="#infoContainer"
                         hx-trigger="click"
                         onclick="openModal('info')">
             <div class="item-content">
                 <strong>{{ item.name }}</strong>
-                {# {% for field, options in filter_options.items() %}
-                    <span class="item-detail">{{ field }}: {{ item[field] }}</span>
-                {% endfor %} #}
+                {% for field in read_model.__fields__ %}
+                    {% if field not in ['id', 'active', 'name'] %}
+                        <span class="item-detail">{{ item|getattr_filter(field) }},</span>
+                    {% endif %}
+                {% endfor %}
             </div>
             <div class="item-actions">
                 <button class="action-button delete-button overlay-button"

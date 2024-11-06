@@ -1,9 +1,10 @@
-from fastapi import HTTPException, Depends, Cookie, Request
-from fastapi.responses import JSONResponse
+from fastapi import HTTPException, Depends, Cookie, Request, status
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from app.database_config import get_db
+from app.database_config import get_db, engine
 from app.models import LogDevice
 from app.models import User, UserRole
 from dotenv import dotenv_values
@@ -17,36 +18,51 @@ def create_token(data: dict, expires_delta: timedelta):
     encoded_jwt = jwt.encode(to_encode, env['SECRET_KEY'], algorithm=env['ALGORITHM'])
     return encoded_jwt, expire
 
-async def get_current_device(device_token: str = Cookie(None), db: Session = Depends(get_db)):
-    if not device_token:
-        raise HTTPException(status_code=401, detail="Device token missing")
-    try:
-        payload = jwt.decode(device_token, env['SECRET_KEY'], algorithms=[env['ALGORITHM']])
-        device_name: str = payload.get("sub")
-        if device_name is None:
-            raise HTTPException(status_code=401, detail="Invalid device token")
-        device = db.exec(select(LogDevice).where(LogDevice.name == device_name)).one_or_none()
-        if device is None or device.token != device_token:
-            raise HTTPException(status_code=401, detail="Device not found or token mismatch")
-        return device
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid device token")
 
-async def get_current_operator(request: Request, db: Session):
-    operator_token = request.cookies.get("operator_token")
-    if not operator_token:
-        raise HTTPException(status_code=401, detail="Operator token missing")
-    try:
-        payload = jwt.decode(operator_token, env['SECRET_KEY'], algorithms=[env['ALGORITHM']])
-        operator_pin: str = payload.get("sub")
-        if operator_pin is None:
+async def get_current_device(device_token: str = Cookie(None)):
+    with Session(engine) as session:
+        if not device_token:
+            raise HTTPException(status_code=401, detail="Device token missing")
+        try:
+            payload = jwt.decode(device_token, env['SECRET_KEY'], algorithms=[env['ALGORITHM']])
+            device_name: str = payload.get("sub")
+            if device_name is None:
+                raise HTTPException(status_code=401, detail="Invalid device token")
+            device = session.exec(select(LogDevice)
+                                   .where(LogDevice.name == device_name)
+                                   .options(selectinload(LogDevice.machines))).one_or_none()
+            if device is None or device.token != device_token:
+                raise HTTPException(status_code=401, detail="Device not found or token mismatch")
+            return device
+        except JWTError:
+            raise HTTPException(status_code=401, detail="Invalid device token")
+
+
+async def get_current_operator(request: Request):
+    with Session(engine) as session:
+        operator_token = request.cookies.get("operator_token")
+        if not operator_token:
             raise HTTPException(status_code=401, detail="Invalid operator token")
-        operator = db.exec(select(User).where(User.pin == operator_pin)).one_or_none()
-        if operator is None or operator.token != operator_token or operator.token_expiry < datetime.utcnow():
-            raise HTTPException(status_code=401, detail="Operator not found, token mismatch, or token expired")
-        return operator
-    except JWTError as e:
-        raise HTTPException(status_code=401, detail="Invalid operator token")
+        try:
+            payload = jwt.decode(operator_token, env['SECRET_KEY'], algorithms=[env['ALGORITHM']])
+            operator_cred: str = payload.get("sub")
+            if operator_cred is None:
+                raise HTTPException(status_code=401, detail="Invalid operator token")
+            initials, pin = operator_cred.split(':')
+            operator = session.exec(select(User).where(User.pin == pin).where(User.initials == initials)).one_or_none()
+            if operator is None or operator.token != operator_token or operator.token_expiry < datetime.utcnow():
+                raise HTTPException(status_code=401, detail="Operator not found, token mismatch, or token expired")
+            return operator
+        except JWTError as e:
+            raise HTTPException(status_code=401, detail="Invalid operator token")
+
+def require_role(required_role: UserRole):
+    async def check_role(request: Request, user: User = Depends(get_current_operator)):
+        if user.role < required_role:
+            # Weiterleitung zur Anmeldeseite
+            raise HTTPException(status_code=401, detail="Forbidden: Insufficient permissions")
+        return user
+    return check_role
 
 
 async def authenticate_or_create_device(device_name: str, db: Session = Depends(get_db)):
@@ -78,33 +94,35 @@ async def authenticate_or_create_device(device_name: str, db: Session = Depends(
     )
     return response
 
-async def authenticate_operator(initials: str, pin: str, db: Session = Depends(get_db)):
-    operator = db.exec(select(User).where(User.initials == initials, User.pin == pin)).one_or_none()
-    if operator is None:
-        operator = User(initials=initials, pin=pin, role=UserRole.ENGINEER, name='Christopher Kunde')
-        db.add(operator)
-        db.commit()
-        db.refresh(operator)
-        # raise HTTPException(status_code=401, detail="Invalid initials or PIN")
-    
-    access_token, expire = create_token(
-        data={"sub": operator.pin},
-        expires_delta=timedelta(minutes=int(env['OPERATOR_TOKEN_EXPIRE_MINUTES']))
-    )
-    
-    operator.token = access_token
-    operator.token_expiry = expire
-    db.commit()
-    
-    response = JSONResponse(content={"message": "Operator authenticated", "redirect": "/"})
-    response.set_cookie(
-        key="operator_token",
-        value=access_token,
-        httponly=True,
-        secure=False,  # Set to False if not using HTTPS
-        samesite="lax",
-        domain=None,  # Set to your domain if needed
-        max_age=int(env['OPERATOR_TOKEN_EXPIRE_MINUTES']) * 60
-    )
-    print((f"Setting operator_token cookie: {access_token}"))
-    return response
+
+async def authenticate_operator(initials: str, pin: str):
+    with Session(engine) as session:
+        operator = session.exec(select(User).where(User.initials == initials, User.pin == pin)).one_or_none()
+        if operator is None:
+            operator = User(initials=initials, pin=pin, role=UserRole.ENGINEER, name='Christopher Kunde')
+            session.add(operator)
+            session.commit()
+            session.refresh(operator)
+            # raise HTTPException(status_code=401, detail="Invalid initials or PIN")
+
+        access_token, expire = create_token(
+            data={"sub": f'{operator.initials}:{operator.pin}'},
+            expires_delta=timedelta(minutes=int(env['OPERATOR_TOKEN_EXPIRE_MINUTES']))
+        )
+
+        operator.token = access_token
+        operator.token_expiry = expire
+        session.commit()
+
+        response = JSONResponse(content={"message": "Operator authenticated", "redirect": "/"})
+        response.set_cookie(
+            key="operator_token",
+            value=access_token,
+            httponly=True,
+            secure=False,  # Set to False if not using HTTPS
+            samesite="lax",
+            domain=None,  # Set to your domain if needed
+            max_age=int(env['OPERATOR_TOKEN_EXPIRE_MINUTES']) * 60
+        )
+        print((f"Setting operator_token cookie: {access_token}"))
+        return response

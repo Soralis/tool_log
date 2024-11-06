@@ -1,14 +1,15 @@
 import json
-from fastapi import APIRouter, Request, Form, HTTPException, status, Header
+from fastapi import APIRouter, Request, HTTPException, status, Header
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import ValidationError
 from sqlmodel import Session, select, inspect, SQLModel, func
+from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import sqltypes
 from sqlmodel.sql.sqltypes import AutoString
-from sqlalchemy.orm.collections import InstrumentedList
 from app.database_config import engine
 from app.templates.jinja_functions import templates
 from app.models import Manufacturer, ManufacturerCreate
+from app.models import Measureable,MeasureableCreate
 from app.models import Machine, MachineCreate
 from app.models import User, UserCreate
 from app.models import Tool, ToolCreate, ToolAttribute, ToolAttributeCreate
@@ -16,13 +17,14 @@ from app.models import ToolLife, ToolLifeCreate
 from app.models import ToolType, ToolTypeCreate
 from app.models import Recipe, RecipeCreate
 from app.models import ChangeReason, ChangeReasonCreate
-from typing import Type, Dict, Any, ForwardRef, get_origin, get_args
+from typing import Type, Dict, Any, ForwardRef, get_origin, get_args, List
 
 # Create a mapping of string names to SQLModel classes
 model_mapping = {
     'changereason': {"model": ChangeReason, "create": ChangeReasonCreate},
     "manufacturer": {"model": Manufacturer, "create": ManufacturerCreate},
     "machine": {"model": Machine, "create": MachineCreate},
+    'measureable':{'model': Measureable, 'create': MeasureableCreate},
     "user": {"model": User, "create": UserCreate},
     'tool': {"model": Tool, "create": ToolCreate},
     'toollife': {"model": ToolLife, "create": ToolLifeCreate},
@@ -34,6 +36,7 @@ model_mapping = {
 
 def create_generic_router(
     model: Type[SQLModel],
+    read_model: Type[SQLModel],
     create_model: Type[SQLModel],
     update_model: Type[SQLModel],
     item_type: str,
@@ -147,24 +150,38 @@ def create_generic_router(
 
     @router.get("/list", response_class=HTMLResponse)
     async def get_item_list(request: Request, hx_request: str = Header(None)):
+        def get_joinedload_options(model: SQLModel) -> List[joinedload]:
+            """
+            Generates joinedload options for a given SQLAlchemy model.
+            It will eagerly load the first-level relationships, while keeping the nested relationships as IDs.
+            """
+            joinedload_options = []
+            for name in model.__sqlmodel_relationships__.keys():
+                joinedload_options.append(joinedload(getattr(model, name)))
+            return joinedload_options
+        
         filters = request.query_params
-        statement = select(model)
+        statement = select(model).options(*get_joinedload_options(model))
 
         # Apply filters to the statement
         for key, value in filters.items():
             if value and key != 'with_filter':
-                statement = statement.where(getattr(model, key).in_(value.split(',')))
+                statement = statement.where(getattr(read_model, key).in_(value.split(','))).options(joinedload('*'))
 
         with Session(engine) as session:
-            results = session.exec(statement)
-            items = results.all()
+            items = session.exec(statement).unique().all()
 
+        # Trim the full items according to the read_model
+        # items = [
+        #     {field: getattr(item, field) for field in read_model.__fields__ if field != 'id'}
+        #     for item in items
+        # ]
 
         # For full page load, return the complete template
         return templates.TemplateResponse(
             request=request,
             name="engineer/partials/list.html.j2",
-            context={"items": items, 'item_type': item_type}
+            context={"items": items, 'item_type': item_type, 'read_model': read_model}
         )
 
     def get_filter_options(model, session):
@@ -265,7 +282,8 @@ def create_generic_router(
                 session.commit()
                 session.refresh(item)
             except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
+                # return JSONResponse(content={'message': f'{item_type} Database conflict: {str(e)}'}, status_code=status.HTTP_409_CONFLICT)
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
             db_additions = []
             for field_name in references_dict:

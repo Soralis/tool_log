@@ -32,6 +32,11 @@ def field_types(thing):
 
     return type_mapping.get(thing, "text")  # Default to "text" if the type is not found
 
-
+def getattr_filter(obj, attr):
+    result = getattr(obj, attr,'')
+    while not isinstance(result, str):
+        result = getattr(result, 'name','')
+    return result
 
 templates.env.filters['field_types'] = field_types
+templates.env.filters['getattr_filter'] = getattr_filter
