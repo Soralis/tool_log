@@ -1,0 +1,289 @@
+<div id="toolLifeForm" class="multi-step-form">
+    <div class="step" data-step="1">
+        <h2 class="text-xl font-bold mb-4">Select Machine</h2>
+        <div id="machine-buttons" class="flex flex-wrap gap-2">
+            {% for machine in machines %}
+                <button class="machine-btn px-4 py-2 bg-blue-500 text-white rounded" data-machine-id="{{ machine.id }}">
+                    {{ machine.name }}
+                </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button id="prevBtn" class="px-4 py-2 bg-gray-300 text-gray-700 rounded mr-2" style="display: none;">Previous</button>
+        <button id="nextBtn" class="px-4 py-2 bg-blue-500 text-white rounded">Next</button>        
+        <button id="submitBtn" class="px-4 py-2 bg-green-500 text-white rounded" style="display: none;">Submit</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('toolLifeForm');
+    const machineButtons = document.querySelectorAll('.machine-btn');
+    const nextBtn = document.getElementById('nextBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    let currentStep = 1;
+    let totalSteps = 1; // Start with 1 step (machine selection)
+    let formData = {};
+
+    machineButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const machineId = this.getAttribute('data-machine-id');
+            formData['machine_id'] = machineId;
+            fetchMachineData(machineId);
+            
+            // Highlight the selected machine
+            machineButtons.forEach(btn => btn.classList.remove('bg-green-500'));
+            this.classList.add('bg-green-500');
+        });
+    });
+
+    function fetchMachineData(machineId) {
+        fetch(`/operator/tool_life/?machine_id=${machineId}`)
+            .then(response => response.json())
+            .then(data => {
+                setupAdditionalSteps(data);
+                goToNextStep();
+            })
+            .catch(error => {
+                console.error('Error fetching machine data:', error);
+                showToast('An error occurred while fetching machine data. Please try again.', 'error');
+            });
+    }
+
+    nextBtn.addEventListener('click', () => {
+        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
+        currentStep++;
+        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
+        prevBtn.style.display = 'inline-block';
+        console.log('next btn: ', currentStep, totalSteps)
+        if (currentStep === totalSteps) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'inline-block';
+        }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
+        currentStep--;
+        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
+        {# nextBtn.style.display = 'inline-block'; #}
+        submitBtn.style.display = 'none';
+        if (currentStep === 1) {
+            prevBtn.style.display = 'none';
+        }
+    });
+
+    // Form submission logic will be added in the next iteration
+    function setupAdditionalSteps(data) {
+        const formContainer = document.getElementById('toolLifeForm');
+
+        // Remove any existing dynamically created steps
+        document.querySelectorAll('.step:not([data-step="1"])').forEach(el => el.remove());
+
+        if (!data || !data.machine) {
+            console.error('Invalid data received:', data);
+            showToast('Invalid data received from the server. Please try again.', 'error');
+            return;
+        }
+        
+        // Step 2: Machine Channel
+        const channelStep = createStep(2, 'Machine Channel');
+        const channelButtons = document.createElement('div');
+        channelButtons.className = 'flex flex-wrap gap-2';
+        for (let i = 1; i <= data.machine.channels; i++) {
+            const button = document.createElement('button');
+            button.textContent = `Channel ${i}`;
+            button.className = 'px-4 py-2 bg-blue-500 text-white rounded';
+            button.setAttribute('data-value', i);
+            button.addEventListener('click', (e) => handleButtonClick(e, 'machine_channel'));
+            channelButtons.appendChild(button);
+        }
+        channelStep.appendChild(channelButtons);
+        formContainer.insertBefore(channelStep, submitBtn.parentNode);
+
+        // Step 3: Tool Position
+        if (data.tool_positions && data.tool_positions.length > 0) {
+            const toolPositionStep = createStep(3, 'Tool Position');
+            const toolPositionButtons = document.createElement('div');
+            toolPositionButtons.className = 'flex flex-wrap gap-2';
+            data.tool_positions.forEach(position => {
+                const button = document.createElement('button');
+                button.textContent = position.name;
+                button.className = 'px-4 py-2 bg-blue-500 text-white rounded';
+                button.setAttribute('data-value', position.id);
+                button.addEventListener('click', (e) => handleToolPositionClick(e, position.id));
+                toolPositionButtons.appendChild(button);
+            });
+            toolPositionStep.appendChild(toolPositionButtons);
+            formContainer.insertBefore(toolPositionStep, submitBtn.parentNode);
+        } else {
+            console.warn('No tool positions available');
+        }
+
+        // Step 4: Reached Life
+        const reachedLifeStep = createStep(4, 'Reached Life');
+        const reachedLifeInput = document.createElement('input');
+        reachedLifeInput.type = 'number';
+        reachedLifeInput.name = 'reached_life';
+        reachedLifeInput.className = 'w-full p-2 border rounded';
+        reachedLifeInput.addEventListener('change', (e) => {
+            formData['reached_life'] = e.target.value;
+        });
+        reachedLifeStep.appendChild(reachedLifeInput);
+        formContainer.insertBefore(reachedLifeStep, submitBtn.parentNode);
+
+        // Step 5: Change Reasons, defined below (need additional data)
+
+        // Step 6: Additional Parameters
+        if (data.measureables.length > 0) {
+            const additionalParamsStep = createStep(6, 'Additional Parameters');
+            data.measureables.forEach(measureable => {
+                const label = document.createElement('label');
+                label.textContent = measureable.name;
+                label.className = 'block mb-2';
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.name = `${measureable.name}_ms`;
+                input.className = 'w-full p-2 border rounded mb-4';
+                input.addEventListener('change', (e) => {
+                    formData[`${measureable.name}_ms`] = e.target.value;
+                });
+                additionalParamsStep.appendChild(label);
+                additionalParamsStep.appendChild(input);
+            });
+            formContainer.insertBefore(additionalParamsStep, submitBtn.parentNode);
+        }
+
+        totalSteps = document.querySelectorAll('.step').length;
+        console.log('Total steps:', totalSteps); // Log the total number of steps
+    }
+
+    function handleButtonClick(e, fieldName) {
+        showToast("Selection made")
+        e.preventDefault();
+        const buttons = e.target.parentNode.querySelectorAll('button');
+        buttons.forEach(btn => btn.classList.remove('bg-green-500'));
+        e.target.classList.add('bg-green-500');
+        formData[fieldName] = e.target.getAttribute('data-value');
+        goToNextStep();
+    }
+
+    function handleToolPositionClick(e, toolPositionId) {
+        e.preventDefault();
+        const buttons = e.target.parentNode.querySelectorAll('button');
+        buttons.forEach(btn => btn.classList.remove('bg-green-500'));
+        e.target.classList.add('bg-green-500');
+        formData['tool_position_id'] = toolPositionId;
+
+        // Fetch change reasons for the selected tool position
+        fetch(`/operator/tool_life/change-reasons?tool_position_id=${toolPositionId}`)
+            .then(response => response.json())
+            .then(data => {
+                setupChangeReasonStep(data.change_reasons);
+                goToNextStep();
+            })
+            .catch(error => {
+                console.error('Error fetching change reasons:', error);
+                alert('An error occurred while fetching change reasons. Please try again.');
+            });
+    }
+
+    function setupChangeReasonStep(changeReasons) {
+        const formContainer = document.getElementById('toolLifeForm');
+        
+        // Remove existing change reason step if it exists
+        const existingStep = document.querySelector('.step[data-step="5"]');
+        if (existingStep) {
+            existingStep.remove();
+        }
+
+        const changeReasonStep = createStep(5, 'Change Reason');
+        const changeReasonButtons = document.createElement('div');
+        changeReasonButtons.className = 'flex flex-wrap gap-2';
+        
+        changeReasons.forEach(reason => {
+            const button = document.createElement('button');
+            button.textContent = reason.name;
+            button.className = 'px-4 py-2 bg-blue-500 text-white rounded';
+            button.setAttribute('data-value', reason.id);
+            button.addEventListener('click', (e) => handleButtonClick(e, 'change_reason_id'));
+            changeReasonButtons.appendChild(button);
+        });
+        
+        changeReasonStep.appendChild(changeReasonButtons);
+        formContainer.insertBefore(changeReasonStep, submitBtn.parentNode);
+
+        // Update total steps
+        totalSteps = document.querySelectorAll('.step').length;
+    }
+
+    function goToNextStep() {
+        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
+        currentStep++;
+        if (currentStep <= totalSteps) {
+            document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
+            prevBtn.style.display = 'inline-block';
+            if (currentStep === totalSteps) {
+                nextBtn.style.display = 'none'
+                submitBtn.style.display = 'inline-block';
+            }
+        }
+    }
+
+    function createStep(stepNumber, title) {
+        const step = document.createElement('div');
+        step.className = 'step';
+        step.setAttribute('data-step', stepNumber);
+        step.style.display = 'none';
+        const heading = document.createElement('h2');
+        heading.className = 'text-xl font-bold mb-4';
+        heading.textContent = title;
+        step.appendChild(heading);
+        return step;
+    }
+
+    prevBtn.addEventListener('click', () => {
+        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
+        currentStep--;
+        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
+        submitBtn.style.display = 'none';
+        if (currentStep === 1) {
+            prevBtn.style.display = 'none';
+        }
+    });
+
+    submitBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+
+        // Ensure all input fields are captured
+        document.querySelectorAll('input').forEach(input => {
+            formData[input.name] = input.value;
+        });
+
+        try {
+            const response = await fetch('/operator/tool_life', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to submit tool life data');
+            }
+
+            const result = await response.json();
+            alert('Tool life data submitted successfully');
+            // Reset form or close modal here
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while submitting tool life data');
+        }
+    });
+});
+</script>

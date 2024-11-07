@@ -3,33 +3,41 @@
 {% block title %}Log Device{% endblock %}
 
 {% block body %}
-    <a href="/"><button>Go home</button></a>
-    <div class="container mt-5">
-        <form id="logDeviceForm" action="{{ form_action }}" method="POST">
-            <div class="mb-3">
-                <label for="name" class="form-label">Name</label>
-                <input type="text" class="form-control" id="name" name="name" value="{{ item.name }}" required>
-            </div>
-            <div class="mb-3">
-                <label for="description" class="form-label">Description</label>
-                <textarea class="form-control" id="description" name="description">{{ item.description }}</textarea>
-            </div>
-            <div class="mb-3 form-check">
-                <label class="form-check-label" for="active">Active</label>
-                <input type="checkbox" class="form-check-input" id="active" name="active" {% if item.active %}checked{% endif %}>
-            </div>
-            <div class="mb-3">
-                <label for="machine_ids" class="form-label">Machines</label>
-                <select multiple class="form-select" id="machine_ids" name="machine_ids">
-                    {% for option in relationship_options.machines %}
-                        <option value="{{ option.id }}" {% if option.id in related_items.machines|map(attribute='id') %}selected{% endif %}>
-                            {{ option.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">{{ submit_text }}</button>
-        </form>
+    <div class="container mx-auto px-4 py-8">
+        <a href="/" class="inline-block mb-6">
+            <button class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                Go home
+            </button>
+        </a>
+        <div class="max-w-2xl mx-auto bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <form id="logDeviceForm" action="{{ form_action }}" method="POST" class="space-y-6">
+                <div>
+                    <label for="name" class="block text-gray-700 text-sm font-bold mb-2">Name</label>
+                    <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="name" name="name" value="{{ item.name }}" required>
+                </div>
+                <div>
+                    <label for="description" class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                    <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="description" name="description" rows="3">{{ item.description }}</textarea>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" id="active" name="active" {% if item.active %}checked{% endif %}>
+                    <label class="ml-2 text-gray-700 text-sm font-bold" for="active">Active</label>
+                </div>
+                <div>
+                    <label for="machine_ids" class="block text-gray-700 text-sm font-bold mb-2">Machines</label>
+                    <select multiple class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="machine_ids" name="machine_ids">
+                        {% for option in relationship_options.machines %}
+                            <option value="{{ option.id }}" {% if option.id in related_items.machines|map(attribute='id') %}selected{% endif %}>
+                                {{ option.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    {{ submit_text }}
+                </button>
+            </form>
+        </div>
     </div>
     <script>
         document.getElementById('logDeviceForm').addEventListener('submit', function(e) {

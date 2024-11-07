@@ -3,35 +3,38 @@
 {% block title %}Tool Log{% endblock %}
 
 {% block body %}
-{{context}}
-    <div id="changeoverModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('changeoverModal')">&times;</span>
-            <div id="changeoverContainer">
-                <h1 class="text-3xl font-bold mb-6">Change Over</h1>
-                {% include 'operator/change_over.html.j2' with context %}
+    {% if machines %}
+        <div id="changeoverModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('changeoverModal')">&times;</span>
+                <div id="changeoverContainer">
+                    <h1 class="text-3xl font-bold mb-6">Change Over</h1>
+                    {% include 'operator/change_over.html.j2' with context %}
+                </div>
             </div>
         </div>
-    </div>
 
-    <div id="toollogModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('toollogModal')">&times;</span>
-            <div id="toollogContainer">
-                <!-- Tool log content goes here -->
-                {# {% include 'operator/tool_log.html.j2' with context %} #}
+        <div id="toollogModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('toollogModal')">&times;</span>
+                <div id="toollogContainer">
+                    <!-- Tool log content goes here -->
+                    {% include 'operator/tool_life.html.j2' with context %}
+                </div>
             </div>
         </div>
-    </div>
+    {% endif %}
 
     <div class="d-flex justify-content-center align-items-center vh-100 position-relative">
         <a href="/engineer" class="top-left">
             <button class="btn btn-primary">E</button>
         </a>
-        <div class="d-flex flex-column">
-            <button onclick="openModal('changeover')" class="btn-submit mb-3">Changeover</button>
-            <button onclick="openModal('toollog')" class="btn-submit">Tool Log</button>
-        </div>
+        {% if machines %}
+            <div class="d-flex flex-column">
+                <button onclick="openModal('changeover')" class="btn-submit mb-3">Changeover</button>
+                <button onclick="openModal('toollog')" class="btn-submit">Tool Log</button>
+            </div>
+        {% endif %}
     </div>
 
 

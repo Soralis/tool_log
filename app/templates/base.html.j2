@@ -53,24 +53,6 @@
             }
         }
 
-        async function getDeviceToken() {
-            const deviceName = new URLSearchParams(window.location.search).get('device_name');
-            if (deviceName) {
-                const response = await fetch('/authenticateDevice', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ device_name: deviceName }),
-                });
-                if (response.ok) {
-                    console.log('Device authenticated');
-                } else {
-                    console.error('Device authentication failed');
-                }
-            }
-        }
-
         async function checkOperatorAuth() {
             try {
                 const response = await fetch('/checkOperatorAuth', {
@@ -86,52 +68,19 @@
                 return false;
             }
         }
-
-        // Also, add this to see what cookies are present in the browser
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("All cookies:", document.cookie);
-        });
-
-        document.addEventListener('DOMContentLoaded', async function() {
-            await getDeviceToken();
-            if (!window.location.pathname.includes('/login')) {
-                const isOperatorAuthenticated = await checkOperatorAuth();
-                if (!isOperatorAuthenticated) {
-                    window.location.href = '/login';
-                }
-            }
-        });
-
-        // HTMX extension to add the device and operator tokens to all requests
-        htmx.defineExtension('auth-headers', {
-            onEvent: function(name, evt) {
-                if (name === "htmx:configRequest") {
-                    evt.detail.headers['X-Device-Token'] = document.cookie.replace(/(?:(?:^|.*;\s*)device_token\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-                    evt.detail.headers['X-Operator-Token'] = document.cookie.replace(/(?:(?:^|.*;\s*)operator_token\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-                }
-            }
-        });
-
-        async function logout() {
-            try {
-                // Delete the operator_token from local storage
-                localStorage.removeItem('operator_token');
-
-                // Redirect to the login page
-                window.location.href = '/login';
-            } catch (error) {
-                console.error('Error logging out:', error);
-            }
-        }
     </script>
+
     {% block extra_head %}{% endblock %}
+
 </head>
+
 <body class="body">
     <div id="toast-container"></div>
     <div id="page-container_x">
         <div class="logout-button">
-            <button onclick="logout()">Logout</button>
+            <a href="/logout"><button>Logout</button></a>
         </div>
+        
         {% block body %}{% endblock %}
     </div>
 

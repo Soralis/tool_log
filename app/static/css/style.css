@@ -884,7 +884,6 @@ textarea {
         margin: 30px;
         padding: 20px;
         border: none;
-        height: 87vh;
         display: flex;
         flex-direction: column;
         justify-content: center;

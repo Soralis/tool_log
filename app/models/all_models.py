@@ -245,8 +245,10 @@ class ToolLifeBase(SQLModel):
 class ToolLife(ToolLifeBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     timestamp: datetime = Field(default_factory=datetime.now, nullable=False)
+    tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
+    additional_measurements: Dict = Field(default_factory=dict, sa_column=Column(JSON))
 
-    tool_order_id: int = Field(foreign_key='toolorder.id')
+    tool_order_id: Optional[int] = Field(foreign_key='toolorder.id')
     created_by: int = Field(foreign_key='user.id')
     machine_id: int = Field(foreign_key='machine.id')
     tool_id: int = Field(foreign_key='tool.id')

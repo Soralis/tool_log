@@ -166,7 +166,7 @@ def create_generic_router(
         # Apply filters to the statement
         for key, value in filters.items():
             if value and key != 'with_filter':
-                statement = statement.where(getattr(read_model, key).in_(value.split(','))).options(joinedload('*'))
+                statement = statement.where(getattr(read_model, key).in_(value.split(','))).options(*get_joinedload_options(model))
 
         with Session(engine) as session:
             items = session.exec(statement).unique().all()

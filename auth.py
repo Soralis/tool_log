@@ -41,25 +41,37 @@ async def get_current_device(device_token: str = Cookie(None)):
 async def get_current_operator(request: Request):
     with Session(engine) as session:
         operator_token = request.cookies.get("operator_token")
-        if not operator_token:
-            raise HTTPException(status_code=401, detail="Invalid operator token")
         try:
+            if not operator_token:
+                raise HTTPException(
+                    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+                    headers={'Location': '/login'}
+                )
             payload = jwt.decode(operator_token, env['SECRET_KEY'], algorithms=[env['ALGORITHM']])
             operator_cred: str = payload.get("sub")
             if operator_cred is None:
-                raise HTTPException(status_code=401, detail="Invalid operator token")
+                raise HTTPException(
+                    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+                    headers={'Location': '/login'}
+                )
             initials, pin = operator_cred.split(':')
             operator = session.exec(select(User).where(User.pin == pin).where(User.initials == initials)).one_or_none()
             if operator is None or operator.token != operator_token or operator.token_expiry < datetime.utcnow():
-                raise HTTPException(status_code=401, detail="Operator not found, token mismatch, or token expired")
+                raise HTTPException(
+                    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+                    headers={'Location': '/login'}
+                )
             return operator
         except JWTError as e:
-            raise HTTPException(status_code=401, detail="Invalid operator token")
+            raise HTTPException(
+                status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+                headers={'Location': '/login'}
+            )
+
 
 def require_role(required_role: UserRole):
     async def check_role(request: Request, user: User = Depends(get_current_operator)):
         if user.role < required_role:
-            # Weiterleitung zur Anmeldeseite
             raise HTTPException(status_code=401, detail="Forbidden: Insufficient permissions")
         return user
     return check_role

@@ -1,0 +1,25 @@
+<script>
+    async function getDeviceToken() {
+        const deviceName = new URLSearchParams(window.location.search).get('device_name');
+        console.log('Going to register Device')
+        if (deviceName) {
+            const response = await fetch('/authenticateDevice', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ device_name: deviceName }),
+            });
+            if (response.ok) {
+                console.log('Device authenticated')
+                window.location.href = '/login';
+            } else {
+                console.error('Device authentication failed');
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        await getDeviceToken();
+    });
+</script>

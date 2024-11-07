@@ -1,18 +1,18 @@
-from fastapi import FastAPI, Request, Depends
-from app.models import LogDevice, Machine
-from sqlmodel import Session, select
-from app.templates.jinja_functions import templates
-from auth import get_current_device
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, Depends, status
+from fastapi.responses import JSONResponse, Response, RedirectResponse
 from fastapi.exceptions import HTTPException
-from app.models.all_models import User, UserRole
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from app.database_config import init_db, get_db, get_session
+from datetime import datetime, timedelta
+from sqlmodel import Session
+from app.templates.jinja_functions import templates
+from app.database_config import init_db, get_db
+from app.router import base
 from app.router.engineer import _engineer
 from app.router.operator import _operator
 from app.router import device
-from auth import authenticate_or_create_device, authenticate_operator, get_current_operator, require_role
+from app.models.all_models import UserRole
+from auth import authenticate_or_create_device, authenticate_operator, require_role
 
 app = FastAPI()
 
@@ -32,24 +32,31 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 init_db()
 
 # Include the routers
+app.include_router(base.router, dependencies=[Depends(require_role(UserRole.OPERATOR))])
 app.include_router(_engineer.router, prefix="/engineer", tags=["engineer"], dependencies=[Depends(require_role(UserRole.ENGINEER))])
-app.include_router(_operator.router, prefix="/operator", tags=['operator'])
+app.include_router(_operator.router, prefix="/operator", tags=['operator'], dependencies=[Depends(require_role(UserRole.OPERATOR))])
 app.include_router(device.router, prefix="/device", tags=["device-info"], dependencies=[Depends(require_role(UserRole.SUPERVISOR))])
 
 
-@app.get("/")
-async def root(request: Request, device: LogDevice = Depends(get_current_device), session: Session = Depends(get_session)):
-    machines = session.exec(select(Machine).where((Machine.log_device_id == device.id), Machine.active)).all()
-    return templates.TemplateResponse(
-            request=request,
-            name="index.html.j2",
-            context={'machines': machines}
-        )
+@app.get('/deviceRegistration')
+async def register_log_device(request: Request):
+    return templates.TemplateResponse("device_registration.html.j2", {"request": request})
 
 
 @app.get("/login")
 async def login_page(request: Request):
-    return templates.TemplateResponse("operator_login.html.j2", {"request": request})
+    return templates.TemplateResponse("operator_login.html.j2", {"request": request})  
+
+@app.get("/logout")
+async def logout(request: Request, response: Response):
+    # response = templates.TemplateResponse(
+    #     request=request,
+    #     name='operator_login.html.j2'
+    # )
+    # response = JSONResponse(content={"redirect": "/"})
+    response = RedirectResponse(url='/login', status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+    response.delete_cookie("operator_token")
+    return response
 
 
 @app.post("/authenticateDevice")
@@ -75,11 +82,6 @@ async def authenticate_operator_route(request: Request):
         return await authenticate_operator(initials, pin)
     except HTTPException as e:
         return JSONResponse(content={"error": str(e.detail)}, status_code=e.status_code)
-
-
-@app.get("/checkOperatorAuth")
-async def check_operator_auth(request: Request, operator: User = Depends(get_current_operator)):  
-    return {"message": f"Hello, operator {operator.initials}"}  
 
 
 if __name__ == "__main__":
