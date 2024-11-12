@@ -3,7 +3,6 @@ from fastapi.responses import JSONResponse, Response, RedirectResponse
 from fastapi.exceptions import HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime, timedelta
 from sqlmodel import Session
 from app.templates.jinja_functions import templates
 from app.database_config import init_db, get_db
