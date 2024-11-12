@@ -38,7 +38,7 @@ xset s noblank
 xrandr --output DSI-1 --rotate left   #Replace if necessary
 
 # Launch Chromium in kiosk mode
-chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar --kiosk \$KIOSK_URL --check-for-update-interval=31536000 &
+chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar --kiosk \$KIOSK_URL --check-for-update-interval=31536000 --disable-gpu &
 EOF
 
 # --- Configure a minimal .xinitrc  ---
