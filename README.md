@@ -22,10 +22,6 @@ In the OS Customization edit the default settings
 After booting and connecting via SSH, download and run the setup script:
 ```bash
 wget -O setup_kiosk.sh https://raw.githubusercontent.com/Soralis/tool_log/master/log_device_setup.sh
-```
-```bash
 chmod +x setup_kiosk.sh
-```
-```bash
 sudo ./setup_kiosk.sh
 ```
