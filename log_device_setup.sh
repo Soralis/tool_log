@@ -9,6 +9,9 @@ read -p "Enter the device name: " DEVICE_NAME
 # Construct the KIOSK_URL
 KIOSK_URL="${BASE_URL}?device_name=${DEVICE_NAME}"
 
+# Set KIOSK_URL in the environment
+echo "export KIOSK_URL=\"${KIOSK_URL}\"" >> ~/.bashrc
+
 
 # Enable autologin to command line
 sudo raspi-config nonint do_boot_behaviour B2
@@ -33,6 +36,7 @@ sudo sed -i '/MatchIsTouchscreen "on"/a\        Option "CalibrationMatrix" "0 -1
 
 # Configure .xinitrc (using the dynamically created KIOSK_URL)
 cat << EOF > ~/.xinitrc
+. ~/.bashrc
 # Disable screen blanking and power saving
 xset -dpms
 xset s off
