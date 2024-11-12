@@ -1,9 +1,12 @@
-<h1>HOW-TO AND SCRIPT FOR RASPBERRY PI KIOSK WITH ROTATED SCREEN</h1>
+# HOW-TO AND SCRIPT FOR RASPBERRY PI KIOSK WITH ROTATED SCREEN
 
-<h2>Install Raspberry Pi OS Lite (32-bit):</h2>
+
+## How to use
+
+### Install Raspberry Pi OS Lite (32-bit):
 Download and flash the latest Raspberry Pi OS Lite 32-bit image to your SD card.
 
-<h2>Enable SSH and configure Wi-Fi:</h2>
+### Enable SSH and configure Wi-Fi:
 In the OS Customization edit the default settings
 - Set username and password:
     - Username: pi
@@ -18,7 +21,7 @@ In the OS Customization edit the default settings
     - Enable SSH
         - Use Password Authentication
 
-<h2>Run the setup script:</h2>
+### Run the setup script:
 After booting and connecting via SSH, download and run the setup script:
 ```bash
 wget -O setup_kiosk.sh https://raw.githubusercontent.com/Soralis/tool_log/master/log_device_setup.sh
