@@ -10,6 +10,10 @@ read -p "Enter the device name: " DEVICE_NAME
 KIOSK_URL="${BASE_URL}?device_name=${DEVICE_NAME}"
 
 
+# Enable autologin to command line
+sudo raspi-config nonint do_boot_behaviour B2
+
+
 # Update and upgrade
 sudo apt update -y && sudo apt upgrade -y
 
@@ -41,9 +45,6 @@ chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScro
 openbox
 exec openbox
 EOF
-
-# Enable autologin to command line
-sudo raspi-config nonint do_boot_behaviour B2
 
 # Configure .bash_profile to start X
 cat << EOF > ~/.bash_profile
