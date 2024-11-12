@@ -10,7 +10,7 @@ read -p "Enter the device name: " DEVICE_NAME
 KIOSK_URL="${BASE_URL}?device_name=${DEVICE_NAME}"
 
 # Set KIOSK_URL in the environment
-echo "export KIOSK_URL=\"${KIOSK_URL}\"" >> ~/.bashrc
+echo "export KIOSK_URL=\"${KIOSK_URL}\"" > /etc/xdg/openbox/environment
 
 # Enable autologin to command line
 sudo raspi-config nonint do_boot_behaviour B2
@@ -26,24 +26,24 @@ sudo mkdir -p /etc/X11/xorg.conf.d
 sudo cp /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/
 sudo sed -i '/MatchIsTouchscreen "on"/a\        Option "CalibrationMatrix" "0 -1 1 1 0 0 0 0 1"' /etc/X11/xorg.conf.d/40-libinput.conf  # 90 degrees left
 
-# Configure .xinitrc
-cat << EOF > ~/.xinitrc
-# Source .bashrc to get environment variables
-. ~/.bashrc
 
-# Disable screen blanking and power saving
+# --- Configure Openbox autostart ---
+cat << EOF > /etc/xdg/openbox/autostart
+# Disable screen blanking/power saving
 xset -dpms
 xset s off
 xset s noblank
 
-# Rotate display
-xrandr --output DSI-1 --rotate left   # Replace DSI-1 if needed
+# Rotate Display (NEW)
+xrandr --output DSI-1 --rotate left   #Replace if necessary
 
 # Launch Chromium in kiosk mode
-chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar --kiosk "\$KIOSK_URL" --check-for-update-interval=31536000 &
+chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar --kiosk \$KIOSK_URL --check-for-update-interval=31536000 &
+EOF
 
-# Start and make openbox persist
-openbox
+# --- Configure a minimal .xinitrc  ---
+cat << EOF > ~/.xinitrc
+. ~/.bashrc
 exec openbox
 EOF
 
