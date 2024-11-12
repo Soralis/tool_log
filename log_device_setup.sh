@@ -41,7 +41,7 @@ exec openbox
 EOF
 
 # Enable autologin to command line
-sudo raspi-config nonint do_boot_behaviour B4
+sudo raspi-config nonint do_boot_behaviour B2
 
 # Configure .bash_profile to start X
 cat << EOF > ~/.bash_profile
