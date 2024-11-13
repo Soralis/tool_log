@@ -10,6 +10,7 @@ read -p "Enter the device name: " DEVICE_NAME
 KIOSK_URL="http://${SERVER_IP}:8000/registerDevice?device_name=${DEVICE_NAME}"
 
 # Enable autologin to command line
+echo "Enabling Autologin"
 sudo raspi-config nonint do_boot_behaviour B2
 
 # Update Raspberry OS
@@ -22,6 +23,7 @@ sudo apt-get install --no-install-recommends xserver-xorg x11-xserver-utils xini
 sudo apt-get install --no-install-recommends chromium-browser -y
 
 # Rotate Touch
+echo "Rotate Touch Input"
 sudo cp /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/
 sudo sed -i '/MatchIsTouchscreen "on"/a\        Option "CalibrationMatrix" "0 -1 1 1 0 0 0 0 1"' /etc/X11/xorg.conf.d/40-libinput.conf  # 90 degrees left
 # "0 1 0 -1 0 1 0 0 1" = 90 Dregree (right)
@@ -29,6 +31,7 @@ sudo sed -i '/MatchIsTouchscreen "on"/a\        Option "CalibrationMatrix" "0 -1
 # "0 -1 1 1 0 0 0 0 1" = 270 Degree (left)
 
 # Edit Openbox config
+echo "Setting OpenBox Autostart"
 sudo bash -c 'cat << EOF > /etc/xdg/openbox/autostart
 # Disable screen blanking/power saving
 xset -dpms
@@ -44,9 +47,11 @@ chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScro
 EOF'
 
 # Set Openbox environment
+echo "Setting Openbox Environment"
 sudo bash -c `echo "export KIOSK_URL=\"${KIOSK_URL}\"" > /etc/xdg/openbox/environment`
 
 # Insert Start conditions to bash_profile
+echo "Setting Start Conditions"
 BASH_PROFILE_CONTENT="[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor"
 touch ~/.bash_profile
 sudo bash -c `echo "$BASH_PROFILE_CONTENT" > ~/.bash_profile`
