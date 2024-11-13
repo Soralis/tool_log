@@ -21,6 +21,13 @@ In the OS Customization edit the default settings
     - Enable SSH
         - Use Password Authentication
 
+### Identify IP Address
+After Installation, log in and identify the Devices IP Adress with 
+```bash
+ifconfig
+```
+The Ip Address should look like '10.0.xx.xxx'
+
 ### Run the setup script:
 After booting and connecting via SSH, download and run the setup script:
 ```bash
