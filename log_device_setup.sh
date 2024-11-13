@@ -21,9 +21,12 @@ sudo apt-get install --no-install-recommends xserver-xorg x11-xserver-utils xini
 # Install Chromium Web browser
 sudo apt-get install --no-install-recommends chromium-browser -y
 
-# # Rotate Touch
+# Rotate Touch
 sudo cp /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/
 sudo sed -i '/MatchIsTouchscreen "on"/a\        Option "CalibrationMatrix" "0 -1 1 1 0 0 0 0 1"' /etc/X11/xorg.conf.d/40-libinput.conf  # 90 degrees left
+# "0 1 0 -1 0 1 0 0 1" = 90 Dregree (right)
+# "-1 0 1 0 -1 1 0 0 1" = 180 Dregree (inverted)
+# "0 -1 1 1 0 0 0 0 1" = 270 Degree (left)
 
 # Edit Openbox config
 sudo bash -c 'cat << EOF > /etc/xdg/openbox/autostart
@@ -43,8 +46,7 @@ EOF'
 # Set Openbox environment
 sudo bash -c `echo "export KIOSK_URL=\"${KIOSK_URL}\"" > /etc/xdg/openbox/environment`
 
-
-# Check if bash_profile exists
+# Insert Start conditions to bash_profile
 TEMP_FILE=$(mktemp)
 echo "[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor" > $TEMP_FILE
 if [ -f ~/.bash_profile ]; then
