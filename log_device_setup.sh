@@ -49,8 +49,7 @@ sudo bash -c `echo "export KIOSK_URL=\"${KIOSK_URL}\"" > /etc/xdg/openbox/enviro
 # Insert Start conditions to bash_profile
 BASH_PROFILE_CONTENT="[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor"
 touch ~/.bash_profile
-echo "$BASH_PROFILE_CONTENT" | sudo tee -a ~/.bash_profile > /dev/null
-
+sudo bash -c `echo "$BASH_PROFILE_CONTENT" > ~/.bash_profile`
 
 # Source the ~/.bash_profile
 source ~/.bash_profile
