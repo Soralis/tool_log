@@ -48,13 +48,9 @@ sudo bash -c `echo "export KIOSK_URL=\"${KIOSK_URL}\"" > /etc/xdg/openbox/enviro
 
 # Insert Start conditions to bash_profile
 BASH_PROFILE_CONTENT="[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor"
-if [ -f ~/.bash_profile ]; then
-    echo "~/.bash_profile exists, editing it directly."
-    echo "$BASH_PROFILE_CONTENT" | sudo tee -a ~/.bash_profile > /dev/null
-else
-    echo "~/.bash_profile does not exist, creating it."
-    echo "$BASH_PROFILE_CONTENT" | sudo tee ~/.bash_profile > /dev/null
-fi
+touch ~/.bash_profile
+echo "$BASH_PROFILE_CONTENT" | sudo tee -a ~/.bash_profile > /dev/null
+
 
 # Source the ~/.bash_profile
 source ~/.bash_profile
