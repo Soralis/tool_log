@@ -7,7 +7,7 @@ read -p "Enter the Server IP Address: " SERVER_IP
 read -p "Enter the device name: " DEVICE_NAME
 
 # Construct the KIOSK_URL
-KIOSK_URL="http://${SERVER_IP}:8000/registerDevice?device_name=${DEVICE_NAME}"
+KIOSK_URL="http://${SERVER_IP}:8000/deviceRegistration?device_name=${DEVICE_NAME}"
 
 # Enable autologin to command line
 echo "Enabling Autologin"
