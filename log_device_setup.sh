@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Base URL (IP Address of the Server + First time register)
-BASE_URL="http://10.0.36.52:8000/registerDevice"
+# Prompt for Base URL
+read -p "Enter the Server IP Address: " SERVER_IP
 
 # Prompt for device name
 read -p "Enter the device name: " DEVICE_NAME
 
 # Construct the KIOSK_URL
-KIOSK_URL="${BASE_URL}?device_name=${DEVICE_NAME}"
+KIOSK_URL="http://${SERVER_IP}/registerDevice?device_name=${DEVICE_NAME}"
 
 # Enable autologin to command line
 sudo raspi-config nonint do_boot_behaviour B2
@@ -22,9 +22,8 @@ sudo apt-get install --no-install-recommends xserver-xorg x11-xserver-utils xini
 sudo apt-get install --no-install-recommends chromium-browser -y
 
 # # Rotate Touch
-# sudo mkdir /etc/X11/xorg.conf.d
-# sudo cp /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/
-# sudo sed -i '/MatchIsTouchscreen "on"/a\        Option "CalibrationMatrix" "0 -1 1 1 0 0 0 0 1"' /etc/X11/xorg.conf.d/40-libinput.conf  # 90 degrees left
+sudo cp /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/
+sudo sed -i '/MatchIsTouchscreen "on"/a\        Option "CalibrationMatrix" "0 -1 1 1 0 0 0 0 1"' /etc/X11/xorg.conf.d/40-libinput.conf  # 90 degrees left
 
 # Edit Openbox config
 sudo bash -c 'cat << EOF > /etc/xdg/openbox/autostart
