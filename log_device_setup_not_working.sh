@@ -27,7 +27,6 @@ sudo chown root:tty /dev/tty0
 # Set KIOSK_URL in the environment
 sudo echo "export KIOSK_URL=\"${KIOSK_URL}\"" > /etc/xdg/openbox/environment
 
-
 # Configure libinput for touch rotation
 sudo mkdir -p /etc/X11/xorg.conf.d
 sudo cp /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/
