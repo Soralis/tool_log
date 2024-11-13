@@ -51,16 +51,17 @@ EOF'
 
 # Set Openbox environment
 echo "Setting Openbox Environment"
-sudo bash -c "echo "export KIOSK_URL=\"${KIOSK_URL}\"" > /etc/xdg/openbox/environment"
+sudo bash -c "echo \"export KIOSK_URL=${KIOSK_URL}\" > /etc/xdg/openbox/environment"
 
 # Insert Start conditions to bash_profile
 echo "Setting Start Conditions"
 BASH_PROFILE_CONTENT="[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor"
 touch ~/.bash_profile
-sudo bash -c "echo "$BASH_PROFILE_CONTENT" > ~/.bash_profile"
+printf "%s\n" "$BASH_PROFILE_CONTENT" > ~/.bash_profile
+# sudo bash -c "echo "$BASH_PROFILE_CONTENT" > ~/.bash_profile"
 
 # Source the ~/.bash_profile
-source ~/.bash_profile
+# source ~/.bash_profile
 
 # Reboot the Raspberry Pi
 sudo reboot
