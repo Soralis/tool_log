@@ -47,16 +47,14 @@ EOF'
 sudo bash -c `echo "export KIOSK_URL=\"${KIOSK_URL}\"" > /etc/xdg/openbox/environment`
 
 # Insert Start conditions to bash_profile
-TEMP_FILE=$(mktemp)
-echo "[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor" > $TEMP_FILE
+BASH_PROFILE_CONTENT="[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor"
 if [ -f ~/.bash_profile ]; then
     echo "~/.bash_profile exists, editing it directly."
-    sudo cat $TEMP_FILE >> ~/.bash_profile
+    echo "$BASH_PROFILE_CONTENT" | sudo tee -a ~/.bash_profile > /dev/null
 else
     echo "~/.bash_profile does not exist, creating it."
-    sudo cat $TEMP_FILE > ~/.bash_profile
+    echo "$BASH_PROFILE_CONTENT" | sudo tee ~/.bash_profile > /dev/null
 fi
-rm $TEMP_FILE
 
 # Source the ~/.bash_profile
 source ~/.bash_profile
