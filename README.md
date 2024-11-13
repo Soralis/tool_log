@@ -21,14 +21,15 @@ In the OS Customization edit the default settings
     - Enable SSH
         - Use Password Authentication
 
-### (OPTIONAL - FOR REMOTE SETUP) Identify IP Address
-After Installation, log in and identify the Devices IP Adress with 
+### Identify IP Address
+(OPTIONAL - FOR REMOTE SETUP)
+After Installation, log in and identify the Devices IP Address with 
 ```bash
 ifconfig
 ```
 The Ip Address should look like '10.0.xx.xxx'
 
-Then Connect to the Device with 
+Then Connect to the Device remotely (with another PC) with 
 ```bash
 ssh pi@{ip address of device}
 ```

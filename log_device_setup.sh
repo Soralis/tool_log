@@ -33,8 +33,8 @@ xset -dpms
 xset s off
 xset s noblank
 
-# # Rotate Display
-# xrandr --output DSI-1 --rotate left
+# Rotate Display
+xrandr --output DSI-1 --rotate left
 
 sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/'"'"' ~/.config/chromium/'"'"'Local State'"'"'
 sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"["]+"/"exit_type":"Normal"/"'"'"' ~/.config/chromium/Default/Preferences
@@ -44,18 +44,18 @@ EOF'
 # Set Openbox environment
 sudo bash -c `echo "export KIOSK_URL=\"${KIOSK_URL}\"" > /etc/xdg/openbox/environment`
 
+
 # Check if bash_profile exists
+TEMP_FILE=$(mktemp)
+echo "[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor" > $TEMP_FILE
 if [ -f ~/.bash_profile ]; then
     echo "~/.bash_profile exists, editing it directly."
-    sudo bash -c 'cat << EOF >> ~/.bash_profile
-[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor
-EOF'
+    sudo cat $TEMP_FILE >> ~/.bash_profile
 else
     echo "~/.bash_profile does not exist, creating it."
-    sudo bash -c 'cat << EOF > ~/.bash_profile
-[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor
-EOF'
+    sudo cat $TEMP_FILE > ~/.bash_profile
 fi
+rm $TEMP_FILE
 
 # Source the ~/.bash_profile
 source ~/.bash_profile
