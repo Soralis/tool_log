@@ -56,10 +56,7 @@ sudo bash -c "echo \"export KIOSK_URL=${KIOSK_URL}\" > /etc/xdg/openbox/environm
 # Insert Start conditions to bash_profile
 echo "Setting Start Conditions"
 touch /home/pi/.bash_profile
-sudo bash -c 'echo "[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor" > /home/pi/.bash_profile'
-
-# Source the ~/.bash_profile
-# source ~/.bash_profile
+sudo bash -c 'echo "[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor gayagayga" > /home/pi/.bash_profile'
 
 # Reboot the Raspberry Pi
 sudo reboot
