@@ -141,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleButtonClick(e, fieldName) {
-        showToast("Selection made")
         e.preventDefault();
         const buttons = e.target.parentNode.querySelectorAll('button');
         buttons.forEach(btn => btn.classList.remove('bg-green-500'));
@@ -269,11 +268,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const result = await response.json();
-            alert('Tool life data submitted successfully');
-            // Reset form or close modal here
+            // Reload the page
+            localStorage.setItem('showToast', 'Tool life data submitted successfully');
+            window.location.reload();
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred while submitting tool life data');
+            show_Toast('An error occurred while submitting tool life data', 'error');
         }
     });
 });

@@ -1,6 +1,7 @@
 <form 
-    hx-post="/operator/change_over/" 
-    hx-swap="outerHTML" 
+    id="changeOverForm"
+    method="post"
+    action="/operator/change_over/" 
     class="space-y-6">
     <div>
         {% if machines|length > 1 %}
@@ -37,6 +38,7 @@
         const machineSelect = document.getElementById('machine-select');
         const recipeSelect = document.getElementById('recipe-select');
         const recipeForm = document.getElementById('recipe-form');
+        const changeOverForm = document.getElementById('changeOverForm');
 
         // Fetch recipes for the initial machine
         const initialMachineId = machineSelect.getAttribute('value') || machineSelect.value;
@@ -67,5 +69,26 @@
                     recipeForm.classList.remove('hidden');
                 });
         }
+
+        changeOverForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            fetch('/operator/change_over/', {
+                method: 'POST',
+                body: new FormData(this),
+            })
+            .then(response => {
+                if (response.ok) {
+                    localStorage.setItem('showToast', 'Changeover successful');
+                    window.location.reload();
+                } else {
+                    showToast('Change over failed', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred during change over. Please try again.', 'error');
+            });
+        });
     });
 </script>

@@ -42,11 +42,14 @@ xset s off
 xset s noblank
 
 # Rotate Display
+xrandr --output DSI-0 --rotate left
+xrandr --output DSI-1 --rotate left
 xrandr --output DSI-2 --rotate left
 
 sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/'"'"' ~/.config/chromium/'"'"'Local State'"'"'
 sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"["]+"/"exit_type":"Normal"/"'"'"' ~/.config/chromium/Default/Preferences
-firefox-esr --kiosk --private-window \$KIOSK_URL
+# firefox-esr --kiosk --private-window \$KIOSK_URL
+chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar --kiosk \$KIOSK_URL
 EOF'
 
 # Set Openbox environment

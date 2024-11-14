@@ -12,6 +12,16 @@
     <script src="{{ url_for('static', path='js/engineer.js') }}" defer></script>
     <script src="{{ url_for('static', path='js/virtual-keyboard.js') }}" defer></script>
     <script>
+        // On page load (in your main JavaScript file or script tag)
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('looks for toastmessages')
+            const toastMessage = localStorage.getItem('showToast');
+            if (toastMessage) {
+                showToast(toastMessage);
+                localStorage.removeItem('showToast');
+            }
+            });
+
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;

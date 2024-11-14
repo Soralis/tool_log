@@ -870,7 +870,7 @@ textarea {
   }
 
 /* Adjustments for 5-inch touch screens (800x480px) */
-@media (max-width: 480px) and (max-height: 800px) {
+@media (max-width: 501px) and (max-height: 800px) {
     body {
         font-size: 18px;
     }
@@ -1146,7 +1146,7 @@ textarea {
 }
 
 /* Styles for larger screens */
-@media (min-width: 481px) {
+@media (min-width: 502px) {
     body {
         font-size: 16px;
     }
