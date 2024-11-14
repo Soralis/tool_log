@@ -49,11 +49,6 @@ async def login_page(request: Request):
 
 @app.get("/logout")
 async def logout(request: Request, response: Response):
-    # response = templates.TemplateResponse(
-    #     request=request,
-    #     name='operator_login.html.j2'
-    # )
-    # response = JSONResponse(content={"redirect": "/"})
     response = RedirectResponse(url='/login', status_code=status.HTTP_307_TEMPORARY_REDIRECT)
     response.delete_cookie("operator_token")
     return response

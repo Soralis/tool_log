@@ -9,8 +9,7 @@
     {# <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}"> #}
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
-    <script src="{{ url_for('static', path='js/engineer.js') }}" defer></script>
-    <script src="{{ url_for('static', path='js/virtual-keyboard.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/virtual-keyboard.js') }}"></script>
     <script>
         // On page load (in your main JavaScript file or script tag)
         document.addEventListener('DOMContentLoaded', function() {
@@ -91,9 +90,23 @@
         <div class="logout-button">
             <a href="/logout"><button>Logout</button></a>
         </div>
+        <div class="reload-button">
+            <button>Reload</button>
+        </div>
         
         {% block body %}{% endblock %}
     </div>
+        
+    <script>
+        function hardReload() {
+            location.reload(true);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var reloadButton = document.querySelector('.reload-button');
+            reloadButton.addEventListener('click', hardReload);
+        });
+    </script>
 
     <div id="virtual-keyboard" class="virtual-keyboard">
         <div id="full-keyboard">
@@ -174,5 +187,99 @@
             </div>
         </div>
     </div>
+    
+    <style>
+        .virtual-keyboard {
+            position: fixed;
+            bottom: -100%; /* Initially hidden below the viewport */
+            z-index: 0;
+        }
+        @media (max-width: 501px) {
+            .virtual-keyboard {
+                position: fixed;
+                bottom: -80%; /* Initially hidden below the viewport */
+                left: 0;
+                width: 100%;
+                background-color: #2a2a2a;
+                background: #2a2a2a;
+                padding: 10px;
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+                transition: transform 0.3s ease-in-out; /* Smooth transition */
+                z-index: 9999;
+            }
+
+            .virtual-keyboard.active {
+                transform: translateY(-3200%); /* Slide up from bottom */
+            }
+
+            #full-keyboard, #numpad {
+                position: absolute;  /* Key here! */
+                bottom: 0;           /* Align to bottom of container */
+                left: 0;
+                padding-top: 5px;
+                width: 100%;
+                background: #2a2a2a;
+            }
+
+            .keyboard-row {
+                display: flex;
+                justify-content: center;
+                margin-bottom: 5px;
+            }
+
+            .key {
+                width: 60px;
+                height: 60px;
+                margin: 2px;
+                font-size: 35px;
+                background-color: #3a3a3a;
+                color: #e0e0e0;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+
+            .key:active {
+                background-color: #4a4a4a;
+            }
+
+            .special-key {
+                width: auto;
+                padding: 0 10px;
+            }
+
+            #space {
+                width: 200px;
+            }
+
+            #close {
+                background-color: #e74c3c;
+            }
+
+            #numpad {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #numpad .keyboard-row {
+                display: flex;
+                justify-content: center;
+                margin-bottom: 5px;
+            }
+
+            #numpad .key {
+                width: 100px;
+                height: 100px;
+                font-size: 50px;
+                margin: 5px;
+            }
+
+            #space {
+                width: 150px;
+            }
+        }
+    </style>
 </body>
 </html>

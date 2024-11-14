@@ -1,12 +1,12 @@
 <form 
     id="changeOverForm"
     method="post"
-    action="/operator/change_over/" 
-    class="space-y-6">
+    action="/operator/change_over/"
+    class="space-y-6 p-4 sm:p-6 md:p-8">
     <div>
         {% if machines|length > 1 %}
-            <label for="machine-select" class="block text-sm font-medium text-gray-700">Select Machine</label>
-            <select id="machine-select" name="machine_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+            <label for="machine-select" class="block text-2xl font-medium text-gray-700 sm:text-4xl">Select Machine</label>
+            <select id="machine-select" name="machine_id" class="mt-1 block w-full pl-3 pr-10 py-4 text-xl border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base rounded-md">
                 <option value="">Select a machine</option>
                 {% for machine in machines %}
                     <option value="{{ machine.id }}">{{ machine.name }}</option>
@@ -14,20 +14,20 @@
             </select>
         {% else %}
             <input type="hidden" id="machine-select" name="machine_id" value="{{ machines[0].id }}">
-            <label for="machine-select" class="block text-sm font-medium text-gray-700">Selected Machine</label>
-            <span id="machine-select" name="machine_id" value="{{ machines[0].id }}">{{ machines[0].name }}</span>
+            <label for="machine-select" class="block text-4xl font-bold">Selected Machine</label>
+            <span id="machine-select" name="machine_id" value="{{ machines[0].id }}" class="block w-full pl-3 pr-10 py-4 text-3xl border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base rounded-md">{{ machines[0].name }}</span>
         {% endif %}
     </div>
 
     <div id="recipe-form" class="hidden">
-        <label for="recipe-select" class="block text-sm font-medium text-gray-700">Select Recipe</label>
-        <select id="recipe-select" name="recipe_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+        <label for="recipe-select" class="block text-4xl font-bold">Select Recipe</label>
+        <select id="recipe-select" name="recipe_id" class="mt-1 block w-full pl-3 pr-10 py-4 text-3xl border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base rounded-md">
             <option value="">Select a recipe</option>
         </select>
     </div>
 
     <div>
-        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        <button type="submit" class="w-full flex justify-center py-4 px-6 border border-transparent rounded-md shadow-sm text-2xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">
             Change Over
         </button>
     </div>

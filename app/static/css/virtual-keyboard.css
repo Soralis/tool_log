@@ -1,12 +1,12 @@
 .virtual-keyboard {
     position: fixed;
-    bottom: -100%; /* Initially hidden below the viewport */
+    bottom: 10%; /* Initially hidden below the viewport */
     z-index: 0;
 }
-@media (max-width: 480px) {
+@media (max-width: 501px) {
     .virtual-keyboard {
         position: fixed;
-        bottom: -80%; /* Initially hidden below the viewport */
+        bottom: 10%; /* Initially hidden below the viewport */
         left: 0;
         width: 100%;
         background-color: #2a2a2a;

@@ -3,12 +3,22 @@
 {% block title %}Tool Log{% endblock %}
 
 {% block body %}
+    {% if user %}
+        <div class="fixed top-0 left-1/2 transform -translate-x-1/2 text-l font-bold">
+            {{user.initials}}
+        </div>
+        {% if user.role == 4 %}
+            <a href="/engineer" class="fixed top-0 left-0 p-2 text-2xl bg-transparent hover:bg-transparent">
+                <button class="p-2">E</button>
+            </a>
+        {% endif %}
+    {% endif %}
     {% if machines %}
         <div id="changeoverModal" class="modal">
             <div class="modal-content">
                 <span class="close" onclick="closeModal('changeoverModal')">&times;</span>
                 <div id="changeoverContainer">
-                    <h1 class="text-3xl font-bold mb-6">Change Over</h1>
+                    <h1 class="text-5xl font-bold mb-6">Change Over</h1>
                     {% include 'operator/change_over.html.j2' with context %}
                 </div>
             </div>
@@ -25,11 +35,13 @@
         </div>
     {% endif %}
 
-    <a href="/engineer" class="fixed top-0 left-0 p-2 text-2xl bg-transparent hover:bg-transparent">
-        <button class="p-2">E</button>
-    </a>
     <div class="flex flex-col justify-center items-center h-screen">
         {% if machines %}
+            {% for machine in machines %}
+                <div class="text-3xl font-bold">
+                    {{ machine.name }}: {{ machine.current_recipe.name }}
+                </div>
+            {% endfor %}
             <button onclick="openModal('changeover')" class="w-full py-8 text-4xl font-bold rounded-lg bg-blue-500 hover:bg-blue-700 text-white my-4">Changeover</button>
             <button onclick="openModal('toollog')" class="w-full py-16 text-6xl font-bold rounded-lg bg-green-500 hover:bg-green-700 text-white my-4">Tool Log</button>
         {% endif %}
