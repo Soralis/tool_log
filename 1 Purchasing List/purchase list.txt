@@ -1,0 +1,7 @@
+5" DSI Touch Display https://www.waveshare.com/5inch-DSI-LCD-B.htm
+Raspberry Pi 5 (2GB Client, 4+gb Server)
+4GB+ SD Card
+5V, 5A USB-C Plug
+
+Server Specific:
+Raspberry Pi M.2 HAT+ SSD Kit for Raspberry Pi 5 - 256GB
