@@ -1,19 +1,19 @@
 <div id="toolLifeForm" class="multi-step-form">
     <div class="step" data-step="1">
-        <h2 class="text-xl font-bold mb-4">Select Machine</h2>
-        <div id="machine-buttons" class="flex flex-wrap gap-2">
+        <h2 class="text-5xl font-bold mb-8">Select Machine</h2>
+        <div id="machine-buttons" class="flex flex-wrap justify-center gap-2">
             {% for machine in machines %}
-                <button class="machine-btn px-4 py-2 bg-blue-500 text-white rounded" data-machine-id="{{ machine.id }}">
+                <button class="machine-btn px-4 py-8 bg-blue-500 text-4xl font-bold text-white rounded text-base w-full sm:w-auto" data-machine-id="{{ machine.id }}">
                     {{ machine.name }}
                 </button>
             {% endfor %}
         </div>
     </div>
 
-    <div class="mt-4">
-        <button id="prevBtn" class="px-4 py-2 bg-gray-300 text-gray-700 rounded mr-2" style="display: none;">Previous</button>
-        <button id="nextBtn" class="px-4 py-2 bg-blue-500 text-white rounded">Next</button>        
-        <button id="submitBtn" class="px-4 py-2 bg-green-500 text-white rounded" style="display: none;">Submit</button>
+    <div class="mt-4 flex justify-center gap-2">
+        <button id="prevBtn" class="px-4 py-6 bg-gray-300 text-4xl font-bold text-gray-700 rounded w-full sm:w-auto" style="display: none;">Previous</button>
+        <button id="nextBtn" class="px-4 py-6 bg-blue-500 text-4xl font-bold text-white rounded w-full sm:w-auto">Next</button>        
+        <button id="submitBtn" class="px-4 py-4 bg-green-500 text-4xl font-bold text-white rounded w-full sm:w-auto" style="display: none;">Submit</button>
     </div>
 </div>
 
@@ -54,29 +54,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    nextBtn.addEventListener('click', () => {
-        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
-        currentStep++;
-        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
-        prevBtn.style.display = 'inline-block';
-        console.log('next btn: ', currentStep, totalSteps)
-        if (currentStep === totalSteps) {
-            nextBtn.style.display = 'none';
-            submitBtn.style.display = 'inline-block';
-        }
-    });
-
-    prevBtn.addEventListener('click', () => {
-        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
-        currentStep--;
-        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
-        {# nextBtn.style.display = 'inline-block'; #}
-        submitBtn.style.display = 'none';
-        if (currentStep === 1) {
-            prevBtn.style.display = 'none';
-        }
-    });
-
     // Form submission logic will be added in the next iteration
     function setupAdditionalSteps(data) {
         const formContainer = document.getElementById('toolLifeForm');
@@ -93,11 +70,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Step 2: Machine Channel
         const channelStep = createStep(2, 'Machine Channel');
         const channelButtons = document.createElement('div');
-        channelButtons.className = 'flex flex-wrap gap-2';
+        channelButtons.className = 'mt-4 flex justify-center gap-2';
         for (let i = 1; i <= data.machine.channels; i++) {
             const button = document.createElement('button');
             button.textContent = `Channel ${i}`;
-            button.className = 'px-4 py-2 bg-blue-500 text-white rounded';
+            button.className = 'px-4 py-8 m-2 bg-blue-700 text-4xl font-bold text-white rounded w-auto'
             button.setAttribute('data-value', i);
             button.addEventListener('click', (e) => handleButtonClick(e, 'machine_channel'));
             channelButtons.appendChild(button);
@@ -109,11 +86,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.tool_positions && data.tool_positions.length > 0) {
             const toolPositionStep = createStep(3, 'Tool Position');
             const toolPositionButtons = document.createElement('div');
-            toolPositionButtons.className = 'flex flex-wrap gap-2';
+            toolPositionButtons.className = 'mt-4 flex justify-center gap-2';
             data.tool_positions.forEach(position => {
                 const button = document.createElement('button');
                 button.textContent = position.name;
-                button.className = 'px-4 py-2 bg-blue-500 text-white rounded';
+                button.className = 'px-4 py-8 m-2 bg-blue-700 text-4xl font-bold text-white rounded w-auto';
                 button.setAttribute('data-value', position.id);
                 button.addEventListener('click', (e) => handleToolPositionClick(e, position.id));
                 toolPositionButtons.appendChild(button);
@@ -129,7 +106,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const reachedLifeInput = document.createElement('input');
         reachedLifeInput.type = 'number';
         reachedLifeInput.name = 'reached_life';
-        reachedLifeInput.className = 'w-full p-2 border rounded';
+        reachedLifeInput.className = 'w-full border rounded';
+        reachedLifeInput.className = 'p-4 text-4xl font-bold text-white rounded w-auto rounded-lg focus:ring-blue-500 focus:border-blue-500'
         reachedLifeInput.addEventListener('change', (e) => {
             formData['reached_life'] = e.target.value;
         });
@@ -144,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data.measureables.forEach(measureable => {
                 const label = document.createElement('label');
                 label.textContent = measureable.name;
-                label.className = 'block mb-2';
+                label.className = 'block mb-2 text-4xl';
                 const input = document.createElement('input');
                 input.type = 'number';
                 input.name = `${measureable.name}_ms`;
@@ -203,12 +181,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const changeReasonStep = createStep(5, 'Change Reason');
         const changeReasonButtons = document.createElement('div');
-        changeReasonButtons.className = 'flex flex-wrap gap-2';
+        changeReasonButtons.className = 'mt-4 flex justify-center gap-2';
         
         changeReasons.forEach(reason => {
             const button = document.createElement('button');
             button.textContent = reason.name;
-            button.className = 'px-4 py-2 bg-blue-500 text-white rounded';
+            button.className = 'px-4 py-8 m-2 bg-blue-700 text-4xl font-bold text-white rounded w-auto';
             button.setAttribute('data-value', reason.id);
             button.addEventListener('click', (e) => handleButtonClick(e, 'change_reason_id'));
             changeReasonButtons.appendChild(button);
@@ -240,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
         step.setAttribute('data-step', stepNumber);
         step.style.display = 'none';
         const heading = document.createElement('h2');
-        heading.className = 'text-xl font-bold mb-4';
+        heading.className = "text-5xl font-bold mb-8";
         heading.textContent = title;
         step.appendChild(heading);
         return step;
@@ -250,9 +228,22 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
         currentStep--;
         document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
+        nextBtn.style.display = 'inline-block';
         submitBtn.style.display = 'none';
         if (currentStep === 1) {
             prevBtn.style.display = 'none';
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
+        currentStep++;
+        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
+        prevBtn.style.display = 'inline-block';
+        console.log('next btn: ', currentStep, totalSteps)
+        if (currentStep === totalSteps) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'inline-block';
         }
     });
 

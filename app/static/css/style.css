@@ -491,7 +491,7 @@ textarea {
     text-align: center;
     text-decoration: none;
     display: inline-block;
-    font-size: 16px;
+    font-size: 28px;
     border-radius: 4px;
     cursor: pointer;
 }
@@ -516,10 +516,10 @@ textarea {
     z-index: 1000;
 }
 .bar {
-    width: 25px;
-    height: 3px;
+    width: 50px;
+    height: 6px;
     background-color: #e0e0e0;
-    margin: 5px 0;
+    margin: 10px 0;
 }
 .menu-items {
     display: none;
@@ -890,7 +890,7 @@ textarea {
     }
 
     .login-container h2 {
-        font-size: 24px;
+        font-size: 45px;
         margin-bottom: 30px;
     }
 
@@ -899,18 +899,17 @@ textarea {
     }
 
     .login-container .form-group label {
-        font-size: 18px;
+        font-size: 30px;
         margin-bottom: 8px;
     }
 
     .login-container .form-group input {
-        padding: 15px;
-        font-size: 18px;
+        font-size: 35px;
     }
 
     .login-container .btn-submit {
         padding: 15px;
-        font-size: 20px;
+        font-size: 35px;
     }
 
     .login-container .error-message {

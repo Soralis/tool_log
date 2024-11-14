@@ -6,7 +6,7 @@
 @media (max-width: 480px) {
     .virtual-keyboard {
         position: fixed;
-        bottom: -45%; /* Initially hidden below the viewport */
+        bottom: -80%; /* Initially hidden below the viewport */
         left: 0;
         width: 100%;
         background-color: #2a2a2a;
@@ -18,7 +18,7 @@
     }
 
     .virtual-keyboard.active {
-        transform: translateY(-1800%); /* Slide up from bottom */
+        transform: translateY(-3200%); /* Slide up from bottom */
     }
 
     #full-keyboard, #numpad {
@@ -37,10 +37,10 @@
     }
 
     .key {
-        width: 40px;
-        height: 40px;
+        width: 60px;
+        height: 60px;
         margin: 2px;
-        font-size: 18px;
+        font-size: 35px;
         background-color: #3a3a3a;
         color: #e0e0e0;
         border: none;
@@ -79,19 +79,13 @@
     }
 
     #numpad .key {
-        width: 60px;
-        height: 60px;
-        font-size: 24px;
+        width: 100px;
+        height: 100px;
+        font-size: 50px;
         margin: 5px;
     }
 
     #space {
         width: 150px;
-    }
-
-    #numpad .key {
-        width: 50px;
-        height: 50px;
-        font-size: 20px;
     }
 }

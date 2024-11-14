@@ -15,15 +15,15 @@ sudo raspi-config nonint do_boot_behaviour B2
 
 # Update Raspberry OS
 echo "Updating and Upgrading Firmware"
-sudo apt-get update -y && sudo apt-get upgrade -y
+sudo apt-get update -y && sudo apt-get full-upgrade -y
 
 # Install minimum GUI components
 echo "Installing Minimum GUI"
 sudo apt-get install --no-install-recommends xserver-xorg x11-xserver-utils xinit openbox -y
 
 # Install Chromium Web browser
-echo "Intstalling Chrome"
-sudo apt-get install --no-install-recommends chromium-browser -y
+echo "Installing Firefox-esr"
+sudo apt-get install --no-install-recommends firefox-esr -y
 
 # Rotate Touch
 echo "Rotating Touch Input"
@@ -46,7 +46,7 @@ xrandr --output DSI-1 --rotate left
 
 sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/'"'"' ~/.config/chromium/'"'"'Local State'"'"'
 sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"["]+"/"exit_type":"Normal"/"'"'"' ~/.config/chromium/Default/Preferences
-chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar --kiosk \$KIOSK_URL --check-for-update-interval=31536000 &
+firefox-esr --kiosk --private-window \$KIOSK_URL
 EOF'
 
 # Set Openbox environment

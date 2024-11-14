@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Digital ToolLog IFA{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/virtual-keyboard.css') }}">
+    {# <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}"> #}
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
     <script src="{{ url_for('static', path='js/engineer.js') }}" defer></script>
     <script src="{{ url_for('static', path='js/virtual-keyboard.js') }}" defer></script>

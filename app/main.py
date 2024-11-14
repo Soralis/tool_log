@@ -37,6 +37,7 @@ app.include_router(_operator.router, prefix="/operator", tags=['operator'], depe
 app.include_router(device.router, prefix="/device", tags=["device-info"], dependencies=[Depends(require_role(UserRole.SUPERVISOR))])
 
 
+
 @app.get('/deviceRegistration')
 async def register_log_device(request: Request):
     return templates.TemplateResponse("device_registration.html.j2", {"request": request})
