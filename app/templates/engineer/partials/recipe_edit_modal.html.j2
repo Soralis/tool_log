@@ -77,6 +77,62 @@
         editToolPositionModal.classList.add('active');
     };
 
+    // Store dropdown data
+    let dropdownDataLoaded = false;
+    let workpiecesData = null;
+    let machinesData = null;
+
+    // Function to load dropdown data
+    async function loadDropdownData() {
+        if (!dropdownDataLoaded) {
+            console.log('Loading dropdown data...');
+            try {
+                // Load workpieces
+                const workpiecesResponse = await fetch('/engineer/recipes/workpieces');
+                workpiecesData = await workpiecesResponse.json();
+                const editWorkpiece = document.getElementById('editWorkpiece');
+                editWorkpiece.innerHTML = '<option value="">Select Workpiece</option>';
+                workpiecesData.forEach(wp => {
+                    const option = document.createElement('option');
+                    option.value = wp.id;
+                    option.textContent = wp.name;
+                    editWorkpiece.appendChild(option);
+                });
+
+                // Load machines
+                const machinesResponse = await fetch('/engineer/recipes/machines');
+                machinesData = await machinesResponse.json();
+                const editMachine = document.getElementById('editMachine');
+                editMachine.innerHTML = '<option value="">Select Machine</option>';
+                machinesData.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.name;
+                    editMachine.appendChild(option);
+                });
+
+                // Load tools
+                const toolsResponse = await fetch('/engineer/recipes/tools');
+                window.editToolsData = await toolsResponse.json();
+                const editTool = document.getElementById('editTool');
+                editTool.innerHTML = '<option value="">Select Tool</option>';
+                Object.entries(window.editToolsData).forEach(([id, tool]) => {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = tool.name;
+                    editTool.appendChild(option);
+                });
+
+                window.editToolsDataLoaded = true;
+                dropdownDataLoaded = true;
+                console.log('Dropdown data loaded successfully');
+            } catch (error) {
+                console.error('Error loading dropdown data:', error);
+                showToast('Error loading form data');
+            }
+        }
+    }
+
     // Handle tool selection change in edit modal
     document.getElementById('editTool').addEventListener('change', function() {
         const toolId = this.value;
@@ -170,16 +226,9 @@
     window.editRecipe = async function(recipeData) {
         console.log('Populating edit modal with data:', recipeData);
         
-        // Wait for tools data to be loaded
-        if (!window.editToolsDataLoaded) {
-            await new Promise(resolve => {
-                const checkToolsData = setInterval(() => {
-                    if (window.editToolsDataLoaded) {
-                        clearInterval(checkToolsData);
-                        resolve();
-                    }
-                }, 100);
-            });
+        // Load dropdown data if not already loaded
+        if (!dropdownDataLoaded) {
+            await loadDropdownData();
         }
 
         // Populate basic recipe data
@@ -195,6 +244,7 @@
         editToolPositions.innerHTML = '';
         
         recipeData.tool_positions.forEach(tp => {
+            console.log('Processing tool position:', tp);
             const toolPositionDiv = document.createElement('div');
             toolPositionDiv.className = 'tool-position';
             
@@ -230,6 +280,7 @@
             editToolPositions.appendChild(toolPositionDiv);
         });
 
+        console.log('Tool positions populated');
     };
 
     // Handle recipe edit form submission

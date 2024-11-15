@@ -1,9 +1,9 @@
 <div id="toolLifeForm" class="multi-step-form">
     <div class="step" data-step="1">
         <h2 class="text-5xl font-bold mb-8">Select Machine</h2>
-        <div id="machine-buttons" class="flex flex-wrap justify-center gap-2">
+        <div id="machine-buttons" class="grid auto-cols-fr gap-4 justify-items-center w-full max-w-4xl mx-auto max-h-[60vh] overflow-y-auto">
             {% for machine in machines %}
-                <button class="machine-btn px-4 py-8 bg-blue-500 text-4xl font-bold text-white rounded text-base w-full sm:w-auto" data-machine-id="{{ machine.id }}">
+                <button class="machine-btn px-4 py-8 bg-blue-500 text-4xl font-bold text-white rounded text-base w-full" data-machine-id="{{ machine.id }}">
                     {{ machine.name }}
                 </button>
             {% endfor %}
@@ -27,6 +27,60 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentStep = 1;
     let totalSteps = 1; // Start with 1 step (machine selection)
     let formData = {};
+
+    // Function to check if current step has input fields and if they all have values
+    function currentStepHasInputs() {
+        const currentStepElement = document.querySelector(`.step[data-step="${currentStep}"]`);
+        const inputs = currentStepElement.querySelectorAll('input[type="text"], input[type="number"]');
+        return inputs.length > 0;
+    }
+
+    // Function to validate all inputs in current step
+    function validateCurrentStepInputs() {
+        const currentStepElement = document.querySelector(`.step[data-step="${currentStep}"]`);
+        const inputs = currentStepElement.querySelectorAll('input[type="text"], input[type="number"]');
+        return Array.from(inputs).every(input => input.value.trim() !== '');
+    }
+
+    // Function to update next button visibility based on current step
+    function updateNextButtonVisibility() {
+        console.log('current steps, total steps', currentStep, totalSteps)
+        if (currentStep === totalSteps && totalSteps != 1) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'inline-block';
+        } else if (currentStepHasInputs()) {
+            nextBtn.style.display = 'inline-block';
+            submitBtn.style.display = 'none';
+            // Enable/disable next button based on input validation
+            if (validateCurrentStepInputs()) {
+                nextBtn.removeAttribute('disabled');
+                nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                nextBtn.setAttribute('disabled', 'true');
+                nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        } else {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'none';
+        }
+    }
+
+    // Function to create a grid layout with dynamic columns based on item count
+    function createGridLayout(container, itemCount) {
+        container.className = 'grid gap-4 justify-items-center w-full max-w-4xl mx-auto max-h-[60vh] overflow-y-auto';
+        
+        // Set grid columns based on item count
+        if (itemCount >= 6) {
+            container.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
+        } else if (itemCount >= 2) {
+            container.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+        } else {
+            container.style.gridTemplateColumns = 'minmax(0, 1fr)';
+        }
+    }
+
+    // Update machine buttons grid on load
+    createGridLayout(document.getElementById('machine-buttons'), machineButtons.length);
 
     machineButtons.forEach(button => {
         button.addEventListener('click', function(e) {
@@ -54,7 +108,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // Form submission logic will be added in the next iteration
     function setupAdditionalSteps(data) {
         const formContainer = document.getElementById('toolLifeForm');
 
@@ -70,15 +123,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Step 2: Machine Channel
         const channelStep = createStep(2, 'Machine Channel');
         const channelButtons = document.createElement('div');
-        channelButtons.className = 'mt-4 flex justify-center gap-2';
+        channelButtons.className = 'mt-4';
         for (let i = 1; i <= data.machine.channels; i++) {
             const button = document.createElement('button');
             button.textContent = `Channel ${i}`;
-            button.className = 'px-4 py-8 m-2 bg-blue-700 text-4xl font-bold text-white rounded w-auto'
+            button.className = 'px-4 py-8 m-2 bg-blue-700 text-2xl font-bold text-white rounded w-full'
             button.setAttribute('data-value', i);
             button.addEventListener('click', (e) => handleButtonClick(e, 'machine_channel'));
             channelButtons.appendChild(button);
         }
+        createGridLayout(channelButtons, data.machine.channels);
         channelStep.appendChild(channelButtons);
         formContainer.insertBefore(channelStep, submitBtn.parentNode);
 
@@ -86,15 +140,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.tool_positions && data.tool_positions.length > 0) {
             const toolPositionStep = createStep(3, 'Tool Position');
             const toolPositionButtons = document.createElement('div');
-            toolPositionButtons.className = 'mt-4 flex justify-center gap-2';
+            toolPositionButtons.className = 'mt-4';
             data.tool_positions.forEach(position => {
                 const button = document.createElement('button');
                 button.textContent = position.name;
-                button.className = 'px-4 py-8 m-2 bg-blue-700 text-4xl font-bold text-white rounded w-auto';
+                button.className = 'px-4 py-8 m-2 bg-blue-700 text-2xl font-bold text-white rounded w-full';
                 button.setAttribute('data-value', position.id);
                 button.addEventListener('click', (e) => handleToolPositionClick(e, position.id));
                 toolPositionButtons.appendChild(button);
             });
+            createGridLayout(toolPositionButtons, data.tool_positions.length);
             toolPositionStep.appendChild(toolPositionButtons);
             formContainer.insertBefore(toolPositionStep, submitBtn.parentNode);
         } else {
@@ -106,10 +161,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const reachedLifeInput = document.createElement('input');
         reachedLifeInput.type = 'number';
         reachedLifeInput.name = 'reached_life';
-        reachedLifeInput.className = 'w-full border rounded';
-        reachedLifeInput.className = 'p-4 text-4xl font-bold text-white rounded w-auto rounded-lg focus:ring-blue-500 focus:border-blue-500'
-        reachedLifeInput.addEventListener('change', (e) => {
+        reachedLifeInput.required = true;
+        reachedLifeInput.className = 'w-full border rounded p-4 text-4xl font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500';
+        reachedLifeInput.addEventListener('input', (e) => {
             formData['reached_life'] = e.target.value;
+            updateNextButtonVisibility();
         });
         reachedLifeStep.appendChild(reachedLifeInput);
         formContainer.insertBefore(reachedLifeStep, submitBtn.parentNode);
@@ -127,9 +183,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.type = 'number';
                 input.step = 'any';
                 input.name = `${measureable.name}_ms`;
+                input.required = true;
                 input.className = 'w-full p-2 border rounded mb-4';
-                input.addEventListener('change', (e) => {
+                input.addEventListener('input', (e) => {
                     formData[`${measureable.name}_ms`] = e.target.value;
+                    updateNextButtonVisibility();
                 });
                 additionalParamsStep.appendChild(label);
                 additionalParamsStep.appendChild(input);
@@ -138,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         totalSteps = document.querySelectorAll('.step').length;
-        console.log('Total steps:', totalSteps); // Log the total number of steps
+        console.log('Total steps:', totalSteps);
     }
 
     function handleButtonClick(e, fieldName) {
@@ -157,7 +215,6 @@ document.addEventListener('DOMContentLoaded', function() {
         e.target.classList.add('bg-green-500');
         formData['tool_position_id'] = toolPositionId;
 
-        // Fetch change reasons for the selected tool position
         fetch(`/operator/tool_life/change-reasons?tool_position_id=${toolPositionId}`)
             .then(response => response.json())
             .then(data => {
@@ -173,7 +230,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupChangeReasonStep(changeReasons) {
         const formContainer = document.getElementById('toolLifeForm');
         
-        // Remove existing change reason step if it exists
         const existingStep = document.querySelector('.step[data-step="5"]');
         if (existingStep) {
             existingStep.remove();
@@ -181,21 +237,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const changeReasonStep = createStep(5, 'Change Reason');
         const changeReasonButtons = document.createElement('div');
-        changeReasonButtons.className = 'mt-4 flex justify-center gap-2';
+        changeReasonButtons.className = 'mt-4';
         
         changeReasons.forEach(reason => {
             const button = document.createElement('button');
             button.textContent = reason.name;
-            button.className = 'px-4 py-8 m-2 bg-blue-700 text-4xl font-bold text-white rounded w-auto';
+            button.className = 'px-4 py-8 m-2 bg-blue-700 text-2xl font-bold text-white rounded w-full';
             button.setAttribute('data-value', reason.id);
             button.addEventListener('click', (e) => handleButtonClick(e, 'change_reason_id'));
             changeReasonButtons.appendChild(button);
         });
         
+        createGridLayout(changeReasonButtons, changeReasons.length);
         changeReasonStep.appendChild(changeReasonButtons);
         formContainer.insertBefore(changeReasonStep, submitBtn.parentNode);
 
-        // Update total steps
         totalSteps = document.querySelectorAll('.step').length;
     }
 
@@ -205,10 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentStep <= totalSteps) {
             document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
             prevBtn.style.display = 'inline-block';
-            if (currentStep === totalSteps) {
-                nextBtn.style.display = 'none'
-                submitBtn.style.display = 'inline-block';
-            }
+            updateNextButtonVisibility();
         }
     }
 
@@ -228,30 +281,34 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
         currentStep--;
         document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
-        nextBtn.style.display = 'inline-block';
-        submitBtn.style.display = 'none';
+        updateNextButtonVisibility();
         if (currentStep === 1) {
             prevBtn.style.display = 'none';
         }
     });
 
     nextBtn.addEventListener('click', () => {
+        if (!validateCurrentStepInputs()) {
+            return; // Don't proceed if inputs are not valid
+        }
         document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
         currentStep++;
         document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
         prevBtn.style.display = 'inline-block';
-        console.log('next btn: ', currentStep, totalSteps)
-        if (currentStep === totalSteps) {
-            nextBtn.style.display = 'none';
-            submitBtn.style.display = 'inline-block';
-        }
+        updateNextButtonVisibility();
     });
 
     submitBtn.addEventListener('click', async (e) => {
         e.preventDefault();
 
-        // Ensure all input fields are captured
-        document.querySelectorAll('input').forEach(input => {
+        // Validate all inputs before submitting
+        const allInputs = document.querySelectorAll('input');
+        if (!Array.from(allInputs).every(input => input.value.trim() !== '')) {
+            showToast('Please fill in all required fields before submitting.', 'error');
+            return;
+        }
+
+        allInputs.forEach(input => {
             formData[input.name] = input.value;
         });
 
@@ -269,7 +326,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const result = await response.json();
-            // Reload the page
             localStorage.setItem('showToast', 'Tool life data submitted successfully');
             window.location.reload();
         } catch (error) {
@@ -277,5 +333,8 @@ document.addEventListener('DOMContentLoaded', function() {
             show_Toast('An error occurred while submitting tool life data', 'error');
         }
     });
+
+    // Initial next button visibility check
+    updateNextButtonVisibility();
 });
 </script>
