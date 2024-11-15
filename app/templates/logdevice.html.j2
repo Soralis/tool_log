@@ -3,43 +3,202 @@
 {% block title %}Log Device{% endblock %}
 
 {% block body %}
-    <div class="mx-auto px-4 py-8">
-        <div class="max-w-2xl mx-auto shadow-md rounded px-8 pt-6 pb-8 mb-4">
-            <form id="logDeviceForm" action="{{ form_action }}" method="POST" class="space-y-6">
+    <style>
+        .modal-hidden {
+            display: none !important;
+        }
+        .machine-select-modal {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(31, 41, 55, 0.75);
+            display: flex;
+            align-items: flex-start;
+            z-index: 50;
+        }
+        .selected-tag {
+            background-color: #2c2c2c;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 1.125rem;
+            display: inline-flex;
+            align-items: center;
+            margin: 0.25rem;
+        }
+        .selected-tag button {
+            margin-left: 0.5rem;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .checkbox-container {
+            width: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .text-container {
+            flex-grow: 1;
+            padding-right: 1rem;
+        }
+    </style>
+    <div class="mx-auto px-2 py-4">
+        <div class="max-w-2xl mx-auto shadow-md rounded px-4 pt-4 pb-6 mb-4">
+            <form id="logDeviceForm" action="{{ form_action }}" method="POST" class="space-y-4">
                 <div>
-                    <label for="name" class="block font-bold mb-2">Name</label>
-                    <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline" id="name" name="name" value="{{ item.name }}" required>
+                    <label for="name" class="block font-bold mb-2 text-lg">Name</label>
+                    <input type="text" class="shadow appearance-none border rounded w-full py-3 px-4 text-lg leading-tight focus:outline-none focus:shadow-outline" id="name" name="name" value="{{ item.name }}" required>
                 </div>
                 <div>
-                    <label for="description" class="block font-bold mb-2">Description</label>
-                    <textarea class="shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline" id="description" name="description" rows="3">{{ item.description }}</textarea>
+                    <label for="description" class="block font-bold mb-2 text-lg">Description</label>
+                    <textarea class="shadow appearance-none border rounded w-full py-3 px-4 text-lg leading-tight focus:outline-none focus:shadow-outline" id="description" name="description" rows="3">{{ item.description }}</textarea>
                 </div>
-                <div class="flex items-center">
-                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" id="active" name="active" {% if item.active %}checked{% endif %}>
-                    <label class="ml-2 font-bold" for="active">Active</label>
+                <div class="flex items-center py-2">
+                    <input type="checkbox" class="form-checkbox h-6 w-6 text-blue-600" id="active" name="active" {% if item.active %}checked{% endif %}>
+                    <label class="ml-3 font-bold text-lg" for="active">Active</label>
                 </div>
                 <div>
-                    <label for="machine_ids" class="block font-bold mb-2">Machines</label>
-                    <select multiple class="shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline" id="machine_ids" name="machine_ids">
-                        {% for option in relationship_options.machines %}
-                            <option value="{{ option.id }}" {% if option.id in related_items.machines|map(attribute='id') %}selected{% endif %}>
-                                {{ option.name }}
-                            </option>
+                    <label class="block font-bold mb-2 text-lg">Machines</label>
+                    <button 
+                        type="button"
+                        id="machineSelectButton"
+                        class="w-full cursor-pointer shadow appearance-none border rounded py-3 px-4 text-lg leading-tight focus:outline-none focus:shadow-outline bg-gray-900 min-h-[3rem] text-left">
+                        <div id="selectedMachinesDisplay">
+                            <div class="text-gray-500 text-lg py-1">Tap to select machines...</div>
+                        </div>
+                    </button>
+
+                    <div id="machineSelectModal" class="modal-hidden machine-select-modal">
+                        <div class="bg-gray-900 w-full rounded-t-xl max-h-[80vh] overflow-y-auto">
+                            <div class="sticky top-0 bg-gray-900 border-b p-4 flex justify-between items-center">
+                                <span class="font-bold text-lg">Select Machines</span>
+                                <button type="button" class="close-modal text-gray-600 hover:text-gray-800 text-2xl w-10 h-10 flex items-center justify-center">×</button>
+                            </div>
+                            <div class="p-2">
+                                {% for option in relationship_options.machines %}
+                                <button
+                                    type="button"
+                                    class="machine-option w-full flex items-center p-4 border-b"
+                                    data-id="{{ option.id }}"
+                                    data-name="{{ option.name }}">
+                                    <div class="checkbox-container">
+                                        <input type="checkbox" 
+                                            class="form-checkbox h-6 w-6 text-blue-600"
+                                            {% if option.id in related_items.machines|map(attribute='id') %}checked{% endif %}>
+                                    </div>
+                                    <div class="text-container">
+                                        <span class="text-lg">{{ option.name }}</span>
+                                    </div>
+                                </button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div id="machineInputsContainer">
+                        {% for machine in related_items.machines %}
+                        <input type="hidden" name="machine_ids" value="{{ machine.id }}">
                         {% endfor %}
-                    </select>
+                    </div>
                 </div>
-                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg text-lg focus:outline-none focus:shadow-outline mt-6">
                     {{ submit_text }}
                 </button>
             </form>
-            <a href="/" class="inline-block m-6">
-                <button class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+            <a href="/" class="block mt-6">
+                <button class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg text-lg">
                     Go home
                 </button>
             </a>
         </div>
     </div>
     <script>
+        // Machine selection handling
+        const machineSelectButton = document.getElementById('machineSelectButton');
+        const machineSelectModal = document.getElementById('machineSelectModal');
+        const selectedMachinesDisplay = document.getElementById('selectedMachinesDisplay');
+        const machineInputsContainer = document.getElementById('machineInputsContainer');
+        const closeModalButtons = document.querySelectorAll('.close-modal');
+        const machineOptions = document.querySelectorAll('.machine-option');
+
+        let selectedMachines = [
+            {% for machine in related_items.machines %}
+                { id: '{{ machine.id }}', name: '{{ machine.name }}' },
+            {% endfor %}
+        ];
+
+        function updateDisplay() {
+            if (selectedMachines.length === 0) {
+                selectedMachinesDisplay.innerHTML = '<div class="text-gray-500 text-lg py-1">Tap to select machines...</div>';
+            } else {
+                selectedMachinesDisplay.innerHTML = selectedMachines.map(machine => `
+                    <span class="selected-tag">
+                        ${machine.name}
+                        <button type="button" onclick="removeMachine('${machine.id}', '${machine.name}')">×</button>
+                    </span>
+                `).join('');
+            }
+
+            // Update hidden inputs
+            machineInputsContainer.innerHTML = selectedMachines
+                .map(machine => `<input type="hidden" name="machine_ids" value="${machine.id}">`)
+                .join('');
+
+            // Update checkboxes
+            machineOptions.forEach(option => {
+                const checkbox = option.querySelector('input[type="checkbox"]');
+                checkbox.checked = selectedMachines.some(m => m.id === option.dataset.id);
+            });
+        }
+
+        function toggleMachine(id, name) {
+            const index = selectedMachines.findIndex(m => m.id === id);
+            if (index === -1) {
+                selectedMachines.push({ id, name });
+            } else {
+                selectedMachines.splice(index, 1);
+            }
+            updateDisplay();
+        }
+
+        function removeMachine(id, name) {
+            const index = selectedMachines.findIndex(m => m.id === id);
+            if (index !== -1) {
+                selectedMachines.splice(index, 1);
+                updateDisplay();
+            }
+        }
+
+        // Event Listeners
+        machineSelectButton.addEventListener('click', () => {
+            machineSelectModal.classList.remove('modal-hidden');
+        });
+
+        closeModalButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                machineSelectModal.classList.add('modal-hidden');
+            });
+        });
+
+        machineOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                toggleMachine(option.dataset.id, option.dataset.name);
+            });
+        });
+
+        // Close modal when clicking outside
+        machineSelectModal.addEventListener('click', (e) => {
+            if (e.target === machineSelectModal) {
+                machineSelectModal.classList.add('modal-hidden');
+            }
+        });
+
+        // Initialize display
+        updateDisplay();
+
+        // Form submission
         document.getElementById('logDeviceForm').addEventListener('submit', function(e) {
             e.preventDefault();
             

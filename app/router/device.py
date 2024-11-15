@@ -69,9 +69,6 @@ async def root(request: Request):
             "form_action": '/device/setMachine',
             "submit_text": "Set Machine"
         }
-        
-        # Add this debug print
-        print(f"Context: {context}")
 
         return templates.TemplateResponse(
             request=request,
