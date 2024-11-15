@@ -6,7 +6,7 @@
 <h1>Recipe Manager</h1>
 <button id="createRecipeBtn" class="btn-submit">Create Recipe</button>
 
-<div class="list-header"></div>
+<div class="list-header">
     <button id="filterButton" class="header-button" onclick="openModal('create')">
         <h2>Recipe List</h2>
     </button>
@@ -15,6 +15,9 @@
 <div id="{{ item_type }}-list" hx-get="/engineer/recipes/list" hx-trigger="load, Added from:body, Deleted from:body, Edited from:body">
     <!-- {{ item_type }} list will be loaded here -->
 </div>
+
+<!-- Include the recipe edit modal -->
+{% include "engineer/partials/recipe_edit_modal.html.j2" %}
 
 <div id="recipeModal" class="modal">
     <div class="modal-content">
@@ -39,9 +42,9 @@
             
             <h3>Tool Positions</h3>
             <div id="toolPositions"></div>
-            <button type="button"  class="btn-add-new" id="addToolPositionBtn">Add Tool Position</button>
+            <button type="button" class="btn-add-new" id="addToolPositionBtn">Add Tool Position</button>
             
-            <button type="submit"  class="btn-submit">Create Recipe</button>
+            <button type="submit" class="btn-submit">Create Recipe</button>
         </form>
     </div>
 </div>
@@ -51,6 +54,7 @@
         <span class="close">&times;</span>
         <h2>Create Tool Position</h2>
         <form id="toolPositionForm">
+            <input type="hidden" id="editIndex" value="">
             <label for="tpName">Name:</label>
             <input type="text" id="tpName" name="name" required>
             
@@ -72,20 +76,28 @@
 </div>
 
 <script>
+    // Make tools data globally available
+    window.toolsData = null;
+    window.editToolsData = null;
+    window.editToolsDataLoaded = false;
+
     // JavaScript code for handling modals, form submissions, and API calls
     const createRecipeBtn = document.getElementById('createRecipeBtn');
     const recipeModal = document.getElementById('recipeModal');
     const toolPositionModal = document.getElementById('toolPositionModal');
     const closeButtons = document.getElementsByClassName('close');
     const addToolPositionBtn = document.getElementById('addToolPositionBtn');
-    const addToolSettingBtn = document.getElementById('addToolSettingBtn');
     const recipeForm = document.getElementById('recipeForm');
     const toolPositionForm = document.getElementById('toolPositionForm');
     const toolPositions = document.getElementById('toolPositions');
-    const toolSettings = document.getElementById('toolSettings');
 
     createRecipeBtn.onclick = () => recipeModal.classList.add('active');
-    addToolPositionBtn.onclick = () => toolPositionModal.classList.add('active');
+    addToolPositionBtn.onclick = () => {
+        document.getElementById('editIndex').value = '';
+        toolPositionForm.reset();
+        document.getElementById('toolAttributes').innerHTML = '';
+        toolPositionModal.classList.add('active');
+    };
 
     for (let closeButton of closeButtons) {
         closeButton.onclick = function() {
@@ -106,7 +118,7 @@
         Object.entries(data).forEach(([id, item]) => {
             const option = document.createElement('option');
             if ('id' in item) {
-            option.value = item.id;
+                option.value = item.id;
             } else {
                 option.value = id;
             }
@@ -116,20 +128,19 @@
         return data;
     }
 
-    // Store the tools data
-    let toolsData;
-
-    // Populate dropdowns
+    // Populate dropdowns and store tools data globally
     fetchDropdownData('/engineer/recipes/workpieces', document.getElementById('workpiece'));
     fetchDropdownData('/engineer/recipes/machines', document.getElementById('machine'));
     fetchDropdownData('/engineer/recipes/tools', document.getElementById('tool')).then(data => {
-        toolsData = data;
+        window.toolsData = data;
+        window.editToolsData = data;
+        window.editToolsDataLoaded = true;
     });
 
     // Handle tool selection change
     document.getElementById('tool').addEventListener('change', function() {
         const toolId = this.value;
-        const tool = toolsData[toolId];
+        const tool = window.toolsData[toolId];
         const toolAttributesDiv = document.getElementById('toolAttributes');
         toolAttributesDiv.innerHTML = '';
 
@@ -138,40 +149,84 @@
                 const attrDiv = document.createElement('div');
                 attrDiv.innerHTML = `
                     <label for="${attr.name}">${attr.name} (${attr.unit}):</label>
-                    <input type="number" id="${attr.name}" name="${attr.name}" required>
+                    <input type="number" step="any" id="${attr.name}" name="${attr.name}" required>
                 `;
                 toolAttributesDiv.appendChild(attrDiv);
             });
         }
     });
 
-    // Handle adding tool positions
+    function editToolPosition(element) {
+        const toolPositionDiv = element.closest('.tool-position');
+        const name = toolPositionDiv.querySelector('h4').textContent;
+        const toolId = toolPositionDiv.querySelector('p[hidden]').textContent.split(':')[1].trim();
+        const expectedLife = toolPositionDiv.querySelector('.expected-life').textContent.split(':')[1].trim();
+
+        document.getElementById('editIndex').value = Array.from(toolPositions.children).indexOf(toolPositionDiv);
+        document.getElementById('tpName').value = name;
+        document.getElementById('tool').value = toolId;
+        document.getElementById('expectedLife').value = expectedLife;
+
+        // Trigger tool change event to populate attributes
+        document.getElementById('tool').dispatchEvent(new Event('change'));
+
+        // Set attribute values
+        const attributeParagraphs = toolPositionDiv.querySelectorAll('.tool-attribute');
+        attributeParagraphs.forEach(p => {
+            const [name, valueWithUnit] = p.textContent.split(':');
+            const value = valueWithUnit.trim().split(' ')[0];
+            const input = document.querySelector(`#toolAttributes input[name="${name.trim()}"]`);
+            if (input) input.value = value;
+        });
+
+        toolPositionModal.classList.add('active');
+    }
+
+    function deleteToolPosition(element) {
+        element.closest('.tool-position').remove();
+    }
+
+    // Handle adding/editing tool positions
     toolPositionForm.onsubmit = (e) => {
         e.preventDefault();
+        const editIndex = document.getElementById('editIndex').value;
         const toolPositionDiv = document.createElement('div');
+        toolPositionDiv.className = 'tool-position';
         const toolSelect = e.target.tool;
-        const toolName = toolSelect.options[toolSelect.selectedIndex].text;
+        const toolName = toolSelect.options[toolSelect.selectedIndex].text;        
         
         let attributesHtml = '';
         const toolAttributes = document.getElementById('toolAttributes').querySelectorAll('input');
         toolAttributes.forEach(attr => {
-            attributesHtml += `<p>${attr.name}: ${attr.value} ${attr.previousElementSibling.textContent.match(/\((.*?)\)/)[1]}</p>`;
+            attributesHtml += `<p class="tool-attribute">${attr.name}: ${attr.value} ${attr.previousElementSibling.textContent.match(/\((.*?)\)/)[1]}</p>`;
         });
 
         toolPositionDiv.innerHTML = `
             <h4>${e.target.tpName.value}</h4>
-            <p hidden>Tool:${toolSelect.selectedIndex}</p> 
-            <p>Tool: ${toolName}</p>
+            <p hidden>Tool:${toolSelect.options[toolSelect.selectedIndex].value}</p> 
+            <p class="tool-name">Tool: ${toolName}</p>
             ${attributesHtml}
-            <p>Expected Life: ${e.target.expectedLife.value}</p>
+            <p class="expected-life">Expected Life: ${e.target.expectedLife.value}</p>
+            <div class="tool-position-actions">
+                <button type="button" onclick="editToolPosition(this)">Edit</button>
+                <button type="button" onclick="deleteToolPosition(this)">Delete</button>
+            </div>
+            <p class="separator">- - - - - - - - - - - - - - - -</p>
         `;
-        toolPositions.appendChild(toolPositionDiv);
+
+        if (editIndex !== '') {
+            toolPositions.children[editIndex].replaceWith(toolPositionDiv);
+        } else {
+            toolPositions.appendChild(toolPositionDiv);
+        }
+
         toolPositionModal.classList.remove('active');
         toolPositionForm.reset();
         document.getElementById('toolAttributes').innerHTML = '';
-    }
+        document.getElementById('editIndex').value = '';
+    };
 
-     // Modify the recipe form submission to include tool attributes
+    // Handle recipe form submission
     recipeForm.onsubmit = async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -181,19 +236,18 @@
             workpiece_id: parseInt(formData.get('workpiece_id')),
             machine_id: parseInt(formData.get('machine_id')),
         };
-        const toolPositions = Array.from(document.querySelectorAll('#toolPositions > div')).map(tp => {
+
+        const toolPositions = Array.from(document.querySelectorAll('#toolPositions .tool-position')).map(tp => {
             const toolAttributes = {};
-            tp.querySelectorAll('p').forEach(p => {
-                if (!p.textContent.startsWith('Tool:') && !p.textContent.startsWith('Expected Life:')) {
-                    const [name, value] = p.textContent.split(':');
-                    toolAttributes[name.trim()] = parseFloat(value.trim().split(' ')[0]);
-                }
+            tp.querySelectorAll('.tool-attribute').forEach(p => {
+                const [name, valueWithUnit] = p.textContent.split(':');
+                toolAttributes[name.trim()] = parseFloat(valueWithUnit.trim().split(' ')[0]);
             });
             return {
                 name: tp.querySelector('h4').textContent,
-                tool_id: tp.querySelector('p').textContent.split(':')[1].trim(),
+                tool_id: tp.querySelector('p[hidden]').textContent.split(':')[1].trim(),
                 tool_settings: toolAttributes,
-                expected_life: parseInt(tp.querySelectorAll('p')[tp.querySelectorAll('p').length - 1].textContent.split(':')[1].trim()),
+                expected_life: parseInt(tp.querySelector('.expected-life').textContent.split(':')[1].trim()),
             };
         });
 
@@ -223,6 +277,84 @@
             console.error('Error:', error);
             showToast('An error occurred while creating the recipe.');
         }
-    }
+    };
+
+    // Handle clicking on a recipe in the list
+    document.addEventListener('click', async function(e) {
+        const listItem = e.target.closest('.list-item');
+        if (listItem && !e.target.closest('.delete-button')) {
+            // Prevent htmx from handling the click
+            const htmx = window.htmx || {};
+            if (htmx.trigger) {
+                htmx.trigger(listItem, 'htmx:abort');
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Extract recipe ID from the format "Recipe-{id}"
+            const recipeId = listItem.id.split('-')[1];
+            try {
+                console.log('Loading recipe:', recipeId);
+                const response = await fetch(`/engineer/recipes/${recipeId}`);
+                if (response.ok) {
+                    const recipeData = await response.json();
+                    console.log('Recipe data loaded:', recipeData);
+                    const recipeEditModal = document.getElementById('recipeEditModal');
+                    if (recipeEditModal) {
+                        window.editRecipe(recipeData);
+                        recipeEditModal.classList.add('active');
+                    } else {
+                        console.error('Recipe edit modal not found');
+                    }
+                } else {
+                    showToast('Error loading recipe details');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('An error occurred while loading the recipe');
+            }
+        }
+    });
 </script>
+
+<style>
+.tool-position {
+    margin: 15px 0;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.tool-position-actions {
+    margin: 10px 0;
+}
+
+.tool-position-actions button {
+    margin-right: 10px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.tool-position-actions button:first-child {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.tool-position-actions button:last-child {
+    background-color: #f44336;
+    color: white;
+}
+
+.separator {
+    color: #ddd;
+    margin: 10px 0;
+}
+
+.modal.active {
+    display: block;
+}
+</style>
 {% endblock %}

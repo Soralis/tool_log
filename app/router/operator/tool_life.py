@@ -26,11 +26,6 @@ async def get_tool_life_data(machine_id: int,
     tool_positions = [position for position in current_recipe.tool_positions if position.active]
     measureables = [measureable for measureable in machine.measureables if measureable.active]
 
-    print('machine', machine)
-    print('current_recipe', current_recipe)
-    print('tool_positions', tool_positions)
-    print('measureables', measureables)
-
     return {
         "machine": machine,
         "current_recipe": current_recipe,

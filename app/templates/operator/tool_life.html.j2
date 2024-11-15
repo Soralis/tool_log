@@ -125,6 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 label.className = 'block mb-2 text-4xl';
                 const input = document.createElement('input');
                 input.type = 'number';
+                input.step = 'any';
                 input.name = `${measureable.name}_ms`;
                 input.className = 'w-full p-2 border rounded mb-4';
                 input.addEventListener('change', (e) => {

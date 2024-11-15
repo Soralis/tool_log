@@ -21,6 +21,27 @@ async def home(request: Request):
             name="engineer/recipes.html.j2",
         )
 
+@router.get("/list", response_class=HTMLResponse)
+async def get_item_list(request: Request,
+                        session: Session = Depends(get_session)
+                        ):
+    filters = request.query_params
+    statement = select(Recipe)
+
+    # Apply filters to the statement
+    for key, value in filters.items():
+        if value and key != 'with_filter':
+            statement = statement.where(getattr(Recipe, key).in_(value.split(',')))
+
+    items = session.exec(statement).fetchall()
+
+    # For full page load, return the complete template
+    return templates.TemplateResponse(
+        request=request,
+        name="engineer/partials/list.html.j2",
+        context={"items": items, 'item_type': 'Recipe', 'read_model': RecipeRead}
+    )
+
 @router.get("/workpieces")
 async def get_workpieces(q: str = "", session: Session = Depends(get_session)):
     query = select(Workpiece)
@@ -69,6 +90,40 @@ async def get_tools(q: str = "", session: Session = Depends(get_session)):
 
     return tools_dict
 
+@router.get("/{recipe_id}")
+async def get_recipe(recipe_id: int, session: Session = Depends(get_session)):
+    # Query for the recipe
+    recipe_query = select(Recipe).where(Recipe.id == recipe_id)
+    recipe = session.exec(recipe_query).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    # Query for the tool positions
+    tool_positions_query = select(ToolPosition).where(ToolPosition.recipe_id == recipe_id)
+    tool_positions = session.exec(tool_positions_query).all()
+
+    # Convert to dict for JSON response
+    recipe_dict = {
+        "id": recipe.id,
+        "name": recipe.name,
+        "description": recipe.description,
+        "workpiece_id": recipe.workpiece_id,
+        "machine_id": recipe.machine_id,
+        "tool_positions": []
+    }
+
+    # Add tool positions with their settings
+    for tp in tool_positions:
+        tp_dict = {
+            "name": tp.name,
+            "tool_id": tp.tool_id,
+            "expected_life": tp.expected_life,
+            "tool_settings": tp.tool_settings
+        }
+        recipe_dict["tool_positions"].append(tp_dict)
+
+    return recipe_dict
+
 @router.post("/")
 async def create_recipe(
     request: Request,
@@ -86,31 +141,46 @@ async def create_recipe(
         tp['recipe_id'] = db_recipe.id
         db_tp = ToolPosition.model_validate(tp)
         session.add(db_tp)
-        session.commit()
-        session.refresh(db_tp)
+    session.commit()
 
     return {"message": "Recipe created successfully", "recipe_id": db_recipe.id}
 
-@router.get("/list", response_class=HTMLResponse)
-async def get_item_list(request: Request,
-                        session: Session = Depends(get_session)
-                        ):
-    filters = request.query_params
-    statement = select(Recipe)
+@router.put("/{recipe_id}")
+async def update_recipe(
+    recipe_id: int,
+    request: Request,
+    session: Session = Depends(get_session)
+):
+    # Get the recipe
+    recipe = session.get(Recipe, recipe_id)
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
 
-    # Apply filters to the statement
-    for key, value in filters.items():
-        if value and key != 'with_filter':
-            statement = statement.where(getattr(Recipe, key).in_(value.split(',')))
-
-    items = session.exec(statement).fetchall()
-
-    # For full page load, return the complete template
-    return templates.TemplateResponse(
-        request=request,
-        name="engineer/partials/list.html.j2",
-        context={"items": items, 'item_type': 'Recipe', 'read_model': RecipeRead}
-    )
+    # Get the update data
+    body = await request.json()
+    recipe_data = body['recipe']
+    
+    # Update recipe fields
+    for key, value in recipe_data.items():
+        if key != 'id':  # Don't update the ID
+            setattr(recipe, key, value)
+    
+    # Delete existing tool positions
+    tool_positions_query = select(ToolPosition).where(ToolPosition.recipe_id == recipe_id)
+    existing_tool_positions = session.exec(tool_positions_query).all()
+    for tp in existing_tool_positions:
+        session.delete(tp)
+    
+    # Create new tool positions
+    tool_positions = body['tool_positions']
+    for tp in tool_positions:
+        tp['tool_id'] = int(tp['tool_id'])
+        tp['recipe_id'] = recipe_id
+        db_tp = ToolPosition.model_validate(tp)
+        session.add(db_tp)
+    
+    session.commit()
+    return {"message": "Recipe updated successfully"}
 
 @router.delete("/{item_id}")
 def delete_item(item_id: int,
