@@ -37,6 +37,10 @@ app.include_router(_operator.router, prefix="/operator", tags=['operator'], depe
 app.include_router(device.router, prefix="/device", tags=["device-info"], dependencies=[Depends(require_role(UserRole.SUPERVISOR))])
 
 
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
 
 @app.get('/deviceRegistration')
 async def register_log_device(request: Request):
