@@ -121,8 +121,7 @@
             const ws = new WebSocket(`${protocol}//${window.location.host}/monitoring/ws`);
             
             ws.onopen = function() {
-                statusDiv.textContent = 'Connected';
-                statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-green-500';
+                statusDiv.className = 'hidden';
             };
             
             ws.onmessage = function(event) {
