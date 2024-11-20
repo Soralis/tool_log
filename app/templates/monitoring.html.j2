@@ -121,7 +121,6 @@
             const ws = new WebSocket(`${protocol}//${window.location.host}/monitoring/ws`);
             
             ws.onopen = function() {
-                console.log('WebSocket connected');
                 statusDiv.textContent = 'Connected';
                 statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-green-500';
             };
@@ -137,15 +136,13 @@
             };
 
             ws.onclose = function() {
-                console.log('WebSocket connection closed');
                 statusDiv.textContent = 'Reconnecting...';
                 statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500';
                 // Attempt to reconnect after 5 seconds
                 setTimeout(connectWebSocket, 5000);
             };
 
-            ws.onerror = function(err) {
-                console.error('WebSocket error:', err);
+            ws.onerror = function() {
                 statusDiv.textContent = 'Connection Error';
                 statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-red-500';
             };

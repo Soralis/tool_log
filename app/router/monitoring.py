@@ -79,43 +79,15 @@ async def websocket_endpoint(websocket: WebSocket):
         db = Session(engine)
         
         try:
-            # Send initial metrics
-            metrics = db.exec(select(ServiceMetrics)).first()
-            if metrics:
-                await websocket.send_json({
-                    "type": "metrics",
-                    "data": {
-                        "uptime": (datetime.utcnow() - metrics.start_time).total_seconds(),
-                        "total_requests": metrics.total_requests,
-                        "total_errors": metrics.total_errors,
-                        "avg_response_time": float(metrics.avg_response_time)
-                    }
-                })
-            
-            # Send recent requests
-            recent_logs = db.exec(
-                select(RequestLog)
-                .order_by(RequestLog.timestamp.desc())
-                .limit(100)
-            ).all()
-            
-            for log in reversed(recent_logs):
-                await websocket.send_json({
-                    "type": "request",
-                    "data": {
-                        "method": log.method,
-                        "endpoint": log.endpoint,
-                        "status_code": log.status_code,
-                        "response_time": float(log.response_time),
-                        "timestamp": log.timestamp.isoformat()
-                    }
-                })
-            
-            # Keep connection alive and update metrics periodically
             while True:
-                await asyncio.sleep(1)
+                # Force a new database query each time
+                db.expire_all()
                 metrics = db.exec(select(ServiceMetrics)).first()
+                
                 if metrics:
+                    # Explicitly load the metrics attributes to ensure fresh data
+                    db.refresh(metrics)
+                    
                     await websocket.send_json({
                         "type": "metrics",
                         "data": {
@@ -125,6 +97,29 @@ async def websocket_endpoint(websocket: WebSocket):
                             "avg_response_time": float(metrics.avg_response_time)
                         }
                     })
+                
+                # Send recent requests on first connect
+                if not hasattr(websocket, 'initial_data_sent'):
+                    recent_logs = db.exec(
+                        select(RequestLog)
+                        .order_by(RequestLog.timestamp.desc())
+                        .limit(100)
+                    ).all()
+                    
+                    for log in reversed(recent_logs):
+                        await websocket.send_json({
+                            "type": "request",
+                            "data": {
+                                "method": log.method,
+                                "endpoint": log.endpoint,
+                                "status_code": log.status_code,
+                                "response_time": float(log.response_time),
+                                "timestamp": log.timestamp.isoformat()
+                            }
+                        })
+                    websocket.initial_data_sent = True
+                
+                await asyncio.sleep(1)
         
         finally:
             db.close()
