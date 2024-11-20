@@ -119,6 +119,8 @@ fi
 
 # Update Nginx configuration to point to the new service
 sudo sed -i "s|proxy_pass http://127\.0\.0\.1:$ACTIVE_PORT;|proxy_pass http://127.0.0.1:$NEW_PORT;|" $NGINX_CONFIG
+# Also update the WebSocket proxy_pass
+sudo sed -i "s|location /monitoring/ws.*{.*proxy_pass http://127\.0\.0\.1:$ACTIVE_PORT;|location /monitoring/ws {\n        proxy_pass http://127.0.0.1:$NEW_PORT;|g" $NGINX_CONFIG
 sudo cat /etc/nginx/sites-available/tool_log | grep 'proxy_pass'
 
 
