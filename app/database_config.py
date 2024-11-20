@@ -3,7 +3,7 @@ from sqlalchemy import event
 from sqlalchemy.orm import sessionmaker
 
 # Database configuration
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///../../tool_log.db"
 CONNECT_ARGS = {"check_same_thread": False}
 # SQLAlchemy settings
 SQLALCHEMY_TRACK_MODIFICATIONS = False

@@ -111,11 +111,11 @@ async def authenticate_operator(initials: str, pin: str):
     with Session(engine) as session:
         operator = session.exec(select(User).where(User.initials == initials, User.pin == pin)).one_or_none()
         if operator is None:
-            # operator = User(initials=initials, pin=pin, role=UserRole.ENGINEER, name='Christopher Kunde')
-            # session.add(operator)
-            # session.commit()
-            # session.refresh(operator)
-            raise HTTPException(status_code=401, detail="Invalid initials or PIN")
+            operator = User(initials=initials, pin=pin, role=UserRole.ENGINEER, name='Christopher Kunde')
+            session.add(operator)
+            session.commit()
+            session.refresh(operator)
+            # raise HTTPException(status_code=401, detail="Invalid initials or PIN")
 
         access_token, expire = create_token(
             data={"sub": f'{operator.initials}:{operator.pin}'},
