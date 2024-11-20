@@ -1,5 +1,4 @@
 #!/bin/bash
-#set -x
 
 # Define variables
 BASE_DIR="/home/pi/tool_log"
