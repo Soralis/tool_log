@@ -22,8 +22,8 @@ echo "Installing Minimum GUI"
 sudo apt-get install --no-install-recommends xserver-xorg x11-xserver-utils xinit openbox -y
 
 # Install Chromium Web browser
-echo "Installing Firefox-esr"
-sudo apt-get install --no-install-recommends firefox-esr -y
+echo "Installing chromium"
+sudo apt-get install --no-install-recommends chromium-browser -y
 
 # Rotate Touch
 echo "Rotating Touch Input"
