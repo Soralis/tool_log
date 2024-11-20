@@ -13,17 +13,27 @@ from app.router import device
 from app.router import monitoring
 from app.models import UserRole, ServiceMetrics
 from auth import authenticate_or_create_device, authenticate_operator, require_role
+from starlette.middleware.base import BaseHTTPMiddleware
 
 app = FastAPI()
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
+
+# Custom middleware to bypass authentication for monitoring routes
+class MonitoringBypassMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path.startswith("/monitoring"):
+            return await call_next(request)
+        return await call_next(request)
+
+app.add_middleware(MonitoringBypassMiddleware)
 
 # Setup static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -56,13 +66,16 @@ async def initialize_metrics():
     finally:
         db.close()
 
-# Include the routers
-app.include_router(base.router, dependencies=[Depends(require_role(UserRole.OPERATOR))])
+# Include monitoring router first without authentication
+app.include_router(monitoring.router)
+
+# Include the authenticated routers with path prefixes that don't conflict with monitoring
+app.include_router(base.router, prefix="/base", dependencies=[Depends(require_role(UserRole.OPERATOR))])
 app.include_router(_engineer.router, prefix="/engineer", tags=["engineer"], dependencies=[Depends(require_role(UserRole.ENGINEER))])
 app.include_router(_operator.router, prefix="/operator", tags=['operator'], dependencies=[Depends(require_role(UserRole.OPERATOR))])
 app.include_router(device.router, prefix="/device", tags=["device-info"], dependencies=[Depends(require_role(UserRole.SUPERVISOR))])
-app.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
 
+# Public routes
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
