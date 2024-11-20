@@ -5,7 +5,7 @@ from sqlalchemy.orm import joinedload
 from auth import get_current_device
 
 from app.templates.jinja_functions import templates
-from app.models.all_models import User
+from app.models import User
 from app.database_config import get_session
 from auth import get_current_operator
 
