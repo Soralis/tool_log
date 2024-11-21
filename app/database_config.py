@@ -3,7 +3,15 @@ from sqlalchemy import event
 from sqlalchemy.orm import sessionmaker
 
 # Database configuration
+# For SQLite
 SQLALCHEMY_DATABASE_URL = "sqlite:///../../tool_log.db"
+
+# # For PostgreSQL
+# SQLALCHEMY_DATABASE_URL = "postgresql://username:password@localhost/dbname"
+
+# # For SQLite with full path
+# SQLALCHEMY_DATABASE_URL = "sqlite:///C:/Users/ckunde/tool_log.db"
+
 CONNECT_ARGS = {"check_same_thread": False}
 # SQLAlchemy settings
 SQLALCHEMY_TRACK_MODIFICATIONS = False

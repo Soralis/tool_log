@@ -92,6 +92,9 @@ source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 
+# Run database migrations
+alembic upgrade head
+
 # Deactivate the virtual environment
 deactivate
 

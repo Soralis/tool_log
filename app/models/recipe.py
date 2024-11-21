@@ -62,17 +62,16 @@ class ToolPosition(SQLModel, table=True):
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
     expected_life: Optional[int] = Field(default=None, gt=0)
 
-    __table_args__ = (UniqueConstraint('name', 'recipe_id'),)
+    __table_args__ = (UniqueConstraint('name', 'recipe_id', 'active'),)
 
 
 class ToolPositionCreate(SQLModel):
+    active: bool
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
 
 
 class ToolPositionUpdate(ToolPositionCreate):
     id: int
-    active: bool
-
 
 class ToolPositionRead(SQLModel):
     id: int
@@ -81,3 +80,4 @@ class ToolPositionRead(SQLModel):
     recipe: Recipe
     tool: 'Tool'
     machine: 'Machine'
+    tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))

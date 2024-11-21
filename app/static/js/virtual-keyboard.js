@@ -43,29 +43,39 @@ document.addEventListener('DOMContentLoaded', function() {
                     currentInput.blur();
                     break;
                 case '.':
-                    // Only add decimal point if it's a number input and doesn't already contain a decimal point
-                    if (currentInput.type === 'number' && !currentValue.includes('.')) {
-                        currentValue = currentValue ? currentValue + '.' : '0.';
+                    if (currentInput.type === 'number') {
+                        // For number inputs, handle decimal point specially
+                        if (!currentValue.includes('.')) {
+                            // If empty or just a minus sign, add a leading zero
+                            if (currentValue === '' || currentValue === '-') {
+                                currentValue += '0.';
+                            } else {
+                                currentValue += '.';
+                            }
+                        }
+                    } else {
+                        // For non-number inputs, just append the decimal
+                        currentValue += '.';
                     }
                     break;
                 default:
                     currentValue += keyValue;
             }
 
-            // Update the data-value attribute
-            currentInput.dataset.value = currentValue;
-
-            // Update the actual input value only if it's a valid number
+            // Update the input value
             if (currentInput.type === 'number') {
-                const numberValue = parseFloat(currentValue);
-                if (!isNaN(numberValue)) {
-                    currentInput.value = numberValue;
-                } else if (currentValue === '' || currentValue === '-' || currentValue.endsWith('.')) {
+                // For number inputs, we need to handle the value specially
+                if (currentValue === '' || currentValue === '-' || currentValue === '.' || currentValue === '0.' || 
+                    currentValue.endsWith('.') || !isNaN(parseFloat(currentValue))) {
                     currentInput.value = currentValue;
                 }
             } else {
+                // For non-number inputs, update directly
                 currentInput.value = currentValue;
             }
+
+            // Update the data-value attribute
+            currentInput.dataset.value = currentValue;
 
             // Trigger the 'input' event manually
             const inputEvent = new Event('input', { bubbles: true });
