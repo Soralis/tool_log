@@ -3,7 +3,7 @@
         <h2 class="text-3xl font-bold mb-8">Select Machine</h2>
         <div id="machine-buttons" class="grid auto-cols-fr gap-4 justify-items-center w-full max-w-4xl mx-auto max-h-[60vh] overflow-y-auto">
             {% for machine in machines %}
-                <button class="machine-btn px-4 py-8 bg-blue-500 text-xl font-bold text-white rounded text-base w-full" data-machine-id="{{ machine.id }}">
+                <button class="machine-btn px-4 py-8 bg-blue-500 text-3xl font-bold text-white rounded text-base w-full" data-machine-id="{{ machine.id }}">
                     {{ machine.name }}
                 </button>
             {% endfor %}
@@ -31,15 +31,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to check if current step has input fields and if they all have values
     function currentStepHasInputs() {
         const currentStepElement = document.querySelector(`.step[data-step="${currentStep}"]`);
-        const inputs = currentStepElement.querySelectorAll('input[type="text"], input[type="number"]');
+        const inputs = currentStepElement.querySelectorAll('input');
         return inputs.length > 0;
+    }
+
+    // Function to validate numeric input
+    function isValidNumber(value) {
+        // Allow empty string, numbers, and numbers with one decimal point
+        return value === '' || /^\d*\.?\d*$/.test(value);
     }
 
     // Function to validate all inputs in current step
     function validateCurrentStepInputs() {
         const currentStepElement = document.querySelector(`.step[data-step="${currentStep}"]`);
-        const inputs = currentStepElement.querySelectorAll('input[type="text"], input[type="number"]');
-        return Array.from(inputs).every(input => input.value.trim() !== '');
+        const inputs = currentStepElement.querySelectorAll('input');
+        return Array.from(inputs).every(input => {
+            const value = input.value.trim();
+            if (input.dataset.type === 'numeric') {
+                return value !== '' && isValidNumber(value);
+            }
+            return value !== '';
+        });
     }
 
     // Function to update next button visibility based on current step
@@ -160,11 +172,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const reachedLifeStep = createStep(4, 'Reached Life');
         const reachedLifeInput = document.createElement('input');
         reachedLifeInput.type = 'number';
+        reachedLifeInput.inputMode = 'decimal';
+        reachedLifeInput.pattern = '[0-9]*\.?[0-9]*';
+        reachedLifeInput.dataset.type = 'numeric';
         reachedLifeInput.name = 'reached_life';
         reachedLifeInput.required = true;
         reachedLifeInput.className = 'w-full border rounded p-4 text-xl font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500';
         reachedLifeInput.addEventListener('input', (e) => {
-            formData['reached_life'] = e.target.value;
+            const value = e.target.value;
+            if (isValidNumber(value)) {
+                formData['reached_life'] = value;
+                e.target.setCustomValidity('');
+            } else {
+                e.target.setCustomValidity('Please enter a valid number');
+            }
             updateNextButtonVisibility();
         });
         reachedLifeStep.appendChild(reachedLifeInput);
@@ -181,12 +202,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 label.className = 'block mb-2 text-xl';
                 const input = document.createElement('input');
                 input.type = 'number';
-                input.step = 'any';
+                input.inputMode = 'decimal';
+                input.pattern = '[0-9]*\.?[0-9]*';
+                input.dataset.type = 'numeric';
                 input.name = `${measureable.name}_ms`;
                 input.required = true;
                 input.className = 'w-full p-2 border rounded mb-4';
                 input.addEventListener('input', (e) => {
-                    formData[`${measureable.name}_ms`] = e.target.value;
+                    const value = e.target.value;
+                    if (isValidNumber(value)) {
+                        formData[`${measureable.name}_ms`] = value;
+                        e.target.setCustomValidity('');
+                    } else {
+                        e.target.setCustomValidity('Please enter a valid number');
+                    }
                     updateNextButtonVisibility();
                 });
                 additionalParamsStep.appendChild(label);
@@ -303,13 +332,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Validate all inputs before submitting
         const allInputs = document.querySelectorAll('input');
-        if (!Array.from(allInputs).every(input => input.value.trim() !== '')) {
+        if (!Array.from(allInputs).every(input => {
+            const value = input.value.trim();
+            if (input.dataset.type === 'numeric') {
+                return value !== '' && isValidNumber(value);
+            }
+            return value !== '';
+        })) {
             showToast('Please fill in all required fields before submitting.', 'error');
             return;
         }
 
         allInputs.forEach(input => {
-            formData[input.name] = input.value;
+            if (input.dataset.type === 'numeric') {
+                // Convert to number for submission
+                formData[input.name] = parseFloat(input.value);
+            } else {
+                formData[input.name] = input.value;
+            }
         });
 
         try {
