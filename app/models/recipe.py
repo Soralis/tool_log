@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict, TYPE_CHECKING
 from sqlmodel import Field, SQLModel, Relationship, Column, JSON
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import UniqueConstraint, CheckConstraint, Index, text
 from datetime import datetime
 from .model_connections import RecipeTool
 
@@ -61,8 +61,12 @@ class ToolPosition(SQLModel, table=True):
     tool_lifes: List['ToolLife'] = Relationship(back_populates='tool_position')
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
     expected_life: Optional[int] = Field(default=None, gt=0)
-
-    __table_args__ = (UniqueConstraint('name', 'recipe_id', 'active'),)
+    
+    __table_args__ = (
+        Index('uq_name_recipe_active', 'name', 'recipe_id', unique=True,
+              postgresql_where=text('active = true')),
+        CheckConstraint('(active = true)::int <= 1', name='check_single_active')
+    )
 
 
 class ToolPositionCreate(SQLModel):

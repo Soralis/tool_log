@@ -1,21 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 
-from app.database_config import get_db
+from app.database_config import get_session
 from app.models import LogDevice, Machine, Recipe
 from auth import get_current_device
 
 router = APIRouter()
 
 @router.get("/machines")
-async def change_over_page(device: LogDevice = Depends(get_current_device), session: Session = Depends(get_db)):
+async def change_over_page(device: LogDevice = Depends(get_current_device), session: Session = Depends(get_session)):
     # Get all active machines for the current device
     machines = session.exec(select(Machine).where(Machine.id.in_(device.machines), Machine.active)).all()
     
     return {"machines": machines}
 
 @router.get("/{machine_id}")
-async def get_recipes(machine_id: int, session: Session = Depends(get_db)):
+async def get_recipes(machine_id: int, session: Session = Depends(get_session)):
     # Get all active recipes for the selected machine
     recipes = session.exec(select(Recipe).where(Recipe.machine_id == machine_id, Recipe.active)).all()
     
@@ -25,7 +25,7 @@ async def get_recipes(machine_id: int, session: Session = Depends(get_db)):
 async def perform_change_over(
     request: Request,
     device: LogDevice = Depends(get_current_device),
-    session: Session = Depends(get_db)
+    session: Session = Depends(get_session)
 ):
     form_data = await request.form()
     machine_id = int(form_data['machine_id'])

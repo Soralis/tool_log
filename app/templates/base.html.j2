@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- Previous head content remains the same until the script section -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,29 +8,16 @@
     <title>{% block title %}Digital ToolLog IFA{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/virtual-keyboard.css') }}">
-    {# <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}"> #}
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+    <script src="{{ url_for('static', path='js/recipe_manager.js') }}"></script>
     <script src="{{ url_for('static', path='js/virtual-keyboard.js') }}"></script>
     <script>
-        // On page load (in your main JavaScript file or script tag)
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('looks for toastmessages')
-            const toastMessage = localStorage.getItem('showToast');
-            if (toastMessage) {
-                showToast(toastMessage);
-                localStorage.removeItem('showToast');
-            }
-            });
-
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             toast.textContent = message;
-
-            // Append to the toast container
             document.getElementById('toast-container').appendChild(toast);
-
             setTimeout(() => {
                 toast.classList.add('show');
                 setTimeout(() => {
@@ -45,18 +33,16 @@
             console.log(type)
             const modalId = `${type}Modal`;
             console.log('Opening modal:', modalId);
-            // document.getElementById(modalId).style.display = "flex";
             const modal = document.getElementById(modalId);
             if (modal) {
                 modal.classList.add('active');
             }
         }
 
-        function closeModal(modalId) { // Takes modalId directly
+        function closeModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) {
                 modal.classList.remove('active');
-                // Reset forms when closing if needed
                 const form = modal.querySelector('form'); 
                 if (form) {
                     form.reset();
@@ -79,13 +65,142 @@
                 return false;
             }
         }
+
+        // Function to fetch recipes for both modals
+        async function fetchRecipes(machineId, prefix = '') {
+            try {
+                const response = await fetch(`/operator/change_over/${machineId}`);
+                const data = await response.json();
+                const recipeSelect = document.getElementById(`${prefix}recipe-select`);
+                const recipeForm = document.getElementById(`${prefix}recipe-form`);
+                
+                if (recipeSelect) {
+                    recipeSelect.innerHTML = '<option value="">Select a recipe</option>';
+                    data.forEach(recipe => {
+                        const option = document.createElement('option');
+                        option.value = recipe.id;
+                        option.textContent = recipe.name;
+                        recipeSelect.appendChild(option);
+                    });
+                    recipeForm && recipeForm.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error fetching recipes:', error);
+                showToast('Error loading recipes');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded event fired');
+
+            // Check for toast messages
+            const toastMessage = localStorage.getItem('showToast');
+            if (toastMessage) {
+                showToast(toastMessage);
+                localStorage.removeItem('showToast');
+            }
+
+            // Initialize recipe manager with error handling
+            try {
+                const editRecipeManager = new RecipeManager({
+                    prefix: 'edit',
+                    isEdit: true,
+                    recipeModalId: 'recipeEditModal',
+                    toolPositionModalId: 'editToolPositionModal',
+                    recipeFormId: 'recipeEditForm',
+                    toolPositionFormId: 'editToolPositionForm'
+                });
+            } catch (error) {
+                console.error('Error initializing RecipeManager:', error);
+            }
+
+            // Handle changeover modal
+            const machineSelect = document.getElementById('machine-select');
+            const recipeSelect = document.getElementById('recipe-select');
+            const recipeForm = document.getElementById('recipe-form');
+            
+            if (machineSelect) {
+                const initialMachineId = machineSelect.getAttribute('value') || machineSelect.value;
+                if (initialMachineId) {
+                    fetchRecipes(initialMachineId);
+                }
+
+                machineSelect.addEventListener('change', function() {
+                    const machineId = this.value;
+                    if (machineId) {
+                        fetchRecipes(machineId);
+                    } else {
+                        recipeForm && recipeForm.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Handle edit recipe modal
+            const editMachineSelect = document.getElementById('recipe-edit-machine-select');
+            const editRecipeSelect = document.getElementById('recipe-edit-recipe-select');
+            const editRecipeForm = document.getElementById('recipe-edit-recipe-form');
+
+            if (editMachineSelect) {
+                const initialEditMachineId = editMachineSelect.getAttribute('value') || editMachineSelect.value;
+                if (initialEditMachineId) {
+                    fetchRecipes(initialEditMachineId, 'recipe-edit-');
+                }
+
+                editMachineSelect.addEventListener('change', function() {
+                    const machineId = this.value;
+                    if (machineId) {
+                        fetchRecipes(machineId, 'recipe-edit-');
+                    } else {
+                        editRecipeForm && editRecipeForm.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Handle recipe selection form submission
+            const recipeSelectForm = document.getElementById('recipeSelectForm');
+            if (recipeSelectForm) {
+                recipeSelectForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const recipeId = editRecipeSelect.value;
+                    if (recipeId) {
+                        try {
+                            const response = await fetch(`/engineer/recipes/${recipeId}`);
+                            if (response.ok) {
+                                const recipeData = await response.json();
+                                editRecipeManager.populateEditForm(recipeData);
+                                closeModal('recipeSelectModal');
+                                document.getElementById('recipeEditModal').classList.add('active');
+                            } else {
+                                showToast('Error loading recipe details');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            showToast('An error occurred while loading the recipe');
+                        }
+                    } else {
+                        showToast('Please select a recipe');
+                    }
+                });
+            }
+
+            // Initialize reload button
+            const reloadButton = document.querySelector('.reload-button');
+            if (reloadButton) {
+                reloadButton.addEventListener('click', hardReload);
+            }
+        });
+
+        function hardReload() {
+            location.reload(true);
+        }
     </script>
 
     {% block extra_head %}{% endblock %}
-
 </head>
 
+<!-- Rest of the body content remains the same -->
 <body class="body">
+    <!-- Previous body content remains unchanged -->
     <div id="toast-container"></div>
     <div id="page-container_x">
         <div class="logout-button">
@@ -98,18 +213,8 @@
         {% block body %}{% endblock %}
     </div>
         
-    <script>
-        function hardReload() {
-            location.reload(true);
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            var reloadButton = document.querySelector('.reload-button');
-            reloadButton.addEventListener('click', hardReload);
-        });
-    </script>
-
     <div id="virtual-keyboard" class="virtual-keyboard">
+        <!-- Previous keyboard content remains unchanged -->
         <div id="full-keyboard">
             <div class="keyboard-row">
                 <button class="key">1</button>
@@ -192,30 +297,30 @@
     <style>
         .virtual-keyboard {
             position: fixed;
-            bottom: -100%; /* Initially hidden below the viewport */
+            bottom: -100%;
             z-index: 0;
         }
         @media (max-width: 501px) {
             .virtual-keyboard {
                 position: fixed;
-                bottom: -80%; /* Initially hidden below the viewport */
+                bottom: -80%;
                 left: 0;
                 width: 100%;
                 background-color: #2a2a2a;
                 background: #2a2a2a;
                 padding: 10px;
                 box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
-                transition: transform 0.3s ease-in-out; /* Smooth transition */
+                transition: transform 0.3s ease-in-out;
                 z-index: 9999;
             }
 
             .virtual-keyboard.active {
-                transform: translateY(-3200%); /* Slide up from bottom */
+                transform: translateY(-3200%);
             }
 
             #full-keyboard, #numpad {
-                position: absolute;  /* Key here! */
-                bottom: 0;           /* Align to bottom of container */
+                position: absolute;
+                bottom: 0;
                 left: 0;
                 padding-top: 5px;
                 padding-right: 20px;

@@ -35,40 +35,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const machineSelect = document.getElementById('machine-select');
-        const recipeSelect = document.getElementById('recipe-select');
-        const recipeForm = document.getElementById('recipe-form');
         const changeOverForm = document.getElementById('changeOverForm');
-
-        // Fetch recipes for the initial machine
-        const initialMachineId = machineSelect.getAttribute('value') || machineSelect.value;
-        if (initialMachineId) {
-            fetchRecipes(initialMachineId);
-        }
-
-        machineSelect.addEventListener('change', function() {
-            const machineId = this.value;
-            if (machineId) {
-                fetchRecipes(machineId);
-            } else {
-                recipeForm.classList.add('hidden');
-            }
-        });
-
-        function fetchRecipes(machineId) {
-            fetch(`/operator/change_over/${machineId}`)
-                .then(response => response.json())
-                .then(data => {
-                    recipeSelect.innerHTML = '<option value="">Select a recipe</option>';
-                    data.forEach(recipe => {
-                        const option = document.createElement('option');
-                        option.value = recipe.id;
-                        option.textContent = recipe.name;
-                        recipeSelect.appendChild(option);
-                    });
-                    recipeForm.classList.remove('hidden');
-                });
-        }
 
         changeOverForm.addEventListener('submit', function(e) {
             e.preventDefault();

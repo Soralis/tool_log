@@ -5,7 +5,7 @@ from fastapi.exceptions import HTTPException
 from app.templates.jinja_functions import templates
 from sqlmodel import Session, select
 from sqlalchemy.orm import aliased
-from app.models import Recipe, RecipeRead, ToolType, ToolPosition, ToolAttribute #,ToolSettings, ToolSettingsCreate, 
+from app.models import Recipe, RecipeRead, ToolType, ToolPosition, ToolAttribute
 from app.models import Workpiece
 from app.models import Machine
 from app.models import Tool
@@ -98,8 +98,10 @@ async def get_recipe(recipe_id: int, session: Session = Depends(get_session)):
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    # Query for the tool positions
-    tool_positions_query = select(ToolPosition).where(ToolPosition.recipe_id == recipe_id)
+    # Query for all tool positions
+    tool_positions_query = select(ToolPosition).where(
+        ToolPosition.recipe_id == recipe_id
+    )
     tool_positions = session.exec(tool_positions_query).all()
 
     # Convert to dict for JSON response
@@ -115,10 +117,12 @@ async def get_recipe(recipe_id: int, session: Session = Depends(get_session)):
     # Add tool positions with their settings
     for tp in tool_positions:
         tp_dict = {
+            "id": tp.id,  # Include the ID
             "name": tp.name,
             "tool_id": tp.tool_id,
             "expected_life": tp.expected_life,
-            "tool_settings": tp.tool_settings
+            "tool_settings": tp.tool_settings,
+            "active": tp.active
         }
         recipe_dict["tool_positions"].append(tp_dict)
 
@@ -135,8 +139,9 @@ async def create_recipe(
     session.commit()
     session.refresh(db_recipe)
 
+    # Create tool positions with active state
     tool_positions = body['tool_positions']
-    for i, tp in enumerate(tool_positions):
+    for tp in tool_positions:
         tp['tool_id'] = int(tp['tool_id'])
         tp['recipe_id'] = db_recipe.id
         db_tp = ToolPosition.model_validate(tp)
@@ -165,19 +170,37 @@ async def update_recipe(
         if key != 'id':  # Don't update the ID
             setattr(recipe, key, value)
     
-    # Delete existing tool positions
-    tool_positions_query = select(ToolPosition).where(ToolPosition.recipe_id == recipe_id)
-    existing_tool_positions = session.exec(tool_positions_query).all()
-    for tp in existing_tool_positions:
-        session.delete(tp)
+    # Get existing tool positions
+    tool_positions_query = select(ToolPosition).where(
+        ToolPosition.recipe_id == recipe_id
+    )
+    existing_positions = session.exec(tool_positions_query).all()
     
-    # Create new tool positions
-    tool_positions = body['tool_positions']
-    for tp in tool_positions:
+    # Create a set of submitted position IDs
+    submitted_position_ids = {tp.get('id') for tp in body['tool_positions'] if tp.get('id')}
+    
+    # Delete positions that aren't in the submitted data
+    for existing_pos in existing_positions:
+        if existing_pos.id not in submitted_position_ids:
+            session.delete(existing_pos)
+        else:
+            existing_pos.active = False
+    session.commit()
+    
+    # Update or create tool positions
+    for tp in body['tool_positions']:
         tp['tool_id'] = int(tp['tool_id'])
         tp['recipe_id'] = recipe_id
-        db_tp = ToolPosition.model_validate(tp)
-        session.add(db_tp)
+        
+        if tp.get('id'):  # Update existing position
+            position = session.get(ToolPosition, tp['id'])
+            if position:
+                for key, value in tp.items():
+                    if key != 'id':
+                        setattr(position, key, value)
+        else:  # Create new position
+            db_tp = ToolPosition.model_validate(tp)
+            session.add(db_tp)
     
     session.commit()
     return {"message": "Recipe updated successfully"}

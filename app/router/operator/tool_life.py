@@ -3,14 +3,14 @@ from sqlmodel import Session, select
 
 from auth import get_current_operator
 
-from app.database_config import get_db
+from app.database_config import get_session
 from app.models import ToolLife, Machine, Recipe, Tool, ToolPosition, ChangeReason, ToolLifeCreate, LogDevice, User
 
 router = APIRouter()
 
 @router.get("/")
 async def get_tool_life_data(machine_id: int, 
-                             db: Session = Depends(get_db)):
+                             db: Session = Depends(get_session)):
     
     machine: Machine = db.exec(select(Machine)
                       .where(Machine.id == machine_id)
@@ -37,7 +37,7 @@ async def get_tool_life_data(machine_id: int,
 @router.get("/change-reasons")
 async def get_change_reasons(
     tool_position_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_session)
 ):
     tool_position = db.exec(select(ToolPosition).where(ToolPosition.id == tool_position_id)).first()
     if not tool_position:
@@ -57,7 +57,7 @@ async def get_change_reasons(
 @router.post("/")
 async def create_tool_life(
     request: Request,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     current_operator: User = Depends(get_current_operator)
 ):
     form_data: dict = await request.json()

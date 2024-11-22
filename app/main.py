@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from app.templates.jinja_functions import templates
-from app.database_config import init_db, get_db
+from app.database_config import init_db, get_session
 from app.router import base
 from app.router.engineer import _engineer
 from app.router.operator import _operator
@@ -46,7 +46,7 @@ init_db()
 @app.middleware("http")
 async def monitoring_middleware(request: Request, call_next):
     if not request.url.path.startswith("/static"):  # Skip static files
-        db = next(get_db())
+        db = next(get_session())
         try:
             return await monitoring.log_request(request, call_next, db)
         finally:
@@ -59,7 +59,7 @@ SERVER_START_TIME = datetime.utcnow()
 # Initialize service metrics on startup
 @app.on_event("startup")
 async def initialize_metrics():
-    db = next(get_db())
+    db = next(get_session())
     try:
         # Delete any existing metrics to ensure a fresh start
         statement = select(ServiceMetrics)
@@ -110,7 +110,7 @@ async def logout(request: Request, response: Response):
     return response
 
 @app.post("/authenticateDevice")
-async def authenticate_device(request: Request, db: Session = Depends(get_db)):
+async def authenticate_device(request: Request, db: Session = Depends(get_session)):
     body = await request.json()
     device_name = body.get("device_name")
     if not device_name:

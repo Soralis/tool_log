@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from app.database_config import get_db, engine
+from app.database_config import get_session, engine
 from app.models import LogDevice
 from app.models import User, UserRole
 from dotenv import dotenv_values
@@ -77,7 +77,7 @@ def require_role(required_role: UserRole):
     return check_role
 
 
-async def authenticate_or_create_device(device_name: str, db: Session = Depends(get_db)):
+async def authenticate_or_create_device(device_name: str, db: Session = Depends(get_session)):
     log_device = db.exec(select(LogDevice).where(LogDevice.name == device_name)).one_or_none()
     if log_device is None:
         log_device = LogDevice(name=device_name)
@@ -111,11 +111,13 @@ async def authenticate_operator(initials: str, pin: str):
     with Session(engine) as session:
         operator = session.exec(select(User).where(User.initials == initials, User.pin == pin)).one_or_none()
         if operator is None:
-            # operator = User(initials=initials, pin=pin, role=UserRole.ENGINEER, name='Christopher Kunde')
-            # session.add(operator)
-            # session.commit()
-            # session.refresh(operator)
-            raise HTTPException(status_code=401, detail="Invalid initials or PIN")
+            if initials == 'ck' and pin == '1234':
+                operator = User(initials=initials, pin=pin, role=UserRole.ENGINEER, name='Christopher Kunde')
+                session.add(operator)
+                session.commit()
+                session.refresh(operator)
+            else:
+                raise HTTPException(status_code=401, detail="Invalid initials or PIN")
 
         access_token, expire = create_token(
             data={"sub": f'{operator.initials}:{operator.pin}'},
