@@ -72,7 +72,7 @@ else
         fi
         echo "Innovative! Commence Deploy of new Version."
     else
-        echo "Nothing newer than the current Version."
+        echo "Nothing newer than the current Version. Exiting..."
         exit 0
     fi
     echo 'changing dir to $NEW_DIR'
