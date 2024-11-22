@@ -4,6 +4,7 @@ from sqlalchemy import UniqueConstraint, CheckConstraint, Index, text
 from datetime import datetime
 from .model_connections import RecipeTool
 
+
 if TYPE_CHECKING:
     from .machine import Machine
     from .workpiece import Workpiece
@@ -22,7 +23,7 @@ class RecipeBase(SQLModel):
 
 class Recipe(RecipeBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=datetime.now, nullable=False)
     active: bool = Field(default=True, nullable=False)
     tool_positions: List['ToolPosition'] = Relationship(back_populates='recipe', cascade_delete=True)
     machine: 'Machine' = Relationship(back_populates='recipes', sa_relationship_kwargs={"foreign_keys": "[Recipe.machine_id]"})

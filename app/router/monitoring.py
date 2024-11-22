@@ -8,6 +8,7 @@ from decimal import Decimal
 from ..database_config import engine
 from ..models import RequestLog, ServiceMetrics
 
+
 router = APIRouter()  # Remove prefix to avoid potential routing issues
 
 # Store active WebSocket connections
@@ -15,9 +16,9 @@ active_connections: List[WebSocket] = []
 
 # Middleware to log requests
 async def log_request(request: Request, call_next: Callable, db: Session):
-    start_time = datetime.utcnow()
+    start_time = datetime.now()
     response = await call_next(request)
-    end_time = datetime.utcnow()
+    end_time = datetime.now()
     
     # Calculate response time in seconds
     response_time = Decimal(str((end_time - start_time).total_seconds()))
@@ -46,7 +47,7 @@ async def log_request(request: Request, call_next: Callable, db: Session):
         (metrics.avg_response_time * (metrics.total_requests - 1) + response_time)
         / metrics.total_requests
     )
-    metrics.last_updated = datetime.utcnow()
+    metrics.last_updated = datetime.now()
     
     db.commit()
     
@@ -91,7 +92,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_json({
                         "type": "metrics",
                         "data": {
-                            "uptime": (datetime.utcnow() - metrics.start_time).total_seconds(),
+                            "uptime": (datetime.now() - metrics.start_time).total_seconds(),
                             "total_requests": metrics.total_requests,
                             "total_errors": metrics.total_errors,
                             "avg_response_time": float(metrics.avg_response_time)
@@ -142,7 +143,7 @@ async def get_metrics():
             db.commit()
         
         return {
-            "uptime": (datetime.utcnow() - metrics.start_time).total_seconds(),
+            "uptime": (datetime.now() - metrics.start_time).total_seconds(),
             "total_requests": metrics.total_requests,
             "total_errors": metrics.total_errors,
             "error_rate": metrics.total_errors / max(metrics.total_requests, 1),

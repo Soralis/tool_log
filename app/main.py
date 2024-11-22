@@ -54,7 +54,7 @@ async def monitoring_middleware(request: Request, call_next):
     return await call_next(request)
 
 # Store server start time
-SERVER_START_TIME = datetime.utcnow()
+SERVER_START_TIME = datetime.now()
 
 # Initialize service metrics on startup
 @app.on_event("startup")
@@ -74,7 +74,7 @@ async def initialize_metrics():
             total_requests=0,
             total_errors=0,
             avg_response_time=0,
-            last_updated=datetime.utcnow()
+            last_updated=datetime.now()
         )
         db.add(metrics)
         db.commit()

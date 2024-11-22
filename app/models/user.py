@@ -3,6 +3,7 @@ from sqlmodel import Field, SQLModel, Relationship
 from datetime import datetime
 from enum import IntEnum
 
+
 if TYPE_CHECKING:
     from .tool import ToolLife, ToolOrder
     from .change_over import ChangeOver
@@ -30,7 +31,7 @@ class UserBase(SQLModel):
 class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True, nullable=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=datetime.now, nullable=False)
     last_login: Optional[datetime] = Field(default=None)
     token: Optional[str] = Field(default=None, max_length=255)
     token_expiry: Optional[datetime] = Field(default=None)

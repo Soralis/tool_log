@@ -2,6 +2,7 @@ from typing import Optional, TYPE_CHECKING
 from sqlmodel import Field, SQLModel, Relationship
 from datetime import datetime
 
+
 if TYPE_CHECKING:
     from .machine import Machine
     from .user import User
@@ -16,7 +17,7 @@ class ChangeOverBase(SQLModel):
 class ChangeOver(ChangeOverBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     performed_by: Optional[int] = Field(foreign_key='user.id')
-    timestamps: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    timestamps: datetime = Field(default_factory=datetime.now, nullable=False)
     machine: 'Machine' = Relationship(back_populates='change_overs')
     user: 'User' = Relationship(back_populates='performed_change_overs')
     recipe: 'Recipe' = Relationship(back_populates='change_overs')

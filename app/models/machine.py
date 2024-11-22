@@ -4,7 +4,7 @@ from sqlalchemy import UniqueConstraint
 
 if TYPE_CHECKING:
     from .log_device import LogDevice
-    from .tool_life import ToolLife
+    from .tool import ToolLife
     from .recipe import Recipe
     from .change_over import ChangeOver
 
