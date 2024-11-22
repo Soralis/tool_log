@@ -8,16 +8,14 @@ from app.database_config import get_session, engine
 from app.models import LogDevice
 from app.models import User, UserRole
 from dotenv import dotenv_values
-import pytz
 
-def get_utc_now():
-    return datetime.now(pytz.UTC)
+
 
 env = dotenv_values('.env')
 
 def create_token(data: dict, expires_delta: timedelta):
     to_encode = data.copy()
-    expire = get_utc_now() + expires_delta
+    expire = datetime.now() + expires_delta
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, env['SECRET_KEY'], algorithm=env['ALGORITHM'])
     return encoded_jwt, expire
@@ -60,7 +58,7 @@ async def get_current_operator(request: Request):
                 )
             initials, pin = operator_cred.split(':')
             operator = session.exec(select(User).where(User.pin == pin).where(User.initials == initials)).one_or_none()
-            if operator is None or operator.token != operator_token or operator.token_expiry < get_utc_now():
+            if operator is None or operator.token != operator_token or operator.token_expiry < datetime.now():
                 raise HTTPException(
                     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
                     headers={'Location': '/login'}
