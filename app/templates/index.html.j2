@@ -294,14 +294,14 @@
                 {% if user and user.role >= 4 %}
                     <button onclick="openModal('recipeSelect')" class="w-full py-8 text-4xl font-bold rounded-lg bg-purple-500 hover:bg-purple-700 text-white my-4">Edit Recipe</button>
                 {% endif %}
-        {% if user and user.role >= 2 %}
-            <div class="flex space-x-4 w-full">
-                <button onclick="openModal('userManagement')" class="flex-1 py-8 text-4xl font-bold rounded-lg bg-yellow-500 hover:bg-yellow-700 text-white my-4">Create Operator</button>
-                <a href="/device/getDeviceInfo" class="flex-1 py-8 text-4xl font-bold rounded-lg bg-blue-500 hover:bg-blue-700 text-white my-4 text-center inline-block no-underline">Edit Device Info</a>
+            {% endif %}
+            {% if user and user.role >= 2 %}
+                <div class="flex space-x-4 w-full">
+                    <button onclick="openModal('userManagement')" class="flex-1 py-8 text-4xl font-bold rounded-lg bg-yellow-500 hover:bg-yellow-700 text-white my-4">Create Operator</button>
+                    <a href="/device/getDeviceInfo" class="flex-1 py-8 text-4xl font-bold rounded-lg bg-blue-500 hover:bg-blue-700 text-white my-4 text-center inline-block no-underline">Edit Device Info</a>
+                </div>
+            {% endif %}
             </div>
-        {% endif %}
-            </div>
-        {% endif %}
     {% endif %}
 
 {% endblock %}
