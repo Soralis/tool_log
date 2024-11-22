@@ -78,8 +78,15 @@ else
     cd "$NEW_DIR" || exit 1
     
     # Force pull the latest changes
-    if ! git fetch origin $BRANCH && git reset --hard origin/$BRANCH; then
-        echo "Failed to force update repository"
+    echo "Fetching latest changes..."
+    if ! git fetch origin $BRANCH; then
+        echo "Failed to fetch from repository"
+        exit 1
+    fi
+    
+    echo "Resetting to origin/$BRANCH..."
+    if ! git reset --hard origin/$BRANCH; then
+        echo "Failed to reset to origin/$BRANCH"
         exit 1
     fi
 fi
