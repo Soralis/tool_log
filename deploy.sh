@@ -70,7 +70,7 @@ else
             echo "Not innovative, still broken. Exiting."
             exit 0
         fi
-        echo "Innovative! Commence Deploy of new Version."
+        echo "Innovative! Commence Deploy of new Version..."
     else
         echo "Nothing newer than the current Version. Exiting..."
         exit 0
