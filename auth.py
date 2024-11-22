@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from jose import JWTError, jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.database_config import get_session, engine
 from app.models import LogDevice
 from app.models import User, UserRole
@@ -15,7 +15,7 @@ env = dotenv_values('.env')
 
 def create_token(data: dict, expires_delta: timedelta):
     to_encode = data.copy()
-    expire = datetime.now() + expires_delta
+    expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, env['SECRET_KEY'], algorithm=env['ALGORITHM'])
     return encoded_jwt, expire
@@ -64,6 +64,39 @@ async def get_current_operator(request: Request):
                     headers={'Location': '/login'}
                 )
             return operator
+        except jwt.ExpiredSignatureError:
+            # For debugging: print actual times
+            unverified = jwt.decode(
+                operator_token, 
+                env['SECRET_KEY'],  # Add the key parameter
+                algorithms=[env['ALGORITHM']],
+                options={"verify_signature": False, "verify_exp": False}
+            )
+            exp_timestamp = unverified.get('exp')
+            if exp_timestamp:
+                exp_time = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+                current_time = datetime.now(timezone.utc)
+                local_time = datetime.now()
+                print(f"Token expires at (UTC): {exp_time}")
+                print(f"Current time (UTC): {current_time}")
+                print(f"Current time (Local): {local_time}")
+                print(f"Raw exp timestamp: {exp_timestamp}")
+                
+                # Also check if token was created recently
+                created_timestamp = unverified.get('iat')  # "issued at" if present
+                if created_timestamp:
+                    created_time = datetime.fromtimestamp(created_timestamp, tz=timezone.utc)
+                    print(f"Token created at (UTC): {created_time}")
+            raise
+        except Exception as e:
+            print(f"Unexpected error during token verification: {e}")
+            exp_timestamp = unverified.get('exp')
+            if exp_timestamp:
+                exp_time = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+                current_time = datetime.now(timezone.utc)
+                print(f"Token expires at (UTC): {exp_time}")
+                print(f"Current time (UTC): {current_time}")
+            raise
         except JWTError as e:
             raise HTTPException(
                 status_code=status.HTTP_307_TEMPORARY_REDIRECT,
