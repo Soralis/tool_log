@@ -75,7 +75,9 @@ else
         echo "Nothing newer than the current Version."
         exit 0
     fi
+    echo 'changing dir to $NEW_DIR'
     cd "$NEW_DIR" || exit 1
+    echo '...done'
     
     # Force pull the latest changes
     echo "Fetching latest changes..."
