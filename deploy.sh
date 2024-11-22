@@ -65,20 +65,26 @@ if [ ! -d "$NEW_DIR" ]; then
     git clone "$REPO_URL" "$NEW_DIR"
 else
     if check_for_updates "$ACTIVE_DIR"; then
-	echo "Newer than currently deployed version found, checking innovativity..."
+        echo "Newer than currently deployed version found, checking innovativity..."
         if ! check_for_updates "$NEW_DIR"; then
-	    echo "Not innovative, still broken. Exiting."
-	    exit 0
-	fi
-	echo "Innovative! Commence Deploy of new Version."
+            echo "Not innovative, still broken. Exiting."
+            exit 0
+        fi
+        echo "Innovative! Commence Deploy of new Version."
     else
-    echo "Nothing newer than the current Version. Exiting..."
-	exit 0
+        echo "Nothing newer than the current Version."
+        exit 0
     fi
-    cd "$NEW_DIR"
-    # Pull the latest changes
-    git pull origin $BRANCH
+    cd "$NEW_DIR" || exit 1
+    
+    # Force pull the latest changes
+    if ! git fetch origin $BRANCH && git reset --hard origin/$BRANCH; then
+        echo "Failed to force update repository"
+        exit 1
+    fi
 fi
+
+sudo chmod 700 deploy.sh
 
 # Navigate to the new directory
 cd "$NEW_DIR"
