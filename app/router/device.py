@@ -78,7 +78,7 @@ async def root(request: Request):
 
 
 @router.post("/setMachine")
-async def set_machines(request: Request, machine_ids: List[int] = Form(...)):
+async def set_machines(request: Request, machine_ids: List[int] = Form(None)):
     device_token = request.cookies.get("device_token")
     
     with Session(engine) as session:
@@ -86,9 +86,12 @@ async def set_machines(request: Request, machine_ids: List[int] = Form(...)):
         if log_device is None:
             return JSONResponse(content={"error": "Log Device not found"}, status_code=404)
         
-        machines = session.exec(select(Machine).filter(Machine.id.in_(machine_ids))).all()
-        if len(machines) != len(machine_ids):
-            return JSONResponse(content={"error": "One or more machines not found"}, status_code=404)
+        if machine_ids:
+            machines = session.exec(select(Machine).filter(Machine.id.in_(machine_ids))).all()
+            if len(machines) != len(machine_ids):
+                return JSONResponse(content={"error": "One or more machines not found"}, status_code=404)
+        else:
+            machines = []
         
         log_device.machines = machines
         session.add(log_device)
