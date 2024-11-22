@@ -72,6 +72,7 @@ else
 	fi
 	echo "Innovative! Commence Deploy of new Version."
     else
+    echo "Not newer than current version. Exiting."
 	exit 0
     fi
     cd "$NEW_DIR"
