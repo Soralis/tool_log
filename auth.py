@@ -1,5 +1,5 @@
 from fastapi import HTTPException, Depends, Cookie, Request, status
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from jose import JWTError, jwt
@@ -84,16 +84,16 @@ async def authenticate_or_create_device(device_name: str, db: Session = Depends(
         db.add(log_device)
         db.commit()
         db.refresh(log_device)
-    
+
     access_token, expire = create_token(
         data={"sub": log_device.name},
         expires_delta=timedelta(days=int(env['DEVICE_TOKEN_EXPIRE_DAYS']))
     )
-    
+
     log_device.token = access_token
     log_device.token_expiry = expire
     db.commit()
-    
+
     response = JSONResponse(content={"message": "Device authenticated"})
     response.set_cookie(
         key="device_token",
@@ -140,3 +140,4 @@ async def authenticate_operator(initials: str, pin: str):
         )
         print((f"Setting operator_token cookie: {access_token}"))
         return response
+

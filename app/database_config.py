@@ -1,9 +1,8 @@
 from sqlmodel import SQLModel, Session, create_engine
-from sqlalchemy.orm import sessionmaker
 
 # Database configuration
 # PostgreSQL connection URL for psycopg (v3)
-SQLALCHEMY_DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost/postgres"
+SQLALCHEMY_DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost/tool_log_db"
 
 # SQLAlchemy settings
 SQLALCHEMY_TRACK_MODIFICATIONS = False
