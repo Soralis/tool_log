@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from auth import get_current_operator
 
 from app.database_config import get_session
-from app.models import ToolLife, Machine, Recipe, Tool, ToolPosition, ChangeReason, ToolLifeCreate, LogDevice, User
+from app.models import ToolLife, Machine, ToolPosition, ChangeReason, User
 
 router = APIRouter()
 

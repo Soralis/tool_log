@@ -43,6 +43,7 @@ class MachineBase(SQLModel):
     description: Optional[str] = None
     model: Optional[str] = Field(default=None)
     manufacturer: Optional[str] = Field(default=None)
+    measures_tool_life: bool = Field(default=False)
     channels: int = Field(gt=0)
 
 
