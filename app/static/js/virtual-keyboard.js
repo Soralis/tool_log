@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Show keyboard when an input is focused
     document.addEventListener('focusin', function(e) {
-        console.log(e.target.tagName, e.target.type)
         if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && e.target.type !== 'checkbox') {
             currentInput = e.target;
             // Initialize tempNumericValue with current input value

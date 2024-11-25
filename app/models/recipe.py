@@ -54,6 +54,7 @@ class RecipeRead(SQLModel):
 class ToolPosition(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True, nullable=False)
+    selected: bool = Field(default=True, nullable=False)
     name: str
     recipe_id: int = Field(foreign_key='recipe.id', ondelete='CASCADE')
     recipe: Recipe = Relationship(back_populates='tool_positions')
@@ -64,14 +65,14 @@ class ToolPosition(SQLModel, table=True):
     expected_life: Optional[int] = Field(default=None, gt=0)
     
     __table_args__ = (
-        Index('uq_name_recipe_active', 'name', 'recipe_id', unique=True,
-              postgresql_where=text('active = true')),
-        CheckConstraint('(active = true)::int <= 1', name='check_single_active')
+        Index('uq_name_recipe_selected', 'name', 'recipe_id', unique=True,
+              postgresql_where=text('selected = true')),
+        CheckConstraint('(selected = true)::int <= 1', name='check_single_selected')
     )
 
 
 class ToolPositionCreate(SQLModel):
-    active: bool
+    selected: bool
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
 
 
@@ -81,7 +82,7 @@ class ToolPositionUpdate(ToolPositionCreate):
 class ToolPositionRead(SQLModel):
     id: int
     name: str
-    active: bool
+    selected: bool
     recipe: Recipe
     tool: 'Tool'
     machine: 'Machine'

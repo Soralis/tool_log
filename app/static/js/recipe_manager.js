@@ -12,6 +12,7 @@ class RecipeManager {
         this.addToolPositionBtn = document.getElementById(this.prefix + 'AddToolPositionBtn');
         this.toolsData = null;
         this.dropdownDataLoaded = false;
+        this.currentEditIndex = null;
         
         window[this.getManagerName()] = this;
         this.initializeEventListeners();
@@ -69,10 +70,10 @@ class RecipeManager {
     }
 
     showToolPositionForm(positionName = '', toolData = null) {
+        
         // Reset and prepare form
         this.toolPositionForm.reset();
         document.getElementById(this.prefix + 'ToolAttributes').innerHTML = '';
-        document.getElementById(this.prefix + 'ToolPositionIndex').value = '';
 
         // Set position name if provided
         const nameInput = document.getElementById(this.prefix + 'TpName');
@@ -145,6 +146,7 @@ class RecipeManager {
         // Tool position form submission
         this.toolPositionForm.onsubmit = (e) => {
             e.preventDefault();
+            
             const toolSelect = document.getElementById(this.prefix + 'Tool');
             const toolName = toolSelect.options[toolSelect.selectedIndex].text;
             const positionName = e.target.name.value;
@@ -164,20 +166,27 @@ class RecipeManager {
             const idInput = document.getElementById(this.prefix + 'ToolPositionId');
             const toolPositionId = idInput ? idInput.value : null;
 
-            const editIndex = document.getElementById(this.prefix + 'ToolPositionIndex').value;
-            if (editIndex !== '') {
-                const select = group.querySelector('.tool-select');
-                const option = select.options[editIndex];
-                option.value = JSON.stringify({
+            const select = group.querySelector('.tool-select');
+            
+            if (this.currentEditIndex !== null) {
+                // Update existing option
+                const wasSelected = select.selectedIndex === this.currentEditIndex;
+                const newValue = JSON.stringify({
                     id: toolPositionId,
                     tool_id: toolSelect.value,
                     expected_life: parseInt(e.target.expected_life.value),
                     tool_settings: toolSettings
                 });
-                option.textContent = `${toolName} (Life: ${e.target.expected_life.value})`;
-                select.value = option.value;
-                this.handleToolPositionChange(select);
+                
+                select.options[this.currentEditIndex].value = newValue;
+                select.options[this.currentEditIndex].textContent = `${toolName} (Life: ${e.target.expected_life.value})`;
+                
+                if (wasSelected) {
+                    select.value = newValue;
+                    this.handleToolPositionChange(select);
+                }
             } else {
+                // Add new option
                 this.addToolPositionToGroup(group, {
                     id: toolPositionId,
                     name: positionName,
@@ -185,7 +194,7 @@ class RecipeManager {
                     tool_name: toolName,
                     expected_life: parseInt(e.target.expected_life.value),
                     tool_settings: toolSettings,
-                    active: false // New positions are not automatically active
+                    selected: false
                 });
             }
 
@@ -197,6 +206,9 @@ class RecipeManager {
             if (idInput) {
                 idInput.remove();
             }
+            
+            // Reset edit index
+            this.currentEditIndex = null;
         };
 
         // Recipe form submission
@@ -216,12 +228,14 @@ class RecipeManager {
 
             try {
                 const url = this.isEdit ? `/engineer/recipes/${recipe.id}` : '/engineer/recipes/';
+                const toolPositions = this.collectToolPositions();
+                
                 const response = await fetch(url, {
                     method: this.isEdit ? 'PUT' : 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         recipe,
-                        tool_positions: this.collectToolPositions()
+                        tool_positions: toolPositions
                     })
                 });
 
@@ -276,8 +290,7 @@ class RecipeManager {
         option.textContent = `${toolPosition.tool_name} (Life: ${toolPosition.expected_life})`;
         select.appendChild(option);
         
-        // Only set as selected if explicitly marked as active
-        if (toolPosition.active) {
+        if (toolPosition.selected) {
             select.value = option.value;
             this.handleToolPositionChange(select);
         }
@@ -306,6 +319,7 @@ class RecipeManager {
     }
 
     addNewToolPosition(positionName) {
+        this.currentEditIndex = null;
         this.showToolPositionForm(positionName);
     }
 
@@ -314,8 +328,8 @@ class RecipeManager {
         const select = group.querySelector('.tool-select');
         const data = JSON.parse(select.value);
         
-        document.getElementById(this.prefix + 'ToolPositionIndex').value = 
-            Array.from(select.options).indexOf(select.selectedOptions[0]);
+        // Store the current edit index
+        this.currentEditIndex = Array.from(select.options).indexOf(select.selectedOptions[0]);
             
         this.showToolPositionForm(group.dataset.positionName, {
             id: data.id,
@@ -343,8 +357,9 @@ class RecipeManager {
         this.toolPositionGroups.querySelectorAll('.tool-position-group').forEach(group => {
             const positionName = group.dataset.positionName;
             const select = group.querySelector('.tool-select');
+            const selectedValue = select.value;
             
-            Array.from(select.options).forEach((option, index) => {
+            Array.from(select.options).forEach(option => {
                 if (option.value) {
                     const data = JSON.parse(option.value);
                     positions.push({
@@ -353,7 +368,7 @@ class RecipeManager {
                         tool_id: data.tool_id,
                         expected_life: data.expected_life,
                         tool_settings: data.tool_settings,
-                        active: index === select.selectedIndex && select.selectedIndex !== 0
+                        selected: option.value === selectedValue
                     });
                 }
             });
@@ -392,7 +407,7 @@ class RecipeManager {
                     tool_name: tool ? tool.name : 'Unknown Tool',
                     expected_life: tp.expected_life,
                     tool_settings: tp.tool_settings,
-                    active: tp.active
+                    selected: tp.selected
                 });
             });
         });

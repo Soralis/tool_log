@@ -100,7 +100,8 @@ async def get_recipe(recipe_id: int, session: Session = Depends(get_session)):
 
     # Query for all tool positions
     tool_positions_query = select(ToolPosition).where(
-        ToolPosition.recipe_id == recipe_id
+        ToolPosition.recipe_id == recipe_id,
+        ToolPosition.active
     )
     tool_positions = session.exec(tool_positions_query).all()
 
@@ -122,7 +123,7 @@ async def get_recipe(recipe_id: int, session: Session = Depends(get_session)):
             "tool_id": tp.tool_id,
             "expected_life": tp.expected_life,
             "tool_settings": tp.tool_settings,
-            "active": tp.active
+            "selected": tp.selected
         }
         recipe_dict["tool_positions"].append(tp_dict)
 
@@ -177,15 +178,22 @@ async def update_recipe(
     existing_positions = session.exec(tool_positions_query).all()
     
     # Create a set of submitted position IDs
-    submitted_position_ids = {tp.get('id') for tp in body['tool_positions'] if tp.get('id')}
+    submitted_position_ids = {int(tp.get('id')) for tp in body['tool_positions'] if tp.get('id')}
     
     # Delete positions that aren't in the submitted data
     for existing_pos in existing_positions:
         if existing_pos.id not in submitted_position_ids:
-            session.delete(existing_pos)
+            try:
+                session.delete(existing_pos)
+                session.commit()
+            except:
+                session.rollback()
+                existing_pos.active = False
+                session.commit()
         else:
-            existing_pos.active = False
-    session.commit()
+            existing_pos.active = True
+            existing_pos.selected = False
+            session.commit()
     
     # Update or create tool positions
     for tp in body['tool_positions']:
