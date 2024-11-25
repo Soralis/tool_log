@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentStep = 1;
     let totalSteps = 1; // Start with 1 step (machine selection)
     let formData = {};
+    let formDisplayData = {}; // Store display values separately
     let requiredFields = [];
 
     // Function to check if current step has input fields and if they all have values
@@ -68,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const button = buttons[0];
             button.classList.add('bg-green-500');
             formData[fieldName] = button.getAttribute('data-value');
+            formDisplayData[fieldName] = button.textContent;
             return true;
         }
         return false;
@@ -116,6 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const machineId = this.getAttribute('data-machine-id');
             formData['machine_id'] = machineId;
+            formDisplayData['machine_id'] = this.textContent;
             fetchMachineData(machineId);
             
             // Highlight the selected machine
@@ -195,6 +198,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Auto-select if only one tool position
             if (autoSelectSingleButton(toolPositionButtons.querySelectorAll('button'), 'tool_position_id')) {
                 const toolPositionId = data.tool_positions[0].id;
+                formData['tool_position_id'] = toolPositionId;
+                formDisplayData['tool_position_id'] = data.tool_positions[0].name;
                 fetch(`/operator/tool_life/change-reasons?tool_position_id=${toolPositionId}`)
                     .then(response => response.json())
                     .then(reasonData => {
@@ -223,6 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const value = e.target.value;
             if (isValidNumber(value)) {
                 formData['reached_life'] = value;
+                formDisplayData['reached_life'] = value;
                 e.target.setCustomValidity('');
             } else {
                 e.target.setCustomValidity('Please enter a valid number');
@@ -256,6 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const value = e.target.value;
                     if (isValidNumber(value)) {
                         formData[`${measureable.name}_ms`] = value;
+                        formDisplayData[`${measureable.name}_ms`] = value;
                         e.target.setCustomValidity('');
                     } else {
                         e.target.setCustomValidity('Please enter a valid number');
@@ -287,21 +294,35 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear existing content
         summaryContent.innerHTML = '';
 
-        // Create a formatted display of all form data
-        const entries = Object.entries(formData);
-        entries.forEach(([key, value]) => {
+        // Define display mappings for the summary
+        const summaryMappings = {
+            'machine_id': 'Machine',
+            'machine_channel': 'Channel',
+            'tool_position_id': 'Tool Position',
+            'reached_life': 'Reached Life',
+            'change_reason_id': 'Change Reason'
+        };
+
+        // Create a formatted display of form data
+        Object.entries(formData).forEach(([key, value]) => {
+            // Skip keys that don't have a display mapping
+            if (!summaryMappings[key] && !key.endsWith('_ms')) return;
+
             const row = document.createElement('div');
             row.className = 'flex justify-between items-center p-4 bg-gray-800 rounded text-white';
             
             const label = document.createElement('span');
             label.className = 'font-bold';
-            // Format the key for display (convert snake_case to Title Case)
-            label.textContent = key.split('_').map(word => 
+
+            // Get the display label
+            let displayLabel = summaryMappings[key] || key.split('_').map(word => 
                 word.charAt(0).toUpperCase() + word.slice(1)
-            ).join(' ') + ':';
+            ).join(' ');
+
+            label.textContent = displayLabel + ':';
             
             const valueSpan = document.createElement('span');
-            valueSpan.textContent = value;
+            valueSpan.textContent = formDisplayData[key] || value;
             
             row.appendChild(label);
             row.appendChild(valueSpan);
@@ -315,6 +336,7 @@ document.addEventListener('DOMContentLoaded', function() {
         buttons.forEach(btn => btn.classList.remove('bg-green-500'));
         e.target.classList.add('bg-green-500');
         formData[fieldName] = e.target.getAttribute('data-value');
+        formDisplayData[fieldName] = e.target.textContent;
         goToNextStep();
     }
 
@@ -324,6 +346,7 @@ document.addEventListener('DOMContentLoaded', function() {
         buttons.forEach(btn => btn.classList.remove('bg-green-500'));
         e.target.classList.add('bg-green-500');
         formData['tool_position_id'] = toolPositionId;
+        formDisplayData['tool_position_id'] = e.target.textContent;
 
         fetch(`/operator/tool_life/change-reasons?tool_position_id=${toolPositionId}`)
             .then(response => response.json())
