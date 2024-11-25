@@ -62,6 +62,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Function to auto-select if only one button exists
+    function autoSelectSingleButton(buttons, fieldName) {
+        if (buttons.length === 1) {
+            const button = buttons[0];
+            button.classList.add('bg-green-500');
+            formData[fieldName] = button.getAttribute('data-value');
+            return true;
+        }
+        return false;
+    }
+
     // Function to update next button visibility based on current step
     function updateNextButtonVisibility() {
         if (currentStep === totalSteps) {
@@ -159,6 +170,11 @@ document.addEventListener('DOMContentLoaded', function() {
         channelStep.appendChild(channelButtons);
         formContainer.insertBefore(channelStep, buttonContainer);
 
+        // Auto-select if only one channel
+        if (autoSelectSingleButton(channelButtons.querySelectorAll('button'), 'machine_channel')) {
+            goToNextStep();
+        }
+
         // Step 3: Tool Position
         if (data.tool_positions && data.tool_positions.length > 0) {
             const toolPositionStep = createStep(stepNumber++, 'Tool Position');
@@ -175,6 +191,21 @@ document.addEventListener('DOMContentLoaded', function() {
             createGridLayout(toolPositionButtons, data.tool_positions.length);
             toolPositionStep.appendChild(toolPositionButtons);
             formContainer.insertBefore(toolPositionStep, buttonContainer);
+
+            // Auto-select if only one tool position
+            if (autoSelectSingleButton(toolPositionButtons.querySelectorAll('button'), 'tool_position_id')) {
+                const toolPositionId = data.tool_positions[0].id;
+                fetch(`/operator/tool_life/change-reasons?tool_position_id=${toolPositionId}`)
+                    .then(response => response.json())
+                    .then(reasonData => {
+                        setupChangeReasonStep(reasonData.change_reasons);
+                        goToNextStep();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching change reasons:', error);
+                        alert('An error occurred while fetching change reasons. Please try again.');
+                    });
+            }
         }
 
         // Step 4: Reached Life
@@ -329,6 +360,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         createGridLayout(changeReasonButtons, changeReasons.length);
         changeReasonStep.appendChild(changeReasonButtons);
+
+        // Auto-select if only one change reason
+        if (autoSelectSingleButton(changeReasonButtons.querySelectorAll('button'), 'change_reason_id')) {
+            goToNextStep();
+        }
     }
 
     function goToNextStep() {
