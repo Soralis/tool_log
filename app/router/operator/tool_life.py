@@ -73,7 +73,7 @@ async def create_tool_life(
     try:
         db_tool_life = ToolLife(
             created_by = current_operator.id,
-            reached_life = int(form_data.pop('reached_life')),
+            reached_life = int(form_data.pop('reached_life', 0)),
             tool_settings = toolposition.tool_settings,
             machine_id = machine.id,
             machine_channel = int(form_data.pop('machine_channel')),

@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let formData = {};
     let formDisplayData = {}; // Store display values separately
     let requiredFields = [];
+    let measureToolLife = false; // Track if the selected machine measures tool life
 
     // Function to check if current step has input fields and if they all have values
     function currentStepHasInputs() {
@@ -131,6 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`/operator/tool_life/?machine_id=${machineId}`)
             .then(response => response.json())
             .then(data => {
+                measureToolLife = data.machine.measures_tool_life; // Store the machine's tool life measurement setting
                 setupAdditionalSteps(data);
                 goToNextStep();
             })
@@ -213,32 +215,34 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Step 4: Reached Life
-        const reachedLifeStep = createStep(stepNumber++, 'Reached Life');
-        const reachedLifeInput = document.createElement('input');
-        reachedLifeInput.type = 'number';
-        reachedLifeInput.inputMode = 'decimal';
-        reachedLifeInput.pattern = '[0-9]*\.?[0-9]*';
-        reachedLifeInput.dataset.type = 'numeric';
-        reachedLifeInput.name = 'reached_life';
-        reachedLifeInput.required = true;
-        requiredFields.push('reached_life');
-        reachedLifeInput.className = 'w-full border rounded p-4 text-xl font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500';
-        reachedLifeInput.addEventListener('input', (e) => {
-            const value = e.target.value;
-            if (isValidNumber(value)) {
-                formData['reached_life'] = value;
-                formDisplayData['reached_life'] = value;
-                e.target.setCustomValidity('');
-            } else {
-                e.target.setCustomValidity('Please enter a valid number');
-            }
-            updateNextButtonVisibility();
-        });
-        reachedLifeStep.appendChild(reachedLifeInput);
-        formContainer.insertBefore(reachedLifeStep, buttonContainer);
+        // Step 4: Reached Life (only if machine measures tool life)
+        if (data.machine.measures_tool_life) {
+            const reachedLifeStep = createStep(stepNumber++, 'Reached Life');
+            const reachedLifeInput = document.createElement('input');
+            reachedLifeInput.type = 'number';
+            reachedLifeInput.inputMode = 'decimal';
+            reachedLifeInput.pattern = '[0-9]*\.?[0-9]*';
+            reachedLifeInput.dataset.type = 'numeric';
+            reachedLifeInput.name = 'reached_life';
+            reachedLifeInput.required = true;
+            requiredFields.push('reached_life');
+            reachedLifeInput.className = 'w-full border rounded p-4 text-xl font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500';
+            reachedLifeInput.addEventListener('input', (e) => {
+                const value = e.target.value;
+                if (isValidNumber(value)) {
+                    formData['reached_life'] = value;
+                    formDisplayData['reached_life'] = value;
+                    e.target.setCustomValidity('');
+                } else {
+                    e.target.setCustomValidity('Please enter a valid number');
+                }
+                updateNextButtonVisibility();
+            });
+            reachedLifeStep.appendChild(reachedLifeInput);
+            formContainer.insertBefore(reachedLifeStep, buttonContainer);
+        }
 
-        // Step 5: Change Reasons placeholder (will be populated later)
+        // Step 5: Change Reasons
         const changeReasonStep = createStep(stepNumber++, 'Change Reason');
         formContainer.insertBefore(changeReasonStep, buttonContainer);
 
@@ -298,9 +302,13 @@ document.addEventListener('DOMContentLoaded', function() {
             'machine_id': 'Machine',
             'machine_channel': 'Channel',
             'tool_position_id': 'Tool Position',
-            'reached_life': 'Reached Life',
             'change_reason_id': 'Change Reason'
         };
+
+        // Add reached_life to mappings only if machine measures tool life
+        if (measureToolLife) {
+            summaryMappings['reached_life'] = 'Reached Life';
+        }
 
         // Create a formatted display of form data
         Object.entries(formData).forEach(([key, value]) => {
@@ -360,7 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function setupChangeReasonStep(changeReasons) {
-        const changeReasonStep = document.querySelector('.step[data-step="5"]');
+        const changeReasonStep = document.querySelector(`.step[data-step="${measureToolLife ? '5' : '4'}"]`);
         if (!changeReasonStep) return;
 
         // Clear existing content except the title
