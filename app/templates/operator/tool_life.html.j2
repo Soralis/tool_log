@@ -38,6 +38,13 @@ document.addEventListener('DOMContentLoaded', function() {
         return inputs.length > 0;
     }
 
+    // Function to check if current step has buttons
+    function currentStepHasButtons() {
+        const currentStepElement = document.querySelector(`.step[data-step="${currentStep}"]`);
+        const buttons = currentStepElement.querySelectorAll('button:not(#prevBtn):not(#nextBtn):not(#submitBtn)');
+        return buttons.length > 0;
+    }
+
     // Function to validate numeric input
     function isValidNumber(value) {
         // Allow empty string, numbers, and numbers with one decimal point
@@ -82,9 +89,11 @@ document.addEventListener('DOMContentLoaded', function() {
             nextBtn.style.display = 'none';
             submitBtn.style.display = 'inline-block';
         } else {
-            nextBtn.style.display = 'inline-block';
-            submitBtn.style.display = 'none';
-            if (currentStepHasInputs()) {
+            // Only show next button if the step has inputs or is the summary step
+            if (currentStepHasButtons()) {
+                nextBtn.style.display = 'none';
+            } else if (currentStepHasInputs()) {
+                nextBtn.style.display = 'inline-block';
                 // Enable/disable next button based on input validation
                 if (validateCurrentStepInputs()) {
                     nextBtn.removeAttribute('disabled');
@@ -93,7 +102,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     nextBtn.setAttribute('disabled', 'true');
                     nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 }
+            } else {
+                // For summary step or any step without buttons or inputs
+                nextBtn.style.display = 'inline-block';
             }
+            submitBtn.style.display = 'none';
         }
     }
 
