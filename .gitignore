@@ -10,3 +10,4 @@ wheels/
 
 # Virtual environments
 .venv
+app/database_config.py

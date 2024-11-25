@@ -1,5 +1,51 @@
 // Shared JavaScript functionality for recipe management
 class RecipeManager {
+    // Static cache for dropdown data
+    static dropdownCache = {
+        workpieces: null,
+        machines: null,
+        tools: null,
+        dataLoaded: false,
+        loading: null  // Promise to track loading state
+    };
+
+    // Static method to load data once
+    static async loadData() {
+        if (this.dropdownCache.loading) {
+            // If already loading, wait for it to complete
+            return this.dropdownCache.loading;
+        }
+
+        if (this.dropdownCache.dataLoaded) {
+            // If data is already loaded, return immediately
+            return Promise.resolve();
+        }
+
+        // Start loading and store the promise
+        this.dropdownCache.loading = (async () => {
+            try {
+                const [workpiecesResponse, machinesResponse, toolsResponse] = await Promise.all([
+                    fetch('/engineer/recipes/workpieces'),
+                    fetch('/engineer/recipes/machines'),
+                    fetch('/engineer/recipes/tools')
+                ]);
+
+                this.dropdownCache.workpieces = await workpiecesResponse.json();
+                this.dropdownCache.machines = await machinesResponse.json();
+                this.dropdownCache.tools = await toolsResponse.json();
+                this.dropdownCache.dataLoaded = true;
+            } catch (error) {
+                console.error('Error loading dropdown data:', error);
+                showToast('Error loading form data');
+                throw error;
+            } finally {
+                this.dropdownCache.loading = null;
+            }
+        })();
+
+        return this.dropdownCache.loading;
+    }
+
     constructor(options) {
         this.prefix = options.prefix || '';
         this.isEdit = options.isEdit || false;
@@ -11,66 +57,77 @@ class RecipeManager {
         this.toolPositionForm = document.getElementById(options.toolPositionFormId);
         this.addToolPositionBtn = document.getElementById(this.prefix + 'AddToolPositionBtn');
         this.toolsData = null;
-        this.dropdownDataLoaded = false;
+        this.toolTypes = new Set();
         this.currentEditIndex = null;
         
         window[this.getManagerName()] = this;
         this.initializeEventListeners();
-        this.loadDropdownData();
+        this.initialize();
+    }
+
+    async initialize() {
+        await RecipeManager.loadData();
+        this.setupDropdowns();
+    }
+
+    setupDropdowns() {
+        // Use cached data
+        this.toolsData = RecipeManager.dropdownCache.tools;
+
+        // Extract unique tool types
+        Object.values(this.toolsData).forEach(tool => {
+            if (tool.type) {
+                this.toolTypes.add(tool.type);
+            }
+        });
+
+        const workpieceSelect = document.getElementById(this.prefix + 'Workpiece');
+        const machineSelect = document.getElementById(this.prefix + 'Machine');
+
+        if (workpieceSelect) {
+            workpieceSelect.innerHTML = '<option value="">Select Workpiece</option>';
+            RecipeManager.dropdownCache.workpieces.forEach(wp => {
+                workpieceSelect.appendChild(new Option(wp.name, wp.id));
+            });
+        }
+
+        if (machineSelect) {
+            machineSelect.innerHTML = '<option value="">Select Machine</option>';
+            RecipeManager.dropdownCache.machines.forEach(m => {
+                machineSelect.appendChild(new Option(m.name, m.id));
+            });
+        }
     }
 
     getManagerName() {
         return this.prefix ? 'editRecipeManager' : 'createRecipeManager';
     }
 
-    async loadDropdownData() {
-        if (!this.dropdownDataLoaded) {
-            try {
-                const [workpiecesResponse, machinesResponse, toolsResponse] = await Promise.all([
-                    fetch('/engineer/recipes/workpieces'),
-                    fetch('/engineer/recipes/machines'),
-                    fetch('/engineer/recipes/tools')
-                ]);
-
-                const workpiecesData = await workpiecesResponse.json();
-                const machinesData = await machinesResponse.json();
-                this.toolsData = await toolsResponse.json();
-
-                const workpieceSelect = document.getElementById(this.prefix + 'Workpiece');
-                const machineSelect = document.getElementById(this.prefix + 'Machine');
-
-                workpieceSelect.innerHTML = '<option value="">Select Workpiece</option>';
-                machineSelect.innerHTML = '<option value="">Select Machine</option>';
-
-                workpiecesData.forEach(wp => {
-                    workpieceSelect.appendChild(new Option(wp.name, wp.id));
-                });
-
-                machinesData.forEach(m => {
-                    machineSelect.appendChild(new Option(m.name, m.id));
-                });
-
-                this.dropdownDataLoaded = true;
-            } catch (error) {
-                console.error('Error loading dropdown data:', error);
-                showToast('Error loading form data');
-            }
-        }
+    populateToolTypeSelect() {
+        const toolTypeSelect = document.getElementById(this.prefix + 'ToolType');
+        toolTypeSelect.innerHTML = '<option value="">Select Tool Type</option>';
+        
+        Array.from(this.toolTypes).sort().forEach(type => {
+            toolTypeSelect.appendChild(new Option(type, type));
+        });
     }
 
-    populateToolSelect() {
+    populateToolSelect(selectedType = '') {
         if (!this.toolsData) return;
         
         const toolSelect = document.getElementById(this.prefix + 'Tool');
         toolSelect.innerHTML = '<option value="">Select Tool</option>';
         
-        Object.entries(this.toolsData).forEach(([id, tool]) => {
-            toolSelect.appendChild(new Option(tool.name, id));
-        });
+        // Convert to array, filter by type, sort by name, then create options
+        Object.entries(this.toolsData)
+            .filter(([_, tool]) => !selectedType || tool.type === selectedType)
+            .sort((a, b) => a[1].name.localeCompare(b[1].name))  // Sort alphabetically by name
+            .forEach(([id, tool]) => {
+                toolSelect.appendChild(new Option(tool.name, id));
+            });
     }
 
     showToolPositionForm(positionName = '', toolData = null) {
-        
         // Reset and prepare form
         this.toolPositionForm.reset();
         document.getElementById(this.prefix + 'ToolAttributes').innerHTML = '';
@@ -84,12 +141,22 @@ class RecipeManager {
             nameInput.readOnly = false;
         }
 
-        // Populate tool dropdown
-        this.populateToolSelect();
+        // Populate tool type dropdown
+        this.populateToolTypeSelect();
 
         // If editing, set tool and its data
         if (toolData) {
+            const tool = this.toolsData[toolData.tool_id];
+            const toolTypeSelect = document.getElementById(this.prefix + 'ToolType');
             const toolSelect = document.getElementById(this.prefix + 'Tool');
+            
+            if (tool && tool.type) {
+                toolTypeSelect.value = tool.type;
+                this.populateToolSelect(tool.type);
+            } else {
+                this.populateToolSelect();
+            }
+            
             toolSelect.value = toolData.tool_id;
             toolSelect.dispatchEvent(new Event('change'));
 
@@ -111,6 +178,9 @@ class RecipeManager {
                     if (input) input.value = value;
                 });
             }, 0);
+        } else {
+            // Just populate the tool select with all tools initially
+            this.populateToolSelect();
         }
 
         this.toolPositionModal.classList.add('active');
@@ -123,6 +193,14 @@ class RecipeManager {
 
         // Add tool position button (main)
         this.addToolPositionBtn.onclick = () => this.showToolPositionForm();
+
+        // Tool type selection change
+        document.getElementById(this.prefix + 'ToolType').addEventListener('change', (e) => {
+            this.populateToolSelect(e.target.value);
+            // Reset tool selection and attributes when type changes
+            document.getElementById(this.prefix + 'Tool').value = '';
+            document.getElementById(this.prefix + 'ToolAttributes').innerHTML = '';
+        });
 
         // Tool selection change
         document.getElementById(this.prefix + 'Tool').addEventListener('change', (e) => {

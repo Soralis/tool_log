@@ -1,5 +1,5 @@
 <ul class="touch-friendly-list" id="itemList">
-    {% for item in items %}
+    {% for item in items|sort(attribute='name') %}
         <li id="{{ item_type }}-{{ item.id }}" class="list-item{% if not item.active %} inactive{% endif %}"
                         hx-get="/engineer/{{ item_type.lower() }}s/{{ item.id }}/info"
                         hx-target="#infoContainer"
@@ -27,4 +27,3 @@
         </li>
     {% endfor %}
 </ul>
-

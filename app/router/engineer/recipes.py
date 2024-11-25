@@ -79,7 +79,8 @@ async def get_tools(q: str = "", session: Session = Depends(get_session)):
     for tool, tool_type, attribute, manufacturer in result:
         if tool.id not in tools_dict:
             tools_dict[tool.id] = {
-                'name': f'{tool.name} ({tool_type.name}, {manufacturer.name})',
+                'name': f'{tool.name} ({manufacturer.name})',
+                'type': tool_type.name,  # Add tool type separately
                 'attributes': []
             }
         
