@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentStep = 1;
     let totalSteps = 1; // Start with 1 step (machine selection)
     let formData = {};
+    let requiredFields = [];
 
     // Function to check if current step has input fields and if they all have values
     function currentStepHasInputs() {
@@ -54,26 +55,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Function to validate all required fields before submission
+    function validateRequiredFields() {
+        return requiredFields.every(field => {
+            return formData[field] !== undefined && formData[field] !== '';
+        });
+    }
+
     // Function to update next button visibility based on current step
     function updateNextButtonVisibility() {
-        console.log('current steps, total steps', currentStep, totalSteps)
-        if (currentStep === totalSteps && totalSteps != 1) {
+        if (currentStep === totalSteps) {
             nextBtn.style.display = 'none';
             submitBtn.style.display = 'inline-block';
-        } else if (currentStepHasInputs()) {
+        } else {
             nextBtn.style.display = 'inline-block';
             submitBtn.style.display = 'none';
-            // Enable/disable next button based on input validation
-            if (validateCurrentStepInputs()) {
-                nextBtn.removeAttribute('disabled');
-                nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            } else {
-                nextBtn.setAttribute('disabled', 'true');
-                nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            if (currentStepHasInputs()) {
+                // Enable/disable next button based on input validation
+                if (validateCurrentStepInputs()) {
+                    nextBtn.removeAttribute('disabled');
+                    nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    nextBtn.setAttribute('disabled', 'true');
+                    nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
             }
-        } else {
-            nextBtn.style.display = 'none';
-            submitBtn.style.display = 'none';
         }
     }
 
@@ -122,6 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function setupAdditionalSteps(data) {
         const formContainer = document.getElementById('toolLifeForm');
+        const buttonContainer = document.querySelector('.mt-4.flex');
 
         // Remove any existing dynamically created steps
         document.querySelectorAll('.step:not([data-step="1"])').forEach(el => el.remove());
@@ -131,9 +138,13 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Invalid data received from the server. Please try again.', 'error');
             return;
         }
+
+        // Reset required fields
+        requiredFields = [];
+        let stepNumber = 2;
         
         // Step 2: Machine Channel
-        const channelStep = createStep(2, 'Machine Channel');
+        const channelStep = createStep(stepNumber++, 'Machine Channel');
         const channelButtons = document.createElement('div');
         channelButtons.className = 'mt-4';
         for (let i = 1; i <= data.machine.channels; i++) {
@@ -146,11 +157,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         createGridLayout(channelButtons, data.machine.channels);
         channelStep.appendChild(channelButtons);
-        formContainer.insertBefore(channelStep, submitBtn.parentNode);
+        formContainer.insertBefore(channelStep, buttonContainer);
 
         // Step 3: Tool Position
         if (data.tool_positions && data.tool_positions.length > 0) {
-            const toolPositionStep = createStep(3, 'Tool Position');
+            const toolPositionStep = createStep(stepNumber++, 'Tool Position');
             const toolPositionButtons = document.createElement('div');
             toolPositionButtons.className = 'mt-4';
             data.tool_positions.forEach(position => {
@@ -163,13 +174,11 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             createGridLayout(toolPositionButtons, data.tool_positions.length);
             toolPositionStep.appendChild(toolPositionButtons);
-            formContainer.insertBefore(toolPositionStep, submitBtn.parentNode);
-        } else {
-            console.warn('No tool positions available');
+            formContainer.insertBefore(toolPositionStep, buttonContainer);
         }
 
         // Step 4: Reached Life
-        const reachedLifeStep = createStep(4, 'Reached Life');
+        const reachedLifeStep = createStep(stepNumber++, 'Reached Life');
         const reachedLifeInput = document.createElement('input');
         reachedLifeInput.type = 'number';
         reachedLifeInput.inputMode = 'decimal';
@@ -177,6 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
         reachedLifeInput.dataset.type = 'numeric';
         reachedLifeInput.name = 'reached_life';
         reachedLifeInput.required = true;
+        requiredFields.push('reached_life');
         reachedLifeInput.className = 'w-full border rounded p-4 text-xl font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500';
         reachedLifeInput.addEventListener('input', (e) => {
             const value = e.target.value;
@@ -189,13 +199,15 @@ document.addEventListener('DOMContentLoaded', function() {
             updateNextButtonVisibility();
         });
         reachedLifeStep.appendChild(reachedLifeInput);
-        formContainer.insertBefore(reachedLifeStep, submitBtn.parentNode);
+        formContainer.insertBefore(reachedLifeStep, buttonContainer);
 
-        // Step 5: Change Reasons, defined below (need additional data)
+        // Step 5: Change Reasons placeholder (will be populated later)
+        const changeReasonStep = createStep(stepNumber++, 'Change Reason');
+        formContainer.insertBefore(changeReasonStep, buttonContainer);
 
         // Step 6: Additional Parameters
-        if (data.measureables.length > 0) {
-            const additionalParamsStep = createStep(6, 'Additional Parameters');
+        if (data.measureables && data.measureables.length > 0) {
+            const additionalParamsStep = createStep(stepNumber++, 'Additional Parameters');
             data.measureables.forEach(measureable => {
                 const label = document.createElement('label');
                 label.textContent = measureable.name;
@@ -207,6 +219,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.dataset.type = 'numeric';
                 input.name = `${measureable.name}_ms`;
                 input.required = true;
+                requiredFields.push(`${measureable.name}_ms`);
                 input.className = 'w-full p-2 border rounded mb-4';
                 input.addEventListener('input', (e) => {
                     const value = e.target.value;
@@ -221,11 +234,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 additionalParamsStep.appendChild(label);
                 additionalParamsStep.appendChild(input);
             });
-            formContainer.insertBefore(additionalParamsStep, submitBtn.parentNode);
+            formContainer.insertBefore(additionalParamsStep, buttonContainer);
         }
 
-        totalSteps = document.querySelectorAll('.step').length;
+        // Step 7: Summary (always last)
+        const summaryStep = createStep(stepNumber, 'Summary');
+        const summaryContent = document.createElement('div');
+        summaryContent.className = 'mt-4 space-y-4 text-xl';
+        summaryContent.id = 'summary-content';
+        summaryStep.appendChild(summaryContent);
+        formContainer.insertBefore(summaryStep, buttonContainer);
+
+        totalSteps = stepNumber;
         console.log('Total steps:', totalSteps);
+    }
+
+    function updateSummaryStep() {
+        const summaryContent = document.getElementById('summary-content');
+        if (!summaryContent) return;
+
+        // Clear existing content
+        summaryContent.innerHTML = '';
+
+        // Create a formatted display of all form data
+        const entries = Object.entries(formData);
+        entries.forEach(([key, value]) => {
+            const row = document.createElement('div');
+            row.className = 'flex justify-between items-center p-4 bg-gray-800 rounded text-white';
+            
+            const label = document.createElement('span');
+            label.className = 'font-bold';
+            // Format the key for display (convert snake_case to Title Case)
+            label.textContent = key.split('_').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ') + ':';
+            
+            const valueSpan = document.createElement('span');
+            valueSpan.textContent = value;
+            
+            row.appendChild(label);
+            row.appendChild(valueSpan);
+            summaryContent.appendChild(row);
+        });
     }
 
     function handleButtonClick(e, fieldName) {
@@ -257,14 +307,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function setupChangeReasonStep(changeReasons) {
-        const formContainer = document.getElementById('toolLifeForm');
-        
-        const existingStep = document.querySelector('.step[data-step="5"]');
-        if (existingStep) {
-            existingStep.remove();
+        const changeReasonStep = document.querySelector('.step[data-step="5"]');
+        if (!changeReasonStep) return;
+
+        // Clear existing content except the title
+        while (changeReasonStep.childNodes.length > 1) {
+            changeReasonStep.removeChild(changeReasonStep.lastChild);
         }
 
-        const changeReasonStep = createStep(5, 'Change Reason');
         const changeReasonButtons = document.createElement('div');
         changeReasonButtons.className = 'mt-4';
         
@@ -279,9 +329,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         createGridLayout(changeReasonButtons, changeReasons.length);
         changeReasonStep.appendChild(changeReasonButtons);
-        formContainer.insertBefore(changeReasonStep, submitBtn.parentNode);
-
-        totalSteps = document.querySelectorAll('.step').length;
     }
 
     function goToNextStep() {
@@ -290,6 +337,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentStep <= totalSteps) {
             document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
             prevBtn.style.display = 'inline-block';
+            if (currentStep === totalSteps) {
+                updateSummaryStep();
+            }
             updateNextButtonVisibility();
         }
     }
@@ -317,40 +367,27 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     nextBtn.addEventListener('click', () => {
-        if (!validateCurrentStepInputs()) {
+        if (currentStepHasInputs() && !validateCurrentStepInputs()) {
             return; // Don't proceed if inputs are not valid
         }
         document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
         currentStep++;
         document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
         prevBtn.style.display = 'inline-block';
+        if (currentStep === totalSteps) {
+            updateSummaryStep();
+        }
         updateNextButtonVisibility();
     });
 
     submitBtn.addEventListener('click', async (e) => {
         e.preventDefault();
 
-        // Validate all inputs before submitting
-        const allInputs = document.querySelectorAll('input');
-        if (!Array.from(allInputs).every(input => {
-            const value = input.value.trim();
-            if (input.dataset.type === 'numeric') {
-                return value !== '' && isValidNumber(value);
-            }
-            return value !== '';
-        })) {
+        // Only validate required numeric fields
+        if (!validateRequiredFields()) {
             showToast('Please fill in all required fields before submitting.', 'error');
             return;
         }
-
-        allInputs.forEach(input => {
-            if (input.dataset.type === 'numeric') {
-                // Convert to number for submission
-                formData[input.name] = parseFloat(input.value);
-            } else {
-                formData[input.name] = input.value;
-            }
-        });
 
         try {
             const response = await fetch('/operator/tool_life', {
