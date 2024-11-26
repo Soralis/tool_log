@@ -109,9 +109,6 @@ def create_generic_router(
         if extra_context:
             router.context.update(extra_context)
 
-        # Add this debug print
-        print(f"create Context: {router.context}")
-
         return templates.TemplateResponse(
             request=request,
             name="engineer/data.html.j2",

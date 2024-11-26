@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from jose import JWTError, jwt
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from app.database_config import get_session, engine
 from app.models import LogDevice
 from app.models import User, UserRole
@@ -13,12 +13,10 @@ from dotenv import dotenv_values
 
 env = dotenv_values('.env')
 
-def create_token(data: dict, expires_delta: timedelta):
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + expires_delta
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, env['SECRET_KEY'], algorithm=env['ALGORITHM'])
-    return encoded_jwt, expire
+def create_token(data: dict):
+    """Create a token without expiration in JWT"""
+    encoded_jwt = jwt.encode(data, env['SECRET_KEY'], algorithm=env['ALGORITHM'])
+    return encoded_jwt
 
 
 async def get_current_device(device_token: str = Cookie(None)):
@@ -30,12 +28,23 @@ async def get_current_device(device_token: str = Cookie(None)):
             device_name: str = payload.get("sub")
             if device_name is None:
                 raise HTTPException(status_code=401, detail="Invalid device token")
-            device = session.exec(select(LogDevice)
+            device: LogDevice = session.exec(select(LogDevice)
                                    .where(LogDevice.name == device_name)
                                    .options(selectinload(LogDevice.machines))).one_or_none()
             if device is None or device.token != device_token:
                 raise HTTPException(status_code=401, detail="Device not found or token mismatch")
+            
+            # Check if token is expired in database
+            if device.token_expiry < datetime.now():
+                raise HTTPException(status_code=401, detail="Device token expired")
+            
+            # Refresh expiration time in database
+            device.token_expiry = datetime.now() + timedelta(days=int(env['DEVICE_TOKEN_EXPIRE_DAYS']))
+            print("Device Expiry updated/extended")
+            session.commit()
+            session.refresh(device)
             return device
+        
         except JWTError:
             raise HTTPException(status_code=401, detail="Invalid device token")
 
@@ -57,12 +66,30 @@ async def get_current_operator(request: Request):
                     headers={'Location': '/login'}
                 )
             initials, pin = operator_cred.split(':')
-            operator = session.exec(select(User).where(User.pin == pin).where(User.initials == initials)).one_or_none()
-            if operator is None or operator.token != operator_token or operator.token_expiry < datetime.now():
+            operator = session.exec(
+                select(User)
+                .where(User.pin == pin)
+                .where(User.initials == initials)
+            ).one_or_none()
+            
+            if operator is None or operator.token != operator_token:
                 raise HTTPException(
                     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
                     headers={'Location': '/login'}
                 )
+            
+            # Check if token is expired in database
+            if operator.token_expiry < datetime.now():
+                raise HTTPException(
+                    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+                    headers={'Location': '/login'}
+                )
+            
+            # Refresh expiration time in database
+            operator.token_expiry = datetime.now() + timedelta(minutes=int(env['OPERATOR_TOKEN_EXPIRE_MINUTES']))
+            session.commit()
+            session.refresh(operator)
+            print("Operator Expiry updated/extended")
             return operator
 
         except JWTError as e:
@@ -88,13 +115,13 @@ async def authenticate_or_create_device(device_name: str, db: Session = Depends(
         db.commit()
         db.refresh(log_device)
 
-    access_token, expire = create_token(
-        data={"sub": log_device.name},
-        expires_delta=timedelta(days=int(env['DEVICE_TOKEN_EXPIRE_DAYS']))
+    # Create token without expiration in JWT
+    access_token = create_token(
+        data={"sub": log_device.name}
     )
 
     log_device.token = access_token
-    log_device.token_expiry = expire
+    log_device.token_expiry = datetime.now() + timedelta(days=int(env['DEVICE_TOKEN_EXPIRE_DAYS']))
     db.commit()
 
     response = JSONResponse(content={"message": "Device authenticated"})
@@ -105,7 +132,7 @@ async def authenticate_or_create_device(device_name: str, db: Session = Depends(
         secure=False,  # Set to False if not using HTTPS
         samesite="lax",
         domain=None,  # Set to your domain if needed
-        max_age=int(env['DEVICE_TOKEN_EXPIRE_DAYS']) * 24 * 60 * 60
+        # No max_age set, making it a session cookie that persists until browser close
     )
     return response
 
@@ -114,33 +141,25 @@ async def authenticate_operator(initials: str, pin: str):
     with Session(engine) as session:
         operator = session.exec(select(User).where(User.initials == initials, User.pin == pin)).one_or_none()
         if operator is None:
-            # if initials == 'ck' and pin == '1234':
-            #     operator = User(initials=initials, pin=pin, role=UserRole.ENGINEER, name='Christopher Kunde')
-            #     session.add(operator)
-            #     session.commit()
-            #     session.refresh(operator)
-            # else:
             raise HTTPException(status_code=401, detail="Invalid initials or PIN")
 
-        access_token, expire = create_token(
-            data={"sub": f'{operator.initials}:{operator.pin}'},
-            expires_delta=timedelta(minutes=int(env['OPERATOR_TOKEN_EXPIRE_MINUTES']))
+        # Create token without expiration in JWT
+        access_token = create_token(
+            data={"sub": f'{operator.initials}:{operator.pin}'}
         )
 
         operator.token = access_token
-        operator.token_expiry = expire
+        operator.token_expiry = datetime.now() + timedelta(minutes=int(env['OPERATOR_TOKEN_EXPIRE_MINUTES']))
         session.commit()
 
-        response = JSONResponse(content={"message": "Operator authenticated", "redirect": "/"})
-        response.set_cookie(
-            key="operator_token",
-            value=access_token,
-            httponly=True,
-            secure=False,  # Set to False if not using HTTPS
-            samesite="lax",
-            domain=None,  # Set to your domain if needed
-            max_age=int(env['OPERATOR_TOKEN_EXPIRE_MINUTES']) * 60
-        )
-        print((f"Setting operator_token cookie: {access_token}"))
-        return response
-
+    response = JSONResponse(content={"message": "Operator authenticated", "redirect": "/"})
+    response.set_cookie(
+        key="operator_token",
+        value=access_token,
+        httponly=True,
+        secure=False,  # Set to False if not using HTTPS
+        samesite="lax",
+        domain=None,  # Set to your domain if needed
+        # No max_age set, making it a session cookie that persists until browser close
+    )
+    return response
