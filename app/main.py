@@ -16,7 +16,7 @@ from auth import authenticate_or_create_device, authenticate_operator, require_r
 from starlette.middleware.base import BaseHTTPMiddleware
 from datetime import datetime
 
-app = FastlAPI()
+app = FastAPI()
 
 # Add CORS middleware
 app.add_middleware(
