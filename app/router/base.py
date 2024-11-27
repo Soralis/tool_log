@@ -31,6 +31,7 @@ async def root(request: Request,
 async def check_operator_auth(request: Request, operator: User = Depends(get_current_operator)):  
     return {"message": f"Hello, operator {operator.initials}"}
 
+
 @router.patch('/changePin/{user_id}')
 async def change_pin(request: Request, 
                      user_id: int,
@@ -45,3 +46,16 @@ async def change_pin(request: Request,
     session.commit()
     session.refresh(operator)
     return {"message": "PIN changed successfully"}
+
+@router.post('/createOperator')
+async def create_operator(request: Request, 
+                          session: Session = Depends(get_session)):
+    form = await request.form()
+    new_operator = User(name=form["name"], 
+                        initials=form["initials"], 
+                        pin=form["pin"], 
+                        role=1)
+    session.add(new_operator)
+    session.commit()
+    session.refresh(new_operator)
+    return {"message": f"Operator {new_operator.name} created successfully"}
