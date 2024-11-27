@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let requiredFields = [];
     let measureToolLife = false; // Track if the selected machine measures tool life
     let stepButtons = {}; // Store buttons for each step
+    let currentRecipeName = ''; // Store the current recipe name
 
     // Function to check if current step has input fields and if they all have values
     function currentStepHasInputs() {
@@ -151,7 +152,9 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`/operator/tool_life/?machine_id=${machineId}`)
             .then(response => response.json())
             .then(data => {
-                measureToolLife = data.machine.measures_tool_life; // Store the machine's tool life measurement setting
+                measureToolLife = data.machine.measures_tool_life;
+                // Store the current recipe name
+                currentRecipeName = data.current_recipe ? data.current_recipe.name : 'No Recipe';
                 setupAdditionalSteps(data);
                 goToNextStep();
             })
@@ -227,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
             reachedLifeInput.dataset.type = 'numeric';
             reachedLifeInput.name = 'reached_life';
             reachedLifeInput.required = true;
-            reachedLifeInput.placeholder = 'Enter a positive integer';
+            reachedLifeInput.placeholder = 'Machined pieces';
             requiredFields.push('reached_life');
             reachedLifeInput.className = 'w-full border rounded p-4 text-xl font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500';
             reachedLifeInput.addEventListener('input', (e) => {
@@ -299,6 +302,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Clear existing content
         summaryContent.innerHTML = '';
+
+        // Add current recipe first
+        const recipeRow = document.createElement('div');
+        recipeRow.className = 'flex justify-between items-center p-4 bg-gray-800 rounded text-white';
+        
+        const recipeLabel = document.createElement('span');
+        recipeLabel.className = 'font-bold';
+        recipeLabel.textContent = 'Current Recipe:';
+        
+        const recipeValue = document.createElement('span');
+        recipeValue.textContent = currentRecipeName;
+        
+        recipeRow.appendChild(recipeLabel);
+        recipeRow.appendChild(recipeValue);
+        summaryContent.appendChild(recipeRow);
 
         // Define display mappings for the summary
         const summaryMappings = {
