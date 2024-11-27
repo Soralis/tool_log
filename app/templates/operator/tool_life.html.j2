@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let formDisplayData = {}; // Store display values separately
     let requiredFields = [];
     let measureToolLife = false; // Track if the selected machine measures tool life
+    let stepButtons = {}; // Store buttons for each step
 
     // Function to check if current step has input fields and if they all have values
     function currentStepHasInputs() {
@@ -46,8 +47,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to validate numeric input
-    function isValidNumber(value) {
-        // Allow empty string, numbers, and numbers with one decimal point
+    function isValidNumber(value, inputName) {
+        if (inputName === 'reached_life') {
+            // For tool life, only allow positive integers
+            return /^[1-9]\d*$/.test(value);
+        }
+        // For other numeric inputs, allow decimals
         return value === '' || /^\d*\.?\d*$/.test(value);
     }
 
@@ -58,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return Array.from(inputs).every(input => {
             const value = input.value.trim();
             if (input.dataset.type === 'numeric') {
-                return value !== '' && isValidNumber(value);
+                return value !== '' && isValidNumber(value, input.name);
             }
             return value !== '';
         });
@@ -73,6 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to auto-select if only one button exists
     function autoSelectSingleButton(buttons, fieldName) {
+        console.log('single button check', fieldName, buttons);
         if (buttons.length === 1) {
             const button = buttons[0];
             button.classList.add('bg-green-500');
@@ -168,8 +174,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Reset required fields
+        // Reset required fields and step buttons
         requiredFields = [];
+        stepButtons = {};
         let stepNumber = 2;
         
         // Step 2: Machine Channel
@@ -187,11 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
         createGridLayout(channelButtons, data.machine.channels);
         channelStep.appendChild(channelButtons);
         formContainer.insertBefore(channelStep, buttonContainer);
-
-        // Auto-select if only one channel
-        if (autoSelectSingleButton(channelButtons.querySelectorAll('button'), 'machine_channel')) {
-            goToNextStep();
-        }
+        stepButtons['machine_channel'] = channelButtons.querySelectorAll('button');
 
         // Step 3: Tool Position
         if (data.tool_positions && data.tool_positions.length > 0) {
@@ -209,23 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             createGridLayout(toolPositionButtons, data.tool_positions.length);
             toolPositionStep.appendChild(toolPositionButtons);
             formContainer.insertBefore(toolPositionStep, buttonContainer);
-
-            // Auto-select if only one tool position
-            if (autoSelectSingleButton(toolPositionButtons.querySelectorAll('button'), 'tool_position_id')) {
-                const toolPositionId = data.tool_positions[0].id;
-                formData['tool_position_id'] = toolPositionId;
-                formDisplayData['tool_position_id'] = data.tool_positions[0].name;
-                fetch(`/operator/tool_life/change-reasons?tool_position_id=${toolPositionId}`)
-                    .then(response => response.json())
-                    .then(reasonData => {
-                        setupChangeReasonStep(reasonData.change_reasons);
-                        goToNextStep();
-                    })
-                    .catch(error => {
-                        console.error('Error fetching change reasons:', error);
-                        alert('An error occurred while fetching change reasons. Please try again.');
-                    });
-            }
+            stepButtons['tool_position_id'] = toolPositionButtons.querySelectorAll('button');
         }
 
         // Step 4: Reached Life (only if machine measures tool life)
@@ -233,21 +220,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const reachedLifeStep = createStep(stepNumber++, 'Reached Life');
             const reachedLifeInput = document.createElement('input');
             reachedLifeInput.type = 'number';
-            reachedLifeInput.inputMode = 'decimal';
-            reachedLifeInput.pattern = '[0-9]*\.?[0-9]*';
+            reachedLifeInput.inputMode = 'numeric';
+            reachedLifeInput.pattern = '[1-9][0-9]*';
+            reachedLifeInput.min = '1';
+            reachedLifeInput.step = '1';
             reachedLifeInput.dataset.type = 'numeric';
             reachedLifeInput.name = 'reached_life';
             reachedLifeInput.required = true;
+            reachedLifeInput.placeholder = 'Enter a positive integer';
             requiredFields.push('reached_life');
             reachedLifeInput.className = 'w-full border rounded p-4 text-xl font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500';
             reachedLifeInput.addEventListener('input', (e) => {
                 const value = e.target.value;
-                if (isValidNumber(value)) {
+                if (isValidNumber(value, 'reached_life')) {
                     formData['reached_life'] = value;
                     formDisplayData['reached_life'] = value;
                     e.target.setCustomValidity('');
                 } else {
-                    e.target.setCustomValidity('Please enter a valid number');
+                    e.target.setCustomValidity('Please enter a positive integer');
                 }
                 updateNextButtonVisibility();
             });
@@ -277,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.className = 'w-full p-2 border rounded mb-4';
                 input.addEventListener('input', (e) => {
                     const value = e.target.value;
-                    if (isValidNumber(value)) {
+                    if (isValidNumber(value, input.name)) {
                         formData[`${measureable.name}_ms`] = value;
                         formDisplayData[`${measureable.name}_ms`] = value;
                         e.target.setCustomValidity('');
@@ -381,7 +371,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function setupChangeReasonStep(changeReasons) {
-        const changeReasonStep = document.querySelector(`.step[data-step="${measureToolLife ? '5' : '4'}"]`);
+        const stepNumber = measureToolLife ? 5 : 4;
+        const changeReasonStep = document.querySelector(`.step[data-step="${stepNumber}"]`);
         if (!changeReasonStep) return;
 
         // Clear existing content except the title
@@ -403,19 +394,48 @@ document.addEventListener('DOMContentLoaded', function() {
         
         createGridLayout(changeReasonButtons, changeReasons.length);
         changeReasonStep.appendChild(changeReasonButtons);
-
-        // Auto-select if only one change reason
-        if (autoSelectSingleButton(changeReasonButtons.querySelectorAll('button'), 'change_reason_id')) {
-            goToNextStep();
-        }
+        stepButtons['change_reason_id'] = changeReasonButtons.querySelectorAll('button');
     }
 
     function goToNextStep() {
         document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
         currentStep++;
+        
         if (currentStep <= totalSteps) {
-            document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
+            const nextStepElement = document.querySelector(`.step[data-step="${currentStep}"]`);
+            nextStepElement.style.display = 'block';
             prevBtn.style.display = 'inline-block';
+            
+            // Check for auto-selection based on the current step
+            if (currentStep === 2 && stepButtons['machine_channel']) {
+                if (autoSelectSingleButton(stepButtons['machine_channel'], 'machine_channel')) {
+                    goToNextStep();
+                    return;
+                }
+            } else if (currentStep === 3 && stepButtons['tool_position_id']) {
+                if (autoSelectSingleButton(stepButtons['tool_position_id'], 'tool_position_id')) {
+                    const toolPositionId = stepButtons['tool_position_id'][0].getAttribute('data-value');
+                    formData['tool_position_id'] = toolPositionId;
+                    formDisplayData['tool_position_id'] = stepButtons['tool_position_id'][0].textContent;
+                    fetch(`/operator/tool_life/change-reasons?tool_position_id=${toolPositionId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            setupChangeReasonStep(data.change_reasons);
+                            goToNextStep();
+                        })
+                        .catch(error => {
+                            console.error('Error fetching change reasons:', error);
+                            alert('An error occurred while fetching change reasons. Please try again.');
+                        });
+                    return;
+                }
+            } else if ((currentStep === (measureToolLife ? 5 : 4)) && stepButtons['change_reason_id']) {
+                if (autoSelectSingleButton(stepButtons['change_reason_id'], 'change_reason_id')) {
+                    goToNextStep();
+                    return;
+                }
+            }
+            
             if (currentStep === totalSteps) {
                 updateSummaryStep();
             }
@@ -449,14 +469,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentStepHasInputs() && !validateCurrentStepInputs()) {
             return; // Don't proceed if inputs are not valid
         }
-        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'none';
-        currentStep++;
-        document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
-        prevBtn.style.display = 'inline-block';
-        if (currentStep === totalSteps) {
-            updateSummaryStep();
-        }
-        updateNextButtonVisibility();
+        goToNextStep();
     });
 
     submitBtn.addEventListener('click', async (e) => {

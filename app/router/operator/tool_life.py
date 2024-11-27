@@ -23,7 +23,7 @@ async def get_tool_life_data(machine_id: int,
     if not current_recipe:
         raise HTTPException(status_code=404, detail="No current recipe for this machine")
 
-    tool_positions = [position for position in current_recipe.tool_positions if position.active]
+    tool_positions = [position for position in current_recipe.tool_positions if position.selected]
     measureables = [measureable for measureable in machine.measureables if measureable.active]
 
     return {
