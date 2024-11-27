@@ -30,3 +30,18 @@ async def root(request: Request,
 @router.get("/checkOperatorAuth")
 async def check_operator_auth(request: Request, operator: User = Depends(get_current_operator)):  
     return {"message": f"Hello, operator {operator.initials}"}
+
+@router.patch('/changePin/{user_id}')
+async def change_pin(request: Request, 
+                     user_id: int,
+                     operator: User = Depends(get_current_operator),
+                     session: Session = Depends(get_session)):
+    if user_id != operator.id:
+        return {"message": "You are not authorized to change this PIN"}
+    form = await request.form()
+    new_pin = form["new_pin"]
+    operator.pin = new_pin
+    session.add(operator)
+    session.commit()
+    session.refresh(operator)
+    return {"message": "PIN changed successfully"}

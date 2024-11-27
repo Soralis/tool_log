@@ -93,8 +93,8 @@
                             formData.set('pin', newPin); // Update pin with new value
                             
                             try {
-                                const response = await fetch(`/engineer/users/${userId}`, {
-                                    method: 'PUT',
+                                const response = await fetch(`/changePin/${userId}`, {
+                                    method: 'PATCH',
                                     body: formData
                                 });
                                 
