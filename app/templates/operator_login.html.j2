@@ -20,6 +20,27 @@
 </div>
 
 <script>
+    // Load saved initials from cookie when page loads
+    window.addEventListener('load', function() {
+        const savedInitials = getCookie('lastOperatorInitials');
+        if (savedInitials) {
+            document.getElementById('initials').value = savedInitials;
+        }
+    });
+
+    // Helper function to get cookie value
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    // Save initials to cookie when form is submitted
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+        const initials = document.getElementById('initials').value;
+        document.cookie = `lastOperatorInitials=${initials}; path=/; max-age=31536000`; // Cookie expires in 1 year
+    });
+
     document.body.addEventListener('htmx:responseError', function(evt) {
         const errorDiv = document.getElementById('login-error');
         errorDiv.textContent = 'Login failed. Please check your initials and PIN.';
