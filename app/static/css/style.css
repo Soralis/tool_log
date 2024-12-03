@@ -1167,7 +1167,7 @@ textarea {
     input[type="datetime-local"],
     textarea,
     select {
-        font-size: 16px; /* Prevent zoom on focus in iOS */
+        font-size: 24px; /* Prevent zoom on focus in iOS */
     }
 }
 

@@ -11,9 +11,9 @@
     </div>
 
     <div class="mt-4 flex justify-center gap-2">
-        <button id="prevBtn" class="px-4 py-6 bg-gray-300 text-xl font-bold text-gray-700 rounded w-full sm:w-auto" style="display: none;">Previous</button>
-        <button id="nextBtn" class="px-4 py-6 bg-blue-500 text-xl font-bold text-white rounded w-full sm:w-auto">Next</button>        
-        <button id="submitBtn" class="px-4 py-4 bg-green-500 text-xl font-bold text-white rounded w-full sm:w-auto" style="display: none;">Submit</button>
+        <button id="prevBtn" class="px-4 py-6 bg-gray-300 text-2xl font-bold text-gray-700 rounded w-full sm:w-auto" style="display: none;">Previous</button>
+        <button id="nextBtn" class="px-4 py-6 bg-blue-500 text-3xl font-bold text-white rounded w-full sm:w-auto">Next</button>        
+        <button id="submitBtn" class="px-4 py-4 bg-green-500 text-3xl font-bold text-white rounded w-full sm:w-auto" style="display: none;">Submit</button>
     </div>
 </div>
 
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data.measureables.forEach(measureable => {
                 const label = document.createElement('label');
                 label.textContent = measureable.name;
-                label.className = 'block mb-2 text-xl';
+                label.className = 'block mb-2 text-2xl';
                 const input = document.createElement('input');
                 input.type = 'number';
                 input.inputMode = 'decimal';
@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.name = `${measureable.name}_ms`;
                 input.required = true;
                 requiredFields.push(`${measureable.name}_ms`);
-                input.className = 'w-full p-2 border rounded mb-4';
+                input.className = 'w-full border rounded p-4 text-xl font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500';
                 input.addEventListener('input', (e) => {
                     const value = e.target.value;
                     if (isValidNumber(value, input.name)) {
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Step 7: Summary (always last)
         const summaryStep = createStep(stepNumber, 'Summary');
         const summaryContent = document.createElement('div');
-        summaryContent.className = 'mt-4 space-y-4 text-xl';
+        summaryContent.className = 'mt-4 space-y-3 text-2xl';
         summaryContent.id = 'summary-content';
         summaryStep.appendChild(summaryContent);
         formContainer.insertBefore(summaryStep, buttonContainer);
