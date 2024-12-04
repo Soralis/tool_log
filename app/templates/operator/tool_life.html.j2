@@ -3,9 +3,23 @@
         <h2 class="text-3xl font-bold mb-8">Select Machine</h2>
         <div id="machine-buttons" class="grid auto-cols-fr gap-4 justify-items-center w-full max-w-4xl mx-auto max-h-[60vh] overflow-y-auto">
             {% for machine in machines %}
-                <button class="machine-btn px-4 py-8 bg-blue-500 text-3xl font-bold text-white rounded text-base w-full" data-machine-id="{{ machine.id }}">
-                    {{ machine.name }}
-                </button>
+                {% if machine.current_recipe %}
+                    {% if machine.current_recipe.tool_positions|selectattr('selected')|list|length > 0 %}
+                        <button class="machine-btn px-4 py-8 bg-blue-500 text-3xl font-bold text-white rounded text-base w-full" data-machine-id="{{ machine.id }}">
+                            {{ machine.name }}
+                        </button>
+                    {% else %}
+                        <button class="px-4 py-8 bg-blue-700 text-3xl font-bold text-gray-400 rounded text-base w-full disabled">
+                            {{ machine.name }}
+                            <p class="text-xl font-normal">Current Recipe has no Tools selected</p>
+                        </button>
+                    {% endif %}
+                {% else %}
+                    <button class="px-4 py-8 bg-blue-700 text-3xl font-bold text-gray-400 rounded text-base w-full disabled">
+                        {{ machine.name }}
+                        <p class="text-xl font-normal">No active Recipe</p>
+                    </button>
+                {% endif %}
             {% endfor %}
         </div>
     </div>
@@ -95,6 +109,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentStep === totalSteps) {
             nextBtn.style.display = 'none';
             submitBtn.style.display = 'inline-block';
+            if (currentStep == 1) {
+                submitBtn.style.display = 'none'
+            }
         } else {
             // Only show next button if the step has inputs or is the summary step
             if (currentStepHasButtons()) {

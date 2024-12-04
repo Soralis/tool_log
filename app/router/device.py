@@ -101,17 +101,17 @@ async def set_machines(request: Request, machine_ids: List[int] = Form(None)):
     return JSONResponse(content={"message": "Machines connected successfully", "machine_count": len(machines)}, status_code=202)
     
 
-@router.post("/disconnectMachine")
-async def disconnect_machine(request: Request):
-    device_name = request.headers.get("X-Device-ID")
-    if not device_name:
-        return {"message": "This Page can only be viewed on a named Log Device - but a name was not provided"}
+# @router.post("/disconnectMachine")
+# async def disconnect_machine(request: Request):
+#     device_name = request.headers.get("X-Device-ID")
+#     if not device_name:
+#         return {"message": "This Page can only be viewed on a named Log Device - but a name was not provided"}
     
-    with Session(engine) as session:
-        log_device: LogDevice = session.exec(select(LogDevice).filter(LogDevice.name == device_name)).one_or_none
-        if log_device is None:
-            return {"error": "Log Device not found or ambiguous"}
-        log_device.machine_id = None
-        await session.commit()
+#     with Session(engine) as session:
+#         log_device: LogDevice = session.exec(select(LogDevice).filter(LogDevice.name == device_name)).one_or_none
+#         if log_device is None:
+#             return {"error": "Log Device not found or ambiguous"}
+#         log_device.machine_id = None
+#         await session.commit()
     
-    return JSONResponse(content={"message": "Machine disconnected successfully"}, status_code=202)
+#     return JSONResponse(content={"message": "Machine disconnected successfully"}, status_code=202)
