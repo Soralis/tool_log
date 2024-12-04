@@ -46,10 +46,20 @@ xrandr --output DSI-0 --rotate left
 xrandr --output DSI-1 --rotate left
 xrandr --output DSI-2 --rotate left
 
+# Clear Chromium cache and data
+rm -rf ~/.cache/chromium/
+rm -rf ~/.config/chromium/Default/Cache/
+rm -rf ~/.config/chromium/Default/Code\ Cache/
+rm -rf ~/.config/chromium/Default/Service\ Worker/CacheStorage/
+
 sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/'"'"' ~/.config/chromium/'"'"'Local State'"'"'
-sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"["]+"/"exit_type":"Normal"/"'"'"' ~/.config/chromium/Default/Preferences
-# firefox-esr --kiosk --private-window \$KIOSK_URL
-chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar --incognito --kiosk \$KIOSK_URL
+sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"[^"]*"/"exit_type":"Normal"/'"'"' ~/.config/chromium/Default/Preferences
+
+# Start Chromium with cache-clearing flags
+chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar --incognito --kiosk \
+  --disable-application-cache \
+  --disable-cache \
+  --disable \$KIOSK_URL
 EOF'
 
 # Set Openbox environment
