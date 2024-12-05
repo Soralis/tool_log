@@ -104,6 +104,7 @@ class ChangeReasonRead(SQLModel):
 
 class ToolBase(SQLModel):
     name: str = Field(index=True)
+    number: str = Field(index=True, unique=True)
     description: Optional[str] = None
     tool_type_id: int = Field(foreign_key='tooltype.id', ondelete='CASCADE')
     manufacturer_id: int = Field(foreign_key='manufacturer.id', ondelete='CASCADE')
