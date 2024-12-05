@@ -217,7 +217,7 @@
                 </div>
             </div>
 
-            {% if user.role >= 4 %}
+            {% if user.role >= 2 %}
                 <div id="recipeSelectModal" class="modal">
                     <div class="modal-content">
                         <span class="close" onclick="closeModal('recipeSelectModal')">&times;</span>
@@ -293,7 +293,7 @@
                 {% endfor %}
                 <button onclick="openModal('changeover')" class="w-full py-8 text-4xl font-bold rounded-lg bg-blue-500 hover:bg-blue-700 text-white my-4">Changeover</button>
                 <button onclick="openModal('toollog')" class="w-full py-16 text-6xl font-bold rounded-lg bg-green-500 hover:bg-green-700 text-white my-4">Tool Log</button>
-                {% if user and user.role >= 4 %}
+                {% if user and user.role >= 2 %}
                     <button onclick="openModal('recipeSelect')" class="w-full py-8 text-4xl font-bold rounded-lg bg-purple-500 hover:bg-purple-700 text-white my-4">Edit Recipe</button>
                 {% endif %}
             {% endif %}

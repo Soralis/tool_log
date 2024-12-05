@@ -86,7 +86,7 @@ app.include_router(monitoring.router)
 
 # Include the authenticated routers with path prefixes that don't conflict with monitoring
 app.include_router(base.router, dependencies=[Depends(require_role(UserRole.OPERATOR))])
-app.include_router(_engineer.router, prefix="/engineer", tags=["engineer"], dependencies=[Depends(require_role(UserRole.ENGINEER))])
+app.include_router(_engineer.router, prefix="/engineer", tags=["engineer"], dependencies=[Depends(require_role(UserRole.SUPERVISOR))])
 app.include_router(_operator.router, prefix="/operator", tags=['operator'], dependencies=[Depends(require_role(UserRole.OPERATOR))])
 app.include_router(device.router, prefix="/device", tags=["device-info"], dependencies=[Depends(require_role(UserRole.SUPERVISOR))])
 

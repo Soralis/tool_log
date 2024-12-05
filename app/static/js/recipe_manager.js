@@ -339,15 +339,19 @@ class RecipeManager {
         groupDiv.className = 'tool-position-group';
         groupDiv.dataset.positionName = positionName;
         
+        const hasHighRole = window.userRole >= 4;
+        
         groupDiv.innerHTML = `
             <h4>${positionName}</h4>
             <div class="tool-position-row">
                 <select class="tool-select" onchange="${this.getManagerName()}.handleToolPositionChange(this)">
                     <option value="">Select Active Tool Position</option>
                 </select>
+                ${hasHighRole ? `
                 <button type="button" class="btn-add-new" onclick="${this.getManagerName()}.addNewToolPosition('${positionName}')">
                     Add Tool Position
                 </button>
+                ` : ''}
             </div>
             <div class="tool-details"></div>
         `;
@@ -379,6 +383,7 @@ class RecipeManager {
         if (select.value) {
             const data = JSON.parse(select.value);
             const tool = this.toolsData[data.tool_id];
+            const hasHighRole = window.userRole >= 4;
             
             detailsDiv.innerHTML = `
                 <p>Expected Life: ${data.expected_life}</p>
@@ -386,10 +391,12 @@ class RecipeManager {
                     const attr = tool.attributes.find(a => a.name === name);
                     return `<p class="tool-attribute">${name}: ${value} ${attr ? attr.unit : ''}</p>`;
                 }).join('')}
+                ${hasHighRole ? `
                 <div class="tool-position-actions">
                     <button type="button" class="btn-edit" onclick="${this.getManagerName()}.editToolPosition(this)">Edit</button>
                     <button type="button" class="btn-delete" onclick="${this.getManagerName()}.deleteToolPosition(this)">Delete</button>
                 </div>
+                ` : ''}
             `;
         } else {
             detailsDiv.innerHTML = '';

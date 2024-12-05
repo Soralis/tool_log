@@ -28,7 +28,7 @@
             <div id="{{ prefix }}ToolPositionsContainer">
                 <div id="{{ prefix }}ToolPositionGroups"></div>
                 <div class="tool-position-controls">
-                    <button type="button" class="btn-add-new" id="{{ prefix }}AddToolPositionBtn">Add New Position</button>
+                    <button type="button" class="btn-add-new" id="{{ prefix }}AddToolPositionBtn" {% if user.role < 4 %}style="display: none;"{% endif %}>Add New Position</button>
                 </div>
             </div>
             
@@ -185,4 +185,13 @@
 .close:hover {
     color: #cbd5e0;
 }
+
+.hidden {
+    display: none;
+}
 </style>
+
+<script>
+    // Pass user role to JavaScript
+    window.userRole = {{ user.role }};
+</script>
