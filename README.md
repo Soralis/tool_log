@@ -41,3 +41,4 @@ wget -O setup_kiosk.sh https://raw.githubusercontent.com/Soralis/tool_log/master
 chmod +x setup_kiosk.sh
 sudo ./setup_kiosk.sh
 ```
+
