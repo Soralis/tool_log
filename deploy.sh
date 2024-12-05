@@ -135,6 +135,12 @@ if ! curl --silent --fail "$HEALTH_CHECK_URL" > /dev/null; then
     exit 1
 fi
 
+# Update deploy path in deploy_app.sh
+DEPLOY_APP_SCRIPT="/home/pi/tool_log/check_github.sh"
+if [ -f "$DEPLOY_APP_SCRIPT" ]; then
+    sudo sed -i "s|DEPLOY_PATH=.*|DEPLOY_PATH=\"$NEW_DIR/deploy.sh\"|" "$DEPLOY_APP_SCRIPT"
+fi
+
 # Update Nginx configuration to point to the new service
 sudo sed -i "s|proxy_pass http://127\.0\.0\.1:$ACTIVE_PORT;|proxy_pass http://127.0.0.1:$NEW_PORT;|" $NGINX_CONFIG
 # Also update the WebSocket proxy_pass
