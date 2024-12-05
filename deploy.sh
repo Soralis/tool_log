@@ -75,7 +75,7 @@ else
         echo "Nothing newer than the current Version. Exiting..."
         exit 0
     fi
-    echo 'changing dir to $NEW_DIR'
+    echo "changing dir to $NEW_DIR"
     cd "$NEW_DIR" || exit 1
     echo '...done'
     
