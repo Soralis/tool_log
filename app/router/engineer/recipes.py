@@ -10,15 +10,20 @@ from app.models import Workpiece
 from app.models import Machine
 from app.models import Tool
 from app.models import Manufacturer
+from app.models import User
 from app.database_config import get_session
+from auth import get_current_operator
+
 
 router = APIRouter()
 
 @router.get("/")
-async def home(request: Request):
+async def home(request: Request,
+               user: User = Depends(get_current_operator)):
     return templates.TemplateResponse(
             request=request,
             name="engineer/recipes.html.j2",
+            context={'user': user}
         )
 
 @router.get("/list", response_class=HTMLResponse)
