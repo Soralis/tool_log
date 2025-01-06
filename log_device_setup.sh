@@ -37,10 +37,10 @@ sudo sed -i '/MatchIsTouchscreen "on"/a\        Option "CalibrationMatrix" "0 -1
 # Edit Openbox config
 echo "Setting OpenBox Autostart"
 sudo bash -c 'cat << EOF > /etc/xdg/openbox/autostart
-# Disable screen blanking/power saving
-xset -dpms
-xset s off
-xset s noblank
+# Enable screen power management
+# Standby: 60 seconds, Suspend: never (0), Off: never (0)
+xset +dpms
+xset dpms 60 0 0
 
 # Rotate Display
 xrandr --output DSI-0 --rotate left
