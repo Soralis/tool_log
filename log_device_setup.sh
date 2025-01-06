@@ -3,8 +3,9 @@
 # Prompt for Base URL
 read -p "Enter the Server IP Address: " SERVER_IP
 
-# Prompt for device name
-read -p "Enter the device name: " DEVICE_NAME
+# Get Raspberry Pi's CPU serial number for device name
+DEVICE_NAME=$(cat /proc/cpuinfo | grep Serial | cut -d ' ' -f 2)
+echo "Using Device Serial: $DEVICE_NAME"
 
 # Construct the KIOSK_URL
 KIOSK_URL="http://${SERVER_IP}/deviceRegistration?device_name=${DEVICE_NAME}"
