@@ -70,7 +70,7 @@ async def log_request(request: Request, call_next: Callable, db: Session):
     
     return response
 
-@router.websocket("/monitoring/ws")
+@router.websocket("/ws/monitoring")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     active_connections.append(websocket)

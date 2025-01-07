@@ -75,7 +75,7 @@ async def graphs(request: Request, db: Session = Depends(get_session)):
         }
     )
 
-@router.websocket("/graphs/ws")
+@router.websocket("/ws/graphs")
 async def websocket_graphs(websocket: WebSocket, db: Session = Depends(get_session)):
     await websocket.accept()
     

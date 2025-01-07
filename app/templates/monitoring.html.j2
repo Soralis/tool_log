@@ -119,7 +119,7 @@
         // WebSocket connection with retry logic
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const ws = new WebSocket(`${protocol}//${window.location.host}/monitoring/ws`);
+            const ws = new WebSocket(`${protocol}//${window.location.host}/ws/monitoring`);
             
             ws.onopen = function() {
                 statusDiv.className = 'hidden';

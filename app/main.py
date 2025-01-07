@@ -31,7 +31,7 @@ app.add_middleware(
 # Custom middleware to bypass authentication for monitoring routes
 class MonitoringBypassMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if request.url.path.startswith("/monitoring") or request.url.path.startswith("/graphs"):
+        if request.url.path.startswith("/ws"):
             return await call_next(request)
         return await call_next(request)
 
