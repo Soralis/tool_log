@@ -86,7 +86,7 @@ async def websocket_graphs(websocket: WebSocket, db: Session = Depends(get_sessi
                 # Get latest tool life data
                 data = await get_tool_life_data(db)
                 await websocket.send_text(json.dumps(data))
-                await asyncio.sleep(1)  # Update every second
+                await asyncio.sleep(5)  # Update every second
             except RuntimeError as e:
                 if "close message has been sent" in str(e):
                     break
