@@ -116,7 +116,7 @@
 
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${window.location.host}/ws/graphs`);
+            const ws = new WebSocket(`${protocol}//${window.location.host}/graphs/ws`);
             
             ws.onopen = function() {
                 statusDiv.className = 'hidden';
@@ -147,6 +147,8 @@
                 statusDiv.textContent = 'Connection Error';
                 statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-red-500';
             };
+
+            return ws
         }
 
         // Initialize all graphs on the page
