@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='favicon.ico') }}">
     <title>Server Monitoring Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', path='css/style.css') }}" rel="stylesheet">
 </head>
 <body class="bg-gray-900 text-gray-100">
     <div class="min-h-screen p-4">
@@ -112,7 +112,7 @@
 
         // Add connection status indicator
         const statusDiv = document.createElement('div');
-        statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500';
+        statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500/100';
         statusDiv.textContent = 'Connecting...';
         document.body.appendChild(statusDiv);
 
@@ -137,14 +137,14 @@
 
             ws.onclose = function() {
                 statusDiv.textContent = 'Reconnecting...';
-                statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500';
+                statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500/100';
                 // Attempt to reconnect after 5 seconds
                 setTimeout(connectWebSocket, 5000);
             };
 
             ws.onerror = function() {
                 statusDiv.textContent = 'Connection Error';
-                statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-red-500';
+                statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-red-500/100';
             };
 
             return ws;
