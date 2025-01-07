@@ -1,6 +1,5 @@
 from fastapi import APIRouter, WebSocket, Request, Depends
 import asyncio
-from datetime import datetime
 import json
 from app.templates.jinja_functions import templates
 import socket
