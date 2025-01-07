@@ -7,7 +7,8 @@ from sqlmodel import Session, select
 from app.database_config import get_session
 from app.models.tool import Tool, ToolLife
 from typing import Dict, List
-
+import numpy as np
+from scipy.stats import linregress
 router = APIRouter()
 
 def get_ip_address():
@@ -56,9 +57,24 @@ async def get_tool_life_data(db: Session, limit:int = 50) -> Dict:
         if records:
             # Reverse to get chronological order
             records.reverse()
+            values = [record.reached_life for record in records]
+            labels = [record.timestamp.strftime("%m/%d") for record in records]
+            
+            # Calculate statistics
+            mean = np.mean(values)
+            std = np.std(values)
+            
+            # Calculate trendline
+            x = np.arange(len(values))
+            slope, intercept, _, _, _ = linregress(x, values)
+            trendline = [slope * i + intercept for i in x]
+            
             data[f"tool_{tool.id}"] = {
-                "labels": [record.timestamp.strftime("%m/%d") for record in records],
-                "values": [record.reached_life for record in records]
+                "labels": labels,
+                "values": values,
+                "mean": mean,
+                "std": std,
+                "trendline": trendline
             }
     
     return data

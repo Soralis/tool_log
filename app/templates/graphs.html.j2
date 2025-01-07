@@ -56,14 +56,42 @@
                 type: type,
                 data: {
                     labels: [],
-                    datasets: [{
-                        label: 'Tool Life',
-                        data: [],
-                        borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
-                        tension: 0.1,
-                        fill: true
-                    }]
+                    datasets: [
+                        {
+                            label: 'Tool Life',
+                            data: [],
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                            tension: 0.1,
+                            fill: true
+                        },
+                        {
+                            label: 'Trendline',
+                            data: [],
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Mean',
+                            data: [],
+                            borderColor: 'rgba(255, 206, 86, 1)',
+                            borderWidth: 2,
+                            borderDash: [2, 2],
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Mean ± Std Dev',
+                            data: [],
+                            borderColor: 'rgba(255, 206, 86, 0.3)',
+                            backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                            fill: 1,
+                            pointRadius: 0
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -73,7 +101,7 @@
                         y: {
                             beginAtZero: true,
                             title: {
-                                display: true,
+                                display: false,
                                 text: 'Reached Life',
                                 color: '#fff'
                             },
@@ -86,7 +114,7 @@
                         },
                         x: {
                             title: {
-                                display: true,
+                                display: false,
                                 text: 'Time',
                                 color: '#fff'
                             },
@@ -100,12 +128,48 @@
                     },
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: '#fff',
+                                boxWidth: 12,
+                                padding: 15,
+                                font: {
+                                    family: 'monospace',
+                                    size: 11
+                                },
+                                generateLabels: function(chart) {
+                                    const defaultLabels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                                    const stats = chart.stats || {};
+                                    
+                                    // Add stats text under each legend item
+                                    defaultLabels.forEach(label => {
+                                        if (label.text === 'Trendline' && stats.slope !== undefined) {
+                                            label.text = `Trendline Slope: ${stats.slope.toFixed(2)} (${(stats.slope / stats.mean * 100).toFixed(1)}%)`;
+                                        } else if (label.text === 'Mean' && stats.mean !== undefined) {
+                                            label.text = `Mean: ${stats.mean.toFixed(2)}`;
+                                        } else if (label.text === 'Mean ± Std Dev' && stats.std !== undefined) {
+                                            label.text = `Std Dev: ±${stats.std.toFixed(2)} (±${(stats.std / stats.mean * 100).toFixed(1)}%)`;
+                                        }
+                                    });
+                                    
+                                    return defaultLabels;
+                                }
+                            }
                         },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return `Life: ${context.parsed.y}`;
+                                    const datasetLabel = context.dataset.label;
+                                    const value = context.parsed.y;
+                                    if (datasetLabel === 'Tool Life') {
+                                        return `Life: ${value.toFixed(1)}`;
+                                    } else if (datasetLabel === 'Mean') {
+                                        return `Mean: ${value.toFixed(1)}`;
+                                    } else if (datasetLabel === 'Trendline') {
+                                        return `Trend: ${value.toFixed(1)}`;
+                                    }
+                                    return `${datasetLabel}: ${value.toFixed(1)}`;
                                 }
                             }
                         }
@@ -130,7 +194,24 @@
                     const graph = graphs[graphId];
                     if (graph) {
                         graph.data.labels = graphData.labels;
+                        // Tool life data
                         graph.data.datasets[0].data = graphData.values;
+                        // Trendline
+                        graph.data.datasets[1].data = graphData.trendline;
+                        // Mean line
+                        const meanArray = Array(graphData.labels.length).fill(graphData.mean);
+                        graph.data.datasets[2].data = meanArray;
+                        // Standard deviation band
+                        graph.data.datasets[3].data = Array(graphData.labels.length).fill(graphData.mean + graphData.std);
+                        graph.data.datasets[3].data2 = Array(graphData.labels.length).fill(graphData.mean - graphData.std);
+                        
+                        // Store stats for legend labels
+                        graph.stats = {
+                            mean: graphData.mean,
+                            std: graphData.std,
+                            slope: (graphData.trendline[graphData.trendline.length - 1] - graphData.trendline[0]) / graphData.trendline.length
+                        };
+                        
                         graph.update();
                     }
                 });
@@ -171,7 +252,7 @@
 
     <style>
         .graph-container {
-            height: 200px;
+            height: 250px;  /* Increased height to accommodate legend with stats */
         }
     </style>
 </body>

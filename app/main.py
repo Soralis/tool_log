@@ -29,13 +29,13 @@ app.add_middleware(
 )
 
 # Custom middleware to bypass authentication for monitoring routes
-class MonitoringBypassMiddleware(BaseHTTPMiddleware):
+class WebsocketBypassMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if request.url.path.startswith("/ws"):
             return await call_next(request)
         return await call_next(request)
 
-app.add_middleware(MonitoringBypassMiddleware)
+app.add_middleware(WebsocketBypassMiddleware)
 
 # Setup static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
