@@ -108,6 +108,8 @@ class ToolBase(SQLModel):
     description: Optional[str] = None
     tool_type_id: int = Field(foreign_key='tooltype.id', ondelete='CASCADE')
     manufacturer_id: int = Field(foreign_key='manufacturer.id', ondelete='CASCADE')
+    regrind: bool = Field(default=False)
+    max_uses: int = Field(default=1)
 
     __table_args__ = (UniqueConstraint('name', 'tool_type_id', 'manufacturer_id'),)
 

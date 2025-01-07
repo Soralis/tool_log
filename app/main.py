@@ -11,6 +11,7 @@ from app.router.engineer import _engineer
 from app.router.operator import _operator
 from app.router import device
 from app.router import monitoring
+from app.router import graphs
 from app.models import UserRole, ServiceMetrics
 from auth import authenticate_or_create_device, authenticate_operator, require_role
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -81,8 +82,9 @@ async def initialize_metrics():
     finally:
         db.close()
 
-# Include monitoring router first without authentication
+# Include monitoring and graphs routers first without authentication
 app.include_router(monitoring.router)
+app.include_router(graphs.router)
 
 # Include the authenticated routers with path prefixes that don't conflict with monitoring
 app.include_router(base.router, dependencies=[Depends(require_role(UserRole.OPERATOR))])
