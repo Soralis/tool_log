@@ -3,6 +3,7 @@ import asyncio
 import json
 from app.templates.jinja_functions import templates
 import socket
+import httpx
 from sqlmodel import Session, select
 from app.database_config import get_session
 from app.models.tool import Tool, ToolLife
@@ -13,9 +14,21 @@ router = APIRouter()
 
 def get_ip_address():
     try:
+        # Get local IP
         hostname = socket.gethostname()
-        ip_address = socket.gethostbyname(hostname)
-        return f"{hostname} ({ip_address})"
+        local_ip = socket.gethostbyname(hostname)
+        
+        # Try to get public IP
+        try:
+            response = httpx.get('https://api.ipify.org', timeout=2.0)
+            if response.status_code == 200:
+                public_ip = response.text
+                return f"{hostname} (Local: {local_ip}, Public: {public_ip})"
+        except:
+            pass
+            
+        # Fallback to just local IP if public IP fetch fails
+        return f"{hostname} (Local: {local_ip})"
     except:
         return "Unable to get IP address"
 
