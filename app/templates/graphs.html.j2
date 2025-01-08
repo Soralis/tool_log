@@ -16,9 +16,8 @@
             <div class="bg-gray-800 p-4 rounded-lg shadow mb-6">
                 <div class="flex justify-between items-center mb-4">
                     <h1 class="text-2xl font-bold">Tool Life Monitoring</h1>
-                    <div class="text-gray-400">
-                        <span class="font-medium">Server:</span> {{ server_address }}
-                    </div>
+                    <button class="graph-reload-button bg-transparent text-yellow-400 hover:bg-yellow-500 hover:text-gray-900 font-semibold py-2 px-4 border border-yellow-400 hover:border-transparent rounded transition-all duration-200">Reload</button>
+                    <span class="font-medium">Server: {{ server_address }}</span> 
                 </div>
                 <div class="flex items-center space-x-8 text-sm font-mono">
                     <div class="flex items-center">
@@ -264,6 +263,12 @@
                 const type = container.dataset.type;
                 initializeGraph(id, type);
             });
+
+            // Initialize reload button
+            const reloadButton = document.querySelector('.graph-reload-button');
+            if (reloadButton) {
+                reloadButton.addEventListener('click', hardReload);
+            }
         });
 
         // Start WebSocket connection
@@ -275,6 +280,10 @@
                 ws.close();
             }
         });
+
+        function hardReload() {
+            location.reload(true);
+        }
     </script>
 
     <style>
