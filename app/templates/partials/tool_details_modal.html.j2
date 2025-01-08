@@ -1,8 +1,8 @@
 <!-- Tool Details Modal -->
-<div id="toolDetailsModal" class="inset-0 bg-gray-900/95 hidden z-[9999]">
-    <div class="inset-0 overflow-y-auto">
-        <div class="flex min-h-screen items-center justify-center p-4">
-            <div class="relative w-full max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-xl">
+<div id="toolDetailsModal" class="fixed inset-0 bg-gray-900/95 hidden z-[9999] overflow-y-auto">
+    <div class="min-h-screen p-4">
+        <div class="flex items-center justify-center">
+            <div class="relative w-full max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-xl max-h-[90vh] flex flex-col">
                 <!-- Modal header -->
                 <div class="flex justify-between items-center p-4 border-b border-gray-700">
                     <h2 class="text-2xl font-bold" id="modalTitle">Tool Details</h2>
@@ -14,82 +14,15 @@
                 </div>
                 
                 <!-- Modal content -->
-                <div class="p-4">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Main graph section -->
-                        <div class="lg:col-span-2 bg-gray-800 rounded-lg p-4">
-                            <div class="h-[400px]" id="modalMainGraph">
-                                <div class="flex items-center justify-center h-full text-gray-400">
-                                    <svg class="animate-spin h-8 w-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Loading graph...
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Left column -->
-                        <div class="space-y-6">
-                            <!-- Current Stats -->
-                            <div class="bg-gray-800 rounded-lg p-4">
-                                <h3 class="text-lg font-medium mb-4">Current Statistics</h3>
-                                <div class="text-sm" id="currentStats">
-                                    <div class="flex items-center justify-center text-gray-400">
-                                        <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Loading...
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Additional Graphs -->
-                            <div class="bg-gray-800 rounded-lg p-4">
-                                <h3 class="text-lg font-medium mb-2">Daily Averages</h3>
-                                <div class="h-[200px]" id="dailyAveragesGraph">
-                                    <canvas></canvas>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-gray-800 rounded-lg p-4">
-                                <h3 class="text-lg font-medium mb-2">Wear Rate</h3>
-                                <div class="h-[200px]" id="wearRateGraph">
-                                    <canvas></canvas>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Right column -->
-                        <div class="space-y-6">
-                            <!-- Tool Information -->
-                            <div class="bg-gray-800 rounded-lg p-4">
-                                <h3 class="text-lg font-medium mb-4">Tool Information</h3>
-                                <div class="text-sm" id="toolInfo">
-                                    <div class="flex items-center justify-center text-gray-400">
-                                        <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Loading...
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Process Information -->
-                            <div class="bg-gray-800 rounded-lg p-4">
-                                <h3 class="text-lg font-medium mb-4">Process Information</h3>
-                                <div class="text-sm" id="processInfo">
-                                    <div class="flex items-center justify-center text-gray-400">
-                                        <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Loading...
-                                    </div>
-                                </div>
-                            </div>
+                <div class="p-4 overflow-y-auto flex-grow">
+                    <div id="modalContent" class="grid grid-cols-12 auto-rows-[minmax(200px,auto)] gap-6">
+                        <!-- Content will be dynamically populated -->
+                        <div class="col-span-12 flex items-center justify-center text-gray-400">
+                            <svg class="animate-spin h-8 w-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Loading...
                         </div>
                     </div>
                 </div>
@@ -99,8 +32,8 @@
 </div>
 
 <script>
-// Initialize modal graphs object
-window.modalGraphs = {};
+// Store active charts
+window.modalCharts = {};
 
 // Function to toggle body scroll
 function toggleBodyScroll(lock) {
@@ -111,16 +44,10 @@ function toggleBodyScroll(lock) {
     }
 }
 
-// Initialize modal immediately when script loads
-console.log('Modal script loading...');
-const initModal = () => {
-    console.log('Initializing modal...');
+// Initialize modal
+function initModal() {
     const modal = document.getElementById('toolDetailsModal');
-    if (!modal) {
-        console.error('Modal element not found during initialization');
-        return;
-    }
-    console.log('Modal element found during initialization');
+    if (!modal) return;
 
     // Close modal when clicking outside content
     modal.addEventListener('click', function(e) {
@@ -135,94 +62,116 @@ const initModal = () => {
             closeToolModal();
         }
     });
-};
+}
 
-// Call initialization immediately
+// Initialize on script load and DOM content loaded
 initModal();
-
-// Also ensure initialization after DOM loads
 document.addEventListener('DOMContentLoaded', initModal);
+
+// Function to create a card element
+function createCard(card) {
+    console.log('card.type', card.type)
+    console.log('widht, height', card.width, card.height);
+    console.log('-----------')
+    const cardElement = document.createElement('div');
+    cardElement.id = card.id;
+    cardElement.className = `col-span-${card.width} row-span-${card.height} bg-gray-800 rounded-lg p-4`;
+    
+    // Add card title
+    const titleElement = document.createElement('h3');
+    titleElement.className = 'text-lg font-medium mb-4';
+    titleElement.textContent = card.title;
+    cardElement.appendChild(titleElement);
+    
+    // Add card content based on type
+    const contentElement = document.createElement('div');
+    contentElement.className = card.type === 'graph' ? `h-[${card.height * 200}px]` : 'text-sm space-y-2';
+    
+    if (card.type === 'graph') {
+        const canvas = document.createElement('canvas');
+        contentElement.appendChild(canvas);
+        cardElement.appendChild(contentElement);
+        
+        // Create chart
+        const ctx = canvas.getContext('2d');
+        modalCharts[card.id] = new Chart(ctx, {
+            type: card.data.type,
+            data: {
+                labels: card.data.labels,
+                datasets: card.data.datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#fff' }
+                    },
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#fff' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)'
+                    }
+                }
+            }
+        });
+    } else if (card.type === 'stats') {
+        card.data.forEach(stat => {
+            const statRow = document.createElement('div');
+            statRow.className = 'flex justify-between items-center border-b border-gray-700 pb-2';
+            statRow.innerHTML = `
+                <span class="text-gray-400">${stat.label}:</span>
+                <span class="font-medium">${stat.value}</span>
+            `;
+            contentElement.appendChild(statRow);
+        });
+        cardElement.appendChild(contentElement);
+    }
+    
+    return cardElement;
+}
 
 // Function to reset modal content
 function resetModalContent() {
-    console.log('Resetting modal content...');
-    const mainGraphDiv = document.getElementById('modalMainGraph');
-    const dailyAveragesDiv = document.getElementById('dailyAveragesGraph');
-    const wearRateDiv = document.getElementById('wearRateGraph');
-
-    if (!mainGraphDiv || !dailyAveragesDiv || !wearRateDiv) {
-        console.error('One or more modal elements not found during reset');
-        return;
-    }
-
-    // Reset main graph
-    mainGraphDiv.innerHTML = `
-        <div class="flex items-center justify-center h-full text-gray-400">
+    const modalContent = document.getElementById('modalContent');
+    modalContent.innerHTML = `
+        <div class="col-span-12 flex items-center justify-center text-gray-400">
             <svg class="animate-spin h-8 w-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Loading graph...
-        </div>
-    `;
-
-    // Reset additional graphs
-    dailyAveragesDiv.innerHTML = '<canvas></canvas>';
-    wearRateDiv.innerHTML = '<canvas></canvas>';
-
-    // Reset info panels to loading state
-    const loadingMessage = `
-        <div class="flex items-center justify-center text-gray-400">
-            <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             Loading...
         </div>
     `;
-    document.getElementById('currentStats').innerHTML = loadingMessage;
-    document.getElementById('toolInfo').innerHTML = loadingMessage;
-    document.getElementById('processInfo').innerHTML = loadingMessage;
-
-    // Destroy existing chart instances
-    if (modalGraphs.mainGraph) {
-        modalGraphs.mainGraph.destroy();
-        modalGraphs.mainGraph = null;
-    }
-    if (modalGraphs.dailyAverages) {
-        modalGraphs.dailyAverages.destroy();
-        modalGraphs.dailyAverages = null;
-    }
-    if (modalGraphs.wearRate) {
-        modalGraphs.wearRate.destroy();
-        modalGraphs.wearRate = null;
-    }
+    
+    // Destroy existing charts
+    Object.values(modalCharts).forEach(chart => chart.destroy());
+    modalCharts = {};
 }
 
 // Make openToolModal globally available
 window.openToolModal = async function(toolId) {
-    console.log('Opening modal for tool:', toolId);
     const modal = document.getElementById('toolDetailsModal');
     if (!modal) {
         console.error('Modal element not found in openToolModal');
         return;
     }
-    console.log('Modal element found:', modal);
-    console.log('Modal visibility before:', modal.classList.contains('hidden'));
     
     // Reset content before showing modal
     resetModalContent();
     
-    // Force modal to be visible after a short delay
-    setTimeout(() => {
-        modal.style.removeProperty('display');
-        modal.classList.remove('hidden');
-        toggleBodyScroll(true);
-        console.log('Modal visibility after:', modal.classList.contains('hidden'));
-        console.log('Modal style display:', window.getComputedStyle(modal).display);
-        console.log('Modal computed visibility:', window.getComputedStyle(modal).visibility);
-        console.log('Modal computed opacity:', window.getComputedStyle(modal).opacity);
-    }, 0);
+    // Show modal
+    modal.style.removeProperty('display');
+    modal.classList.remove('hidden');
+    toggleBodyScroll(true);
     
     // Extract numeric ID from the tool_X format
     const numericId = toolId.split('_')[1];
@@ -235,307 +184,31 @@ window.openToolModal = async function(toolId) {
         const details = await response.json();
         
         // Update modal title
-        document.getElementById('modalTitle').textContent = `${details.tool_info.name} (#${details.tool_info.number})`;
+        document.getElementById('modalTitle').textContent = details.title;
         
-        // Initialize or update main graph
-        if (!modalGraphs.mainGraph) {
-            const canvas = document.createElement('canvas');
-            document.getElementById('modalMainGraph').innerHTML = '';
-            document.getElementById('modalMainGraph').appendChild(canvas);
-            const ctx = canvas.getContext('2d');
-            
-            modalGraphs.mainGraph = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: 'Tool Life',
-                            data: [],
-                            borderColor: 'rgb(75, 192, 192)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.5)',
-                            tension: 0.1,
-                            fill: true
-                        },
-                        {
-                            label: 'Trendline',
-                            data: [],
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            fill: false,
-                            pointRadius: 0
-                        },
-                        {
-                            label: 'Mean',
-                            data: [],
-                            borderColor: 'rgba(255, 206, 86, 1)',
-                            borderWidth: 2,
-                            borderDash: [2, 2],
-                            fill: false,
-                            pointRadius: 0
-                        },
-                        {
-                            label: 'Mean ± Std Dev',
-                            data: [],
-                            borderColor: 'rgba(255, 206, 86, 0.3)',
-                            backgroundColor: 'rgba(255, 206, 86, 0.1)',
-                            fill: 1,
-                            pointRadius: 0
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#fff'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#fff'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            titleColor: '#fff',
-                            bodyColor: '#fff',
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            callbacks: {
-                                label: function(context) {
-                                    const datasetLabel = context.dataset.label;
-                                    const value = context.parsed.y;
-                                    if (datasetLabel === 'Tool Life') {
-                                        return `Life: ${value.toFixed(2)}`;
-                                    } else if (datasetLabel === 'Mean') {
-                                        return `Mean: ${value.toFixed(2)}`;
-                                    } else if (datasetLabel === 'Trendline') {
-                                        return `Trend: ${value.toFixed(2)}`;
-                                    } else if (datasetLabel === 'Mean ± Std Dev') {
-                                        return `Std Dev: ${value.toFixed(2)}`;
-                                    }
-                                    return `${datasetLabel}: ${value.toFixed(2)}`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
+        // Get modal content container
+        const modalContent = document.getElementById('modalContent');
+        modalContent.innerHTML = ''; // Clear loading state
         
-        // Copy data from the original graph
-        const originalGraph = window.graphs[toolId];
-        if (originalGraph && originalGraph.data) {
-            modalGraphs.mainGraph.data = JSON.parse(JSON.stringify(originalGraph.data));
-            modalGraphs.mainGraph.update();
-        } else {
-            throw new Error('Original graph data not found');
-        }
-        
-        // Initialize or update daily averages graph
-        const dailyAveragesCanvas = document.querySelector('#dailyAveragesGraph canvas');
-        if (!modalGraphs.dailyAverages) {
-            modalGraphs.dailyAverages = new Chart(dailyAveragesCanvas, {
-                type: 'line',
-                data: {
-                    labels: details.historical_data.daily_averages.labels,
-                    datasets: [{
-                        label: 'Daily Average',
-                        data: details.historical_data.daily_averages.values,
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#fff'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#fff'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            titleColor: '#fff',
-                            bodyColor: '#fff',
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        } else {
-            modalGraphs.dailyAverages.data.labels = details.historical_data.daily_averages.labels;
-            modalGraphs.dailyAverages.data.datasets[0].data = details.historical_data.daily_averages.values;
-            modalGraphs.dailyAverages.update();
-        }
-
-        // Initialize or update wear rate graph
-        const wearRateCanvas = document.querySelector('#wearRateGraph canvas');
-        if (!modalGraphs.wearRate) {
-            modalGraphs.wearRate = new Chart(wearRateCanvas, {
-                type: 'line',
-                data: {
-                    labels: details.historical_data.wear_rate.labels,
-                    datasets: [{
-                        label: 'Wear Rate',
-                        data: details.historical_data.wear_rate.values,
-                        borderColor: 'rgb(255, 99, 132)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#fff'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#fff'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            titleColor: '#fff',
-                            bodyColor: '#fff',
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        } else {
-            modalGraphs.wearRate.data.labels = details.historical_data.wear_rate.labels;
-            modalGraphs.wearRate.data.datasets[0].data = details.historical_data.wear_rate.values;
-            modalGraphs.wearRate.update();
-        }
-        
-        // Update information panels
-        document.getElementById('currentStats').innerHTML = `
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2">
-                <span class="text-gray-400">Current Life:</span>
-                <span class="font-medium">${details.current_stats.current_life}</span>
-            </div>
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mt-2">
-                <span class="text-gray-400">Average Life:</span>
-                <span class="font-medium">${details.current_stats.average_life}</span>
-            </div>
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mt-2">
-                <span class="text-gray-400">Trend Slope:</span>
-                <span class="font-medium">${details.current_stats.trend_slope}</span>
-            </div>
-            <div class="flex justify-between items-center mt-2">
-                <span class="text-gray-400">Predicted Replacement:</span>
-                <span class="font-medium">${details.current_stats.predicted_replacement}</span>
-            </div>
-        `;
-        
-        document.getElementById('toolInfo').innerHTML = `
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2">
-                <span class="text-gray-400">Tool Number:</span>
-                <span class="font-medium">${details.tool_info.number}</span>
-            </div>
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mt-2">
-                <span class="text-gray-400">Manufacturer:</span>
-                <span class="font-medium">${details.tool_info.manufacturer}</span>
-            </div>
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mt-2">
-                <span class="text-gray-400">Total Uses:</span>
-                <span class="font-medium">${details.tool_info.total_uses}</span>
-            </div>
-            <div class="flex justify-between items-center mt-2">
-                <span class="text-gray-400">Installation Date:</span>
-                <span class="font-medium">${details.tool_info.installation_date}</span>
-            </div>
-        `;
-        
-        document.getElementById('processInfo').innerHTML = `
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2">
-                <span class="text-gray-400">Last Maintenance:</span>
-                <span class="font-medium">${details.process_info.last_maintenance}</span>
-            </div>
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mt-2">
-                <span class="text-gray-400">Optimal Speed:</span>
-                <span class="font-medium">${details.process_info.optimal_speed}</span>
-            </div>
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mt-2">
-                <span class="text-gray-400">Optimal Feed:</span>
-                <span class="font-medium">${details.process_info.optimal_feed}</span>
-            </div>
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mt-2">
-                <span class="text-gray-400">Coolant Type:</span>
-                <span class="font-medium">${details.process_info.coolant_type}</span>
-            </div>
-            <div class="flex flex-col mt-2">
-                <span class="text-gray-400 mb-1">Material Compatibility:</span>
-                <span class="font-medium">${details.process_info.material_compatibility.join(', ')}</span>
-            </div>
-        `;
+        // Create and append each card
+        details.cards.forEach(card => {
+            const cardElement = createCard(card);
+            modalContent.appendChild(cardElement);
+        });
         
     } catch (error) {
         console.error('Error fetching tool details:', error);
         
-        // Show error messages in the panels
-        const errorMessage = `
-            <div class="flex items-center justify-center text-red-400">
+        // Show error message
+        const modalContent = document.getElementById('modalContent');
+        modalContent.innerHTML = `
+            <div class="col-span-12 flex items-center justify-center text-red-400">
                 <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Error loading data
             </div>
         `;
-        
-        document.getElementById('modalMainGraph').innerHTML = errorMessage;
-        document.getElementById('currentStats').innerHTML = errorMessage;
-        document.getElementById('toolInfo').innerHTML = errorMessage;
-        document.getElementById('processInfo').innerHTML = errorMessage;
     }
 };
 
@@ -560,9 +233,8 @@ window.closeToolModal = closeToolModal;
 </script>
 
 <style>
-    #modalMainGraph canvas,
-    #dailyAveragesGraph canvas,
-    #wearRateGraph canvas {
+    /* Chart canvas sizing */
+    canvas {
         width: 100% !important;
         height: 100% !important;
     }

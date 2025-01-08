@@ -160,39 +160,116 @@ async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
         wear_rate = abs(values[i] - values[i-1])
         wear_rates.append(wear_rate)
         wear_dates.append(timestamps[i].strftime("%m/%d"))
-    
+
+    # Define cards for the modal
     details = {
-        "tool_info": {
-            "id": tool.id,
-            "name": tool.name,
-            "number": tool.number,
-            "manufacturer": tool.manufacturer,
-            "total_uses": len(records),
-            "installation_date": "yadaday"
-        },
-        "current_stats": {
-            "current_life": current_life,
-            "average_life": mean,
-            "trend_slope": slope,
-            "predicted_replacement": predicted_replacement.strftime("%Y-%m-%d")
-        },
-        "historical_data": {
-            "daily_averages": {
-                "labels": daily_dates,
-                "values": daily_averages
+        "title": f"{tool.name} (#{tool.number})",
+        "cards": [
+            {
+                "id": "main_graph",
+                "title": "Tool Life Trend",
+                "width": 6,  # Full width
+                "height": 2,  # 2 units tall
+                "type": "graph",
+                "data": {
+                    "type": "line",
+                    "labels": [t.strftime("%m/%d") for t in timestamps],
+                    "datasets": [
+                        {
+                            "label": "Tool Life",
+                            "data": values,
+                            "borderColor": "rgb(75, 192, 192)",
+                            "backgroundColor": "rgba(75, 192, 192, 0.5)",
+                            "tension": 0.1,
+                            "fill": True
+                        },
+                        {
+                            "label": "Trendline",
+                            "data": [slope * i + intercept for i in x],
+                            "borderColor": "rgba(255, 99, 132, 1)",
+                            "borderWidth": 2,
+                            "borderDash": [5, 5],
+                            "fill": False,
+                            "pointRadius": 0
+                        }
+                    ]
+                }
             },
-            "wear_rate": {
-                "labels": wear_dates,
-                "values": wear_rates
+            {
+                "id": "current_stats",
+                "title": "Current Statistics",
+                "width": 3,  # One third width
+                "height": 1,
+                "type": "stats",
+                "data": [
+                    {"label": "Current Life", "value": f"{current_life:.2f}"},
+                    {"label": "Average Life", "value": f"{mean:.2f}"},
+                    {"label": "Trend Slope", "value": f"{slope:.2f}"},
+                    {"label": "Predicted Replacement", "value": predicted_replacement.strftime("%Y-%m-%d")}
+                ]
+            },
+            {
+                "id": "tool_info",
+                "title": "Tool Information",
+                "width": 3,  # One third width
+                "height": 1,
+                "type": "stats",
+                "data": [
+                    {"label": "Tool Number", "value": str(tool.number)},
+                    {"label": "Manufacturer", "value": tool.manufacturer},
+                    {"label": "Total Uses", "value": str(len(records))},
+                    {"label": "Installation Date", "value": "yadaday"}
+                ]
+            },
+            {
+                "id": "process_info",
+                "title": "Process Information",
+                "width": 6,  # One third width
+                "height": 1,
+                "type": "stats",
+                "data": [
+                    {"label": "Last Maintenance", "value": "xxx"},
+                    {"label": "Optimal Speed", "value": "xxx RPM"},
+                    {"label": "Optimal Feed", "value": "xxx mm/min"},
+                    {"label": "Coolant Type", "value": "Standard"},
+                    {"label": "Material Compatibility", "value": "General Purpose"}
+                ]
+            },
+            {
+                "id": "daily_averages",
+                "title": "Daily Averages",
+                "width": 6,  # Half width
+                "height": 1,
+                "type": "graph",
+                "data": {
+                    "type": "line",
+                    "labels": daily_dates,
+                    "datasets": [{
+                        "label": "Daily Average",
+                        "data": daily_averages,
+                        "borderColor": "rgb(75, 192, 192)",
+                        "tension": 0.1
+                    }]
+                }
+            },
+            {
+                "id": "wear_rate",
+                "title": "Wear Rate",
+                "width": 6,  # Half width
+                "height": 1,
+                "type": "graph",
+                "data": {
+                    "type": "line",
+                    "labels": wear_dates,
+                    "datasets": [{
+                        "label": "Wear Rate",
+                        "data": wear_rates,
+                        "borderColor": "rgb(255, 99, 132)",
+                        "tension": 0.1
+                    }]
+                }
             }
-        },
-        "process_info": {
-            "last_maintenance": 'xxx',
-            "optimal_speed": "xxx RPM",
-            "optimal_feed": "xxx mm/min",
-            "coolant_type": "Standard",
-            "material_compatibility": ["General Purpose"]
-        }
+        ]
     }
     
     return details
