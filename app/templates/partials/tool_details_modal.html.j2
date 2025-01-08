@@ -1,8 +1,8 @@
 <!-- Tool Details Modal -->
 <div id="toolDetailsModal" class="fixed inset-0 bg-gray-900/95 hidden z-[9999] overflow-y-auto">
-    <div class="min-h-screen p-4">
+    <div class="min-h-screen p-4" id="modalBackdrop">
         <div class="flex items-center justify-center">
-            <div class="relative w-full max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-xl max-h-[90vh] flex flex-col">
+            <div class="relative w-full max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-xl max-h-[90vh] flex flex-col" id="modalContent">
                 <!-- Modal header -->
                 <div class="flex justify-between items-center p-4 border-b border-gray-700">
                     <h2 class="text-2xl font-bold" id="modalTitle">Tool Details</h2>
@@ -15,7 +15,7 @@
                 
                 <!-- Modal content -->
                 <div class="p-4 overflow-y-auto flex-grow">
-                    <div id="modalContent" class="grid grid-cols-12 auto-rows-[minmax(200px,auto)] gap-6">
+                    <div id="modalGrid" class="grid grid-cols-12 auto-rows-[minmax(200px,auto)]">
                         <!-- Content will be dynamically populated -->
                         <div class="col-span-12 flex items-center justify-center text-gray-400">
                             <svg class="animate-spin h-8 w-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -50,8 +50,10 @@ function initModal() {
     if (!modal) return;
 
     // Close modal when clicking outside content
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) {
+    const backdrop = document.getElementById('modalBackdrop');
+    backdrop.addEventListener('click', function(e) {
+        const modalContent = document.getElementById('modalContent');
+        if (!modalContent.contains(e.target)) {
             closeToolModal();
         }
     });
@@ -141,8 +143,8 @@ function createCard(card) {
 
 // Function to reset modal content
 function resetModalContent() {
-    const modalContent = document.getElementById('modalContent');
-    modalContent.innerHTML = `
+    const modalGrid = document.getElementById('modalGrid');
+    modalGrid.innerHTML = `
         <div class="col-span-12 flex items-center justify-center text-gray-400">
             <svg class="animate-spin h-8 w-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -187,21 +189,21 @@ window.openToolModal = async function(toolId) {
         document.getElementById('modalTitle').textContent = details.title;
         
         // Get modal content container
-        const modalContent = document.getElementById('modalContent');
-        modalContent.innerHTML = ''; // Clear loading state
+        const modalGrid = document.getElementById('modalGrid');
+        modalGrid.innerHTML = ''; // Clear loading state
         
         // Create and append each card
         details.cards.forEach(card => {
             const cardElement = createCard(card);
-            modalContent.appendChild(cardElement);
+            modalGrid.appendChild(cardElement);
         });
         
     } catch (error) {
         console.error('Error fetching tool details:', error);
         
         // Show error message
-        const modalContent = document.getElementById('modalContent');
-        modalContent.innerHTML = `
+        const modalGrid = document.getElementById('modalGrid');
+        modalGrid.innerHTML = `
             <div class="col-span-12 flex items-center justify-center text-red-400">
                 <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
