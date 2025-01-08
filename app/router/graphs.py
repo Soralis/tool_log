@@ -1,9 +1,9 @@
-from fastapi import APIRouter, WebSocket, Request, Depends
+from fastapi import APIRouter, WebSocket, Request, Depends, Response, HTTPException
 import asyncio
 import json
 from app.templates.jinja_functions import templates
+from datetime import datetime, timedelta
 import socket
-import httpx
 from sqlmodel import Session, select
 from app.database_config import get_session
 from app.models.tool import Tool, ToolLife
@@ -17,18 +17,11 @@ def get_ip_address():
         # Get local IP
         hostname = socket.gethostname()
         local_ip = socket.gethostbyname(hostname)
-        
-        # Try to get public IP
-        try:
-            response = httpx.get('https://api.ipify.org', timeout=2.0)
-            if response.status_code == 200:
-                public_ip = response.text
-                return f"{hostname} (Local: {local_ip}, Public: {public_ip})"
-        except:
-            pass
+        if local_ip == '127.0.1.1':
+            local_ip = '10.0.36.192'
             
         # Fallback to just local IP if public IP fetch fails
-        return f"{hostname} (Local: {local_ip})"
+        return f"{hostname} (IP: {local_ip})"
     except:
         return "Unable to get IP address"
 
@@ -50,7 +43,7 @@ async def get_tool_graphs(db: Session) -> List[Dict]:
     
     return graphs
 
-async def get_tool_life_data(db: Session, limit:int = 50) -> Dict:
+async def get_tool_life_data(db: Session, limit: int = 50) -> Dict:
     # Get active tools with life records
     statement = select(Tool).where(Tool.active == True)
     tools = db.exec(statement).all()
@@ -74,13 +67,19 @@ async def get_tool_life_data(db: Session, limit:int = 50) -> Dict:
             labels = [record.timestamp.strftime("%m/%d") for record in records]
             
             # Calculate statistics
-            mean = np.mean(values)
-            std = np.std(values)
-            
-            # Calculate trendline
-            x = np.arange(len(values))
-            slope, intercept, _, _, _ = linregress(x, values)
-            trendline = [slope * i + intercept for i in x]
+            if len (values) > 1:
+                mean = np.mean(values)
+                std = np.std(values)
+                
+                # Calculate trendline
+                x = np.arange(len(values))
+                slope, intercept, _, _, _ = linregress(x, values)
+                trendline = [slope * i + intercept for i in x]
+
+            else:
+                mean = values[0]
+                std = 0
+                trendline = [mean]
             
             data[f"tool_{tool.id}"] = {
                 "labels": labels,
@@ -103,6 +102,100 @@ async def graphs(request: Request, db: Session = Depends(get_session)):
             "graphs": graphs
         }
     )
+
+@router.get("/api/tool/{tool_id}/details")
+async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
+    """Get detailed information about a specific tool"""
+    # Get tool information
+    tool = db.get(Tool, tool_id)
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Get tool life records
+    statement = (
+        select(ToolLife)
+        .where(ToolLife.tool_id == tool_id)
+        .order_by(ToolLife.timestamp.desc())
+        .limit(50)
+    )
+    records = list(db.exec(statement))
+    records.reverse()  # Chronological order
+    
+    if not records:
+        raise HTTPException(status_code=404, detail="No tool life data found")
+    
+    # Calculate statistics
+    values = [record.reached_life for record in records]
+    timestamps = [record.timestamp for record in records]
+    mean = np.mean(values)
+    std = np.std(values)
+    
+    # Calculate trendline
+    x = np.arange(len(values))
+    slope, intercept, _, _, _ = linregress(x, values)
+    
+    # Predict replacement date based on trend
+    current_life = values[-1]
+    days_to_replacement = max(1, int((100 - current_life) / abs(slope))) if slope < 0 else 30
+    predicted_replacement = datetime.now() + timedelta(days=days_to_replacement)
+    
+    # Calculate daily averages (last 7 days)
+    daily_data = {}
+    for record in records:
+        date_key = record.timestamp.strftime("%Y-%m-%d")
+        if date_key not in daily_data:
+            daily_data[date_key] = []
+        daily_data[date_key].append(record.reached_life)
+    
+    daily_averages = []
+    daily_dates = []
+    for date in sorted(daily_data.keys())[-7:]:
+        daily_averages.append(np.mean(daily_data[date]))
+        daily_dates.append(datetime.strptime(date, "%Y-%m-%d").strftime("%m/%d"))
+    
+    # Calculate wear rate
+    wear_rates = []
+    wear_dates = []
+    for i in range(1, min(8, len(values))):
+        wear_rate = abs(values[i] - values[i-1])
+        wear_rates.append(wear_rate)
+        wear_dates.append(timestamps[i].strftime("%m/%d"))
+    
+    details = {
+        "tool_info": {
+            "id": tool.id,
+            "name": tool.name,
+            "number": tool.number,
+            "manufacturer": tool.manufacturer,
+            "total_uses": len(records),
+            "installation_date": "yadaday"
+        },
+        "current_stats": {
+            "current_life": current_life,
+            "average_life": mean,
+            "trend_slope": slope,
+            "predicted_replacement": predicted_replacement.strftime("%Y-%m-%d")
+        },
+        "historical_data": {
+            "daily_averages": {
+                "labels": daily_dates,
+                "values": daily_averages
+            },
+            "wear_rate": {
+                "labels": wear_dates,
+                "values": wear_rates
+            }
+        },
+        "process_info": {
+            "last_maintenance": 'xxx',
+            "optimal_speed": "xxx RPM",
+            "optimal_feed": "xxx mm/min",
+            "coolant_type": "Standard",
+            "material_compatibility": ["General Purpose"]
+        }
+    }
+    
+    return details
 
 @router.websocket("/ws/graphs")
 async def websocket_graphs(websocket: WebSocket, db: Session = Depends(get_session)):

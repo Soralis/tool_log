@@ -8,6 +8,7 @@
     <link href="{{ url_for('static', path='css/style.css') }}" rel="stylesheet">
 </head>
 <body class="bg-gray-900 text-gray-100">
+    {% include 'partials/tool_details_modal.html.j2' %}
     <div class="min-h-screen p-4">
         {# <div class="max-w-7xl mx-auto"> #}
         <div>
@@ -20,31 +21,43 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-8 text-sm font-mono">
-    <div class="flex items-center">
-        <div class="w-8 h-4 mr-2 border-2 border-[rgb(75,192,192)] bg-[rgb(75,192,192)]/50"></div>
-        <span>Tool Life</span>
-    </div>
-    
-    <div class="flex items-center">
-        <div class="w-8 h-4 mr-2 border-t-2 border-dashed border-[rgb(255,99,132)]"></div>
-        <span>Trendline</span>
-    </div>
-    
-    <div class="flex items-center">
-        <div class="w-8 h-4 mr-2 border-t-2 border-dashed border-[rgb(255,206,86)]"></div>
-        <span>Mean</span>
-    </div>
-    
-    <div class="flex items-center">
-        <div class="w-8 h-4 mr-2 border-2 border-[rgb(255,206,86)] bg-[rgb(255,206,86)]/10"></div>
-        <span>Mean ± Std Dev</span>
-    </div>
-</div>
+                    <div class="flex items-center">
+                        <div class="w-8 h-4 mr-2 border-2 border-[rgb(75,192,192)] bg-[rgb(75,192,192)]/50"></div>
+                        <span>Tool Life</span>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <div class="w-8 h-4 mr-2 border-t-2 border-dashed border-[rgb(255,99,132)]"></div>
+                        <span>Trendline</span>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <div class="w-8 h-4 mr-2 border-t-2 border-dashed border-[rgb(255,206,86)]"></div>
+                        <span>Mean</span>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <div class="w-8 h-4 mr-2 border-2 border-[rgb(255,206,86)] bg-[rgb(255,206,86)]/10"></div>
+                        <span>Mean ± Std Dev</span>
+                    </div>
+                </div>
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
                 {% for graph in graphs %}
-                <div class="bg-gray-800 rounded-lg shadow p-4">
+                <div class="bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-700 transition-colors" 
+                     onclick="(function(e) {
+                         e.preventDefault();
+                         e.stopPropagation();
+                         const graphId = '{{ graph.id }}';
+                         console.log('Graph clicked:', graphId);
+                         const graphDiv = document.getElementById(graphId);
+                         if (graphDiv && window.graphs[graphId]) {
+                             openToolModal(graphId);
+                         } else {
+                             console.error('Graph element or data not found:', graphId);
+                         }
+                     })(event)">
                     <h3 class="text-lg font-medium text-gray-300 mb-2">{{ graph.title }}</h3>
                     <div class="flex">
                         <div class="flex-1 -mr-16">
@@ -74,18 +87,20 @@
     <div id="connection-status" class="fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500/100">
         Connecting...
     </div>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const graphs = {};
+        // Make graphs object globally available
+        window.graphs = {};
         const statusDiv = document.getElementById('connection-status');
         let ws = null;
 
-        function initializeGraph(containerId, type) {
+        // Make initializeGraph function globally available
+        window.initializeGraph = function(containerId, type) {
             const canvas = document.querySelector(`#${containerId} canvas`);
             const ctx = canvas.getContext('2d');
             
-            graphs[containerId] = new Chart(ctx, {
+            window.graphs[containerId] = new Chart(ctx, {
                 type: type,
                 data: {
                     labels: [],
@@ -242,11 +257,13 @@
             return ws
         }
 
-        // Initialize all graphs on the page
-        document.querySelectorAll('.graph-container').forEach(container => {
-            const id = container.id;
-            const type = container.dataset.type;
-            initializeGraph(id, type);
+        // Initialize all graphs once DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.graph-container').forEach(container => {
+                const id = container.id;
+                const type = container.dataset.type;
+                initializeGraph(id, type);
+            });
         });
 
         // Start WebSocket connection
