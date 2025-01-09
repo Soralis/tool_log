@@ -3,6 +3,7 @@ from sqlmodel import Field, SQLModel, Relationship, Column, JSON
 from sqlalchemy import UniqueConstraint
 from datetime import datetime
 from decimal import Decimal
+from enum import IntEnum
 from .model_connections import RecipeTool
 
 if TYPE_CHECKING:
@@ -70,8 +71,16 @@ class ToolAttributeRead(SQLModel):
     tool_type: ToolType
 
 
+class Sentiment(IntEnum):
+    VERY_BAD = 1
+    BAD = 2
+    NEUTRAL = 3
+    GOOD = 4
+    VERY_GOOD = 5
+
 class ChangeReasonBase(SQLModel):
     name: str = Field(index=True)
+    sentiment: Sentiment = Field(default=Sentiment.NEUTRAL)
 
 
 class ChangeReason(ChangeReasonBase, table=True):
