@@ -133,12 +133,7 @@ async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
     # Calculate trendline
     x = np.arange(len(values))
     slope, intercept, _, _, _ = linregress(x, values)
-    
-    # Predict replacement date based on trend
-    current_life = values[-1]
-    days_to_replacement = max(1, int((100 - current_life) / abs(slope))) if slope < 0 else 30
-    predicted_replacement = datetime.now() + timedelta(days=days_to_replacement)
-    
+        
     # Calculate daily averages (last 7 days)
     daily_data = {}
     for record in records:
@@ -164,16 +159,16 @@ async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
     # Define cards for the modal
     details = {
         "title": f"{tool.name} (#{tool.number})",
-        "cards": [
-            {
-                "id": "main_graph",
-                "title": "Tool Life Trend",
+        "cards": []
+    }
+
+    details['cards'].append({"id": "main_graph", "title": "Tool Life Trend",
                 "width": 6,  # Full width
                 "height": 2,  # 2 units tall
                 "type": "graph",
                 "data": {
                     "type": "line",
-                    "labels": [t.strftime("%m/%d") for t in timestamps],
+                    "labels": timestamps,
                     "datasets": [
                         {
                             "label": "Tool Life",
@@ -194,84 +189,89 @@ async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
                         }
                     ]
                 }
-            },
-            {
-                "id": "current_stats",
-                "title": "Current Statistics",
-                "width": 3,  # One third width
-                "height": 1,
-                "type": "stats",
-                "data": [
-                    {"label": "Current Life", "value": f"{current_life:.2f}"},
-                    {"label": "Average Life", "value": f"{mean:.2f}"},
-                    {"label": "Trend Slope", "value": f"{slope:.2f}"},
-                    {"label": "Predicted Replacement", "value": predicted_replacement.strftime("%Y-%m-%d")}
-                ]
-            },
-            {
-                "id": "tool_info",
-                "title": "Tool Information",
-                "width": 3,  # One third width
-                "height": 1,
-                "type": "stats",
-                "data": [
-                    {"label": "Tool Number", "value": str(tool.number)},
-                    {"label": "Manufacturer", "value": tool.manufacturer},
-                    {"label": "Total Uses", "value": str(len(records))},
-                    {"label": "Installation Date", "value": "yadaday"}
-                ]
-            },
-            {
-                "id": "process_info",
-                "title": "Process Information",
-                "width": 6,  # One third width
-                "height": 1,
-                "type": "stats",
-                "data": [
-                    {"label": "Last Maintenance", "value": "xxx"},
-                    {"label": "Optimal Speed", "value": "xxx RPM"},
-                    {"label": "Optimal Feed", "value": "xxx mm/min"},
-                    {"label": "Coolant Type", "value": "Standard"},
-                    {"label": "Material Compatibility", "value": "General Purpose"}
-                ]
-            },
-            {
-                "id": "daily_averages",
-                "title": "Daily Averages",
-                "width": 6,  # Half width
-                "height": 1,
-                "type": "graph",
-                "data": {
-                    "type": "line",
-                    "labels": daily_dates,
-                    "datasets": [{
-                        "label": "Daily Average",
-                        "data": daily_averages,
-                        "borderColor": "rgb(75, 192, 192)",
-                        "tension": 0.1
-                    }]
-                }
-            },
-            {
-                "id": "wear_rate",
-                "title": "Wear Rate",
-                "width": 6,  # Half width
-                "height": 1,
-                "type": "graph",
-                "data": {
-                    "type": "line",
-                    "labels": wear_dates,
-                    "datasets": [{
-                        "label": "Wear Rate",
-                        "data": wear_rates,
-                        "borderColor": "rgb(255, 99, 132)",
-                        "tension": 0.1
-                    }]
-                }
             }
-        ]
-    }
-    
+        )
+    details['cards'].append({"id": "current_stats", "title": "Current Statistics",
+            "width": 3,  # One third width
+            "height": 2,
+            "type": "stats",
+            "data": [
+                {"label": "Current Life", "value": f"{values[-1]:.2f}"},
+                {"label": "Average Life", "value": f"{mean:.2f} ± {std:.2f} ({std/mean:.0%})"},
+                {"label": "Trend Slope", "value": f"{slope:.2f}"},
+                {"label": "Last Replacement", "value": timestamps[-1].strftime("%Y/%m/%d %H:%M")},
+            ]
+        }
+    )
+    details['cards'].append({"id": "tool_info", "title": "Tool Information",
+            "width": 3,  # One third width
+            "height": 2,
+            "type": "stats",
+            "data": [
+                {"label": "Tool Number", "value": str(tool.number)},
+                {'label': 'Tool Type', 'value': tool.tool_type.name + ' (perishable)' if tool.tool_type.perishable else ' (durable)'},
+                {'label': 'Description', 'value': tool.description},
+                {"label": "Manufacturer", "value": tool.manufacturer.name},
+                {"label": "Total Uses", "value": str(len(records))},
+                {'label': 'Cost', 'value': '1000'}
+            ]
+        }
+    )
+
+
+
+
+    # details['cards'].append(
+    #     {
+    #         "id": "process_info",
+    #         "title": "Process Information",
+    #         "width": 6,  # One third width
+    #         "height": 1,
+    #         "type": "stats",
+    #         "data": [
+    #             {"label": "Last Maintenance", "value": "xxx"},
+    #             {"label": "Optimal Speed", "value": "xxx RPM"},
+    #             {"label": "Optimal Feed", "value": "xxx mm/min"},
+    #             {"label": "Coolant Type", "value": "Standard"},
+    #             {"label": "Material Compatibility", "value": "General Purpose"}
+    #         ]
+    #     },
+    #     {
+    #         "id": "daily_averages",
+    #         "title": "Daily Averages",
+    #         "width": 6,  # Half width
+    #         "height": 1,
+    #         "type": "graph",
+    #         "data": {
+    #             "type": "line",
+    #             "labels": daily_dates,
+    #             "datasets": [{
+    #                 "label": "Daily Average",
+    #                 "data": daily_averages,
+    #                 "borderColor": "rgb(75, 192, 192)",
+    #                 "tension": 0.1
+    #             }]
+    #         }
+    #     },
+    #     {
+    #         "id": "wear_rate",
+    #         "title": "Wear Rate",
+    #         "width": 6,  # Half width
+    #         "height": 1,
+    #         "type": "graph",
+    #         "data": {
+    #             "type": "line",
+    #             "labels": wear_dates,
+    #             "datasets": [{
+    #                 "label": "Wear Rate",
+    #                 "data": wear_rates,
+    #                 "borderColor": "rgb(255, 99, 132)",
+    #                 "tension": 0.1
+    #             }]
+    #         }
+    #     }
+    # )
+
     return details
 
 @router.websocket("/ws/graphs")
