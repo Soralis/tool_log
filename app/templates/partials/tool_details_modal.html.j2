@@ -31,9 +31,35 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
 <script>
 // Store active charts
 window.modalCharts = {};
+
+// Default chart options
+const defaultChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+        y: {
+            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+            ticks: { color: '#fff' }
+        },
+        x: {
+            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+            ticks: { color: '#fff' }
+        }
+    },
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)'
+        }
+    }
+};
 
 // Function to toggle body scroll
 function toggleBodyScroll(lock) {
@@ -103,25 +129,21 @@ function createCard(card) {
                 datasets: card.data.datasets
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                ...defaultChartOptions,
                 scales: {
-                    y: {
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#fff' }
-                    },
-                    x: {
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#fff' }
-                    }
-                },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)'
-                    }
+                    ...defaultChartOptions.scales,
+                    ...(card.data.scales || {}),
+                    // Ensure grid and tick colors are preserved for any scale
+                    ...(Object.fromEntries(
+                        Object.entries(card.data.scales || {}).map(([key, value]) => [
+                            key,
+                            {
+                                ...value,
+                                grid: { ...(value.grid || {}), color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { ...(value.ticks || {}), color: '#fff' }
+                            }
+                        ])
+                    ))
                 }
             }
         });

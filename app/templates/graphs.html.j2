@@ -88,6 +88,8 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
     <script>
         // Make graphs object globally available
         window.graphs = {};
@@ -213,6 +215,25 @@
                 Object.entries(data).forEach(([graphId, graphData]) => {
                     const graph = graphs[graphId];
                     if (graph) {
+                        // Update scales if provided
+                        if (graphData.scales) {
+                            graph.options.scales = {
+                                ...graph.options.scales,
+                                ...graphData.scales,
+                                // Preserve grid and tick colors
+                                ...(Object.fromEntries(
+                                    Object.entries(graphData.scales).map(([key, value]) => [
+                                        key,
+                                        {
+                                            ...value,
+                                            grid: { ...(value.grid || {}), color: 'rgba(255, 255, 255, 0.1)' },
+                                            ticks: { ...(value.ticks || {}), color: '#fff' }
+                                        }
+                                    ])
+                                ))
+                            };
+                        }
+
                         graph.data.labels = graphData.labels;
                         // Tool life data
                         graph.data.datasets[0].data = graphData.values;

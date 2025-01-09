@@ -82,11 +82,22 @@ async def get_tool_life_data(db: Session, limit: int = 50) -> Dict:
                 trendline = [mean]
             
             data[f"tool_{tool.id}"] = {
-                "labels": labels,
+                "labels": [record.timestamp.isoformat() for record in records],
                 "values": values,
                 "mean": mean,
                 "std": std,
-                "trendline": trendline
+                "trendline": trendline,
+                "scales": {
+                    "x": {
+                        "type": "time",
+                        "time": {
+                            "unit": "day",
+                            "displayFormats": {
+                                "day": "MMM D"
+                            }
+                        }
+                    }
+                }
             }
     
     return data
@@ -168,7 +179,18 @@ async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
                 "type": "graph",
                 "data": {
                     "type": "line",
-                    "labels": timestamps,
+                    "labels": [timestamp.isoformat() for timestamp in timestamps],
+                    "scales": {
+                        "x": {
+                            "type": "time",
+                            "time": {
+                                "unit": "day",
+                                "displayFormats": {
+                                    "day": "MMM D"
+                                }
+                            }
+                        }
+                    },
                     "datasets": [
                         {
                             "label": "Tool Life",
