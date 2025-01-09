@@ -313,7 +313,98 @@ async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
                         }
                     }
                 },
-                "datasets": datasets
+                "datasets": datasets,
+                "interaction": {
+                    "intersect": True,
+                    "mode": "point"
+                },
+                "plugins": {
+                    "tooltip": {
+                        "callbacks": {
+                            "afterLabel": "function(context) { return 'Change Reason: ' + context.raw.change_reason.name; }"
+                        }
+                    }
+                }
+            }
+        })
+        
+        # Calculate change reason statistics
+        all_reasons = set()
+        channel_reasons = {}
+        machine_reasons = defaultdict(int)
+        total_machine_records = 0
+        
+        # Collect all unique reasons and count occurrences
+        for channel, records in channels.items():
+            channel_reasons[channel] = defaultdict(int)
+            for record in records:
+                reason = record['change_reason']['name']
+                all_reasons.add(reason)
+                channel_reasons[channel][reason] += 1
+                machine_reasons[reason] += 1
+                total_machine_records += 1
+        
+        # Convert counts to percentages
+        reason_datasets = []
+        
+        # Add machine total dataset
+        machine_percentages = []
+        for reason in sorted(all_reasons):
+            percentage = (machine_reasons[reason] / total_machine_records) * 100
+            machine_percentages.append(percentage)
+        
+        reason_datasets.append({
+            "label": f"{machine_name} Total",
+            "data": machine_percentages,
+            "backgroundColor": "rgb(128, 128, 128)",  # Gray for total
+            "borderWidth": 1
+        })
+        
+        # Add channel datasets
+        for i, (channel, reasons) in enumerate(sorted(channel_reasons.items())):
+            channel_total = sum(reasons.values())
+            percentages = []
+            for reason in sorted(all_reasons):
+                percentage = (reasons[reason] / channel_total) * 100
+                percentages.append(percentage)
+            
+            color_idx = i % len(colors)
+            reason_datasets.append({
+                "label": f"Channel {channel}",
+                "data": percentages,
+                "backgroundColor": colors[color_idx][0],
+                "borderWidth": 1
+            })
+        
+        # Add change reasons chart
+        details['cards'].append({
+            "id": f"machine_{machine_name}_reasons",
+            "title": f"{machine_name} Change Reasons",
+            "width": 6,  # Full width
+            "height": 2,  # 2 units tall
+            "type": "graph",
+            "data": {
+                "type": "bar",
+                "labels": sorted(all_reasons),
+                "datasets": reason_datasets,
+                "options": {
+                    "scales": {
+                        "y": {
+                            "beginAtZero": True,
+                            "title": {
+                                "display": True,
+                                "text": "Percentage"
+                            }
+                        }
+                    },
+                    "plugins": {
+                        "tooltip": {
+                            "callbacks": {
+                                "label": "function(context) { return context.dataset.label + ': ' + context.raw.toFixed(1) + '%'; }"
+                            }
+                        }
+                    }
+                }
             }
         })
 
