@@ -1,8 +1,9 @@
-from fastapi import APIRouter, WebSocket, Request, Depends, Response, HTTPException
+from fastapi import APIRouter, WebSocket, Request, Depends, HTTPException
 import asyncio
 import json
 from app.templates.jinja_functions import templates
-from datetime import datetime, timedelta
+from datetime import datetime
+from collections import defaultdict
 import socket
 from sqlmodel import Session, select
 from app.database_config import get_session
@@ -64,7 +65,6 @@ async def get_tool_life_data(db: Session, limit: int = 50) -> Dict:
             # Reverse to get chronological order
             records.reverse()
             values = [record.reached_life for record in records]
-            labels = [record.timestamp.strftime("%m/%d") for record in records]
             
             # Calculate statistics
             if len (values) > 1:
@@ -240,59 +240,82 @@ async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
         }
     )
 
-
-
-
-    # details['cards'].append(
-    #     {
-    #         "id": "process_info",
-    #         "title": "Process Information",
-    #         "width": 6,  # One third width
-    #         "height": 1,
-    #         "type": "stats",
-    #         "data": [
-    #             {"label": "Last Maintenance", "value": "xxx"},
-    #             {"label": "Optimal Speed", "value": "xxx RPM"},
-    #             {"label": "Optimal Feed", "value": "xxx mm/min"},
-    #             {"label": "Coolant Type", "value": "Standard"},
-    #             {"label": "Material Compatibility", "value": "General Purpose"}
-    #         ]
-    #     },
-    #     {
-    #         "id": "daily_averages",
-    #         "title": "Daily Averages",
-    #         "width": 6,  # Half width
-    #         "height": 1,
-    #         "type": "graph",
-    #         "data": {
-    #             "type": "line",
-    #             "labels": daily_dates,
-    #             "datasets": [{
-    #                 "label": "Daily Average",
-    #                 "data": daily_averages,
-    #                 "borderColor": "rgb(75, 192, 192)",
-    #                 "tension": 0.1
-    #             }]
-    #         }
-    #     },
-    #     {
-    #         "id": "wear_rate",
-    #         "title": "Wear Rate",
-    #         "width": 6,  # Half width
-    #         "height": 1,
-    #         "type": "graph",
-    #         "data": {
-    #             "type": "line",
-    #             "labels": wear_dates,
-    #             "datasets": [{
-    #                 "label": "Wear Rate",
-    #                 "data": wear_rates,
-    #                 "borderColor": "rgb(255, 99, 132)",
-    #                 "tension": 0.1
-    #             }]
-    #         }
-    #     }
-    # )
+    machines = defaultdict(lambda: defaultdict(list))
+    for record in records:
+        machines[record.machine.name][record.machine_channel].append({'tool_life': record.reached_life,
+                                                                       'timestamp': record.timestamp,
+                                                                       'settings': record.tool_settings,
+                                                                       'additional_measurements': record.additional_measurements,
+                                                                       'change_reason': {
+                                                                           'name': record.change_reason.name,
+                                                                           'sentiment': record.change_reason.sentiment},
+                                                                        })
+        
+    # Add a card for each machine with all its channels
+    for machine_name, channels in machines.items():
+        # Get all unique timestamps across all channels
+        all_timestamps = set()
+        for channel_records in channels.values():
+            all_timestamps.update(record['timestamp'] for record in channel_records)
+        
+        # Sort timestamps chronologically
+        sorted_timestamps = sorted(all_timestamps)
+        timestamp_labels = [ts.isoformat() for ts in sorted_timestamps]
+        
+        # Create datasets for each channel
+        datasets = []
+        colors = [
+            ["rgb(255, 205, 86)", "rgba(255, 205, 86, 0.5)"],  # Yellow
+            ["rgb(153, 102, 255)", "rgba(153, 102, 255, 0.5)"],  # Purple
+            ["rgb(75, 192, 192)", "rgba(75, 192, 192, 0.5)"],  # Teal
+            ["rgb(255, 99, 132)", "rgba(255, 99, 132, 0.5)"],  # Pink
+            ["rgb(54, 162, 235)", "rgba(54, 162, 235, 0.5)"],  # Blue
+        ]
+        
+        for i, (channel, records) in enumerate(channels.items()):
+            color_idx = i % len(colors)
+            sorted_records = sorted(records, key=lambda x: x['timestamp'])
+            
+            datasets.append({
+                "label": f"Channel {channel}",
+                "data": sorted_records,
+                "parsing": {
+                    "xAxisKey": "timestamp",
+                    "yAxisKey": "tool_life"
+                },
+                "borderColor": colors[color_idx][0],
+                "tension": 0.1,
+                "fill": False,
+                "pointRadius": 5,
+                "pointHoverRadius": 8,
+                "pointBorderWidth": 2,
+                "pointBackgroundColor": "white",
+                "pointBorderColor": colors[color_idx][0]
+            })
+        
+        details['cards'].append({
+            "id": f"machine_{machine_name}",
+            "title": f"{machine_name} Tool Life by Channel",
+            "width": 6,  # Full width
+            "height": 2,  # 2 units tall
+            "type": "graph",
+            "data": {
+                "type": "line",
+                "labels": timestamp_labels,
+                "scales": {
+                    "x": {
+                        "type": "time",
+                        "time": {
+                            "unit": "day",
+                            "displayFormats": {
+                                "day": "MMM D"
+                            }
+                        }
+                    }
+                },
+                "datasets": datasets
+            }
+        })
 
     return details
 
