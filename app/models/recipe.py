@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 class RecipeBase(SQLModel):
     name: str = Field(index=True)
     description: Optional[str] = None
-    final_part: str = Field(index=True)
     workpiece_id: int = Field(foreign_key='workpiece.id')
     machine_id: int = Field(foreign_key='machine.id')
 

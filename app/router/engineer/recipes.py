@@ -69,30 +69,42 @@ async def get_tools(q: str = "", session: Session = Depends(get_session)):
     ToolAttributeAlias = aliased(ToolAttribute)
 
     # Create the query
-    query = (
-        select(Tool, ToolType, ToolAttributeAlias, Manufacturer)
-        .join(ToolType, Tool.tool_type_id == ToolType.id)
-        .join(ToolAttributeAlias, ToolType.id == ToolAttributeAlias.tool_type_id)
-        .join(Manufacturer, Tool.manufacturer_id == Manufacturer.id)
-    )
+    # query = (
+    #     select(Tool, ToolType, ToolAttributeAlias, Manufacturer)
+    #     .join(ToolType, Tool.tool_type_id == ToolType.id)
+    #     .join(ToolAttributeAlias, ToolType.id == ToolAttributeAlias.tool_type_id)
+    #     .join(Manufacturer, Tool.manufacturer_id == Manufacturer.id)
+    # )
+    query = select(Tool)
 
     # Execute the query
     result = session.exec(query).fetchall()
 
     # Process the result
     tools_dict = {}
-    for tool, tool_type, attribute, manufacturer in result:
+    # for tool, tool_type, attribute, manufacturer in result:
+    #     if tool.id not in tools_dict:
+    #         tools_dict[tool.id] = {
+    #             'name': f'{tool.name} ({manufacturer.name})',
+    #             'type': tool_type.name,  # Add tool type separately
+    #             'attributes': []
+    #         }
+        
+    #     tools_dict[tool.id]['attributes'].append({
+    #         'name': attribute.name,
+    #         'unit': attribute.unit
+    #     })
+    for tool in result:
         if tool.id not in tools_dict:
             tools_dict[tool.id] = {
-                'name': f'{tool.name} ({manufacturer.name})',
-                'type': tool_type.name,  # Add tool type separately
-                'attributes': []
+                'name': f'{tool.name} ({tool.manufacturer.name})',
+                'type': tool.tool_type.name,  # Add tool type separately
+                'attributes': [{
+                    'name': attribute.name,
+                    'unit': attribute.unit
+                } for attribute in tool.tool_type.tool_attributes]
             }
         
-        tools_dict[tool.id]['attributes'].append({
-            'name': attribute.name,
-            'unit': attribute.unit
-        })
 
     return tools_dict
 
