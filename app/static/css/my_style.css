@@ -188,10 +188,10 @@ textarea {
 }
 
 .input-group .btn-list-action {
-    position: absolute;
+    /* position: absolute; */
     right: 5px;
     top: 50%;
-    transform: translateY(-50%);
+    /* transform: translateY(-50%); */
     background-color: transparent;
     border: none;
     font-size: 20px;
@@ -200,7 +200,7 @@ textarea {
     border-radius: 50%;
     width: 30px;
     height: 30px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: background-color 0.3s ease, transform 0.2s ease;
@@ -210,7 +210,7 @@ textarea {
 
 .btn-list-action:hover {
     background-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-50%) scale(1.1);
+    transform: scale(1.3);
 }
 
 .btn-list-action.btn-add {

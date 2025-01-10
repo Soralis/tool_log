@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 
 from app.database_config import get_session
-from app.models import LogDevice, Machine, Recipe
-from auth import get_current_device
+from app.models import LogDevice, Machine, Recipe, ChangeOver, User
+from auth import get_current_device, get_current_operator
 
 router = APIRouter()
 
@@ -24,6 +24,7 @@ async def get_recipes(machine_id: int, session: Session = Depends(get_session)):
 @router.post("/")
 async def perform_change_over(
     request: Request,
+    current_operator: User = Depends(get_current_operator),
     device: LogDevice = Depends(get_current_device),
     session: Session = Depends(get_session)
 ):
@@ -48,6 +49,12 @@ async def perform_change_over(
 
     # Set the new recipe as the current recipe for the machine
     machine.current_recipe_id = recipe.id
+    change_over = ChangeOver(
+        machine_id=machine.id,
+        recipe_id=recipe.id,
+        performed_by=current_operator.id
+    )
+    session.add(change_over)
     session.commit()
 
     return {"message": "Change over successful", "machine": machine.name, "recipe": recipe.name}

@@ -2,7 +2,7 @@ from .monitoring import RequestLog, ServiceMetrics
 from .machine import Machine, MachineBase, MachineCreate, MachineUpdate, MachineRead, Measureable, MeasureableBase, MeasureableCreate, MeasureableUpdate, MeasureableRead
 from .tool import (
     Tool, ToolBase, ToolCreate, ToolUpdate, ToolRead,
-    ToolType, ToolTypeBase, ToolTypeCreate, ToolTypeUpdate, ToolTypeRead,
+    ToolType, ToolTypeBase, ToolTypeCreate, ToolTypeUpdate, ToolTypeRead, Sentiment,
     ToolAttribute, ToolAttributeCreate, ToolAttributeUpdate, ToolAttributeRead,
     ToolOrder, ToolOrderBase, ToolOrderCreate, ToolOrderUpdate, ToolOrderRead,
     ToolLife, ToolLifeBase, ToolLifeCreate, ToolLifeUpdate, ToolLifeRead,
@@ -29,7 +29,7 @@ __all__ = [
     
     # Tool
     "Tool", "ToolBase", "ToolCreate", "ToolUpdate", "ToolRead",
-    "ToolType", "ToolTypeBase", "ToolTypeCreate", "ToolTypeUpdate", "ToolTypeRead",
+    "ToolType", "ToolTypeBase", "ToolTypeCreate", "ToolTypeUpdate", "ToolTypeRead", 'Sentiment',
     "ToolAttribute", "ToolAttributeCreate", "ToolAttributeUpdate", "ToolAttributeRead",
     "ToolOrder", "ToolOrderBase", "ToolOrderCreate", "ToolOrderUpdate", "ToolOrderRead",
     "ToolLife", "ToolLifeBase", "ToolLifeCreate", "ToolLifeUpdate", "ToolLifeRead",

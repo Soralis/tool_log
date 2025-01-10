@@ -3,10 +3,22 @@
         {% if field_name != "id" and not field_name.endswith('_id') %}
             <div class="form-group">
                 <label for="{{ field_name }}">{{ field_name.capitalize()|replace('_', ' ') }}:</label>
-                <input type="{{ field.annotation | field_types }}"
-                       id="{{ field_name }}"
-                       name="{{ field_name }}"
-                       {% if 'required=True' in field|string %}required{% endif %}>
+                {% if field_name in enum_fields %}
+                    <select id="{{ field_name }}" 
+                            name="{{ field_name }}" 
+                            {% if 'required=True' in field|string %}required{% endif %}>
+                        {% for enum_value in enum_fields[field_name] %}
+                            <option value="{{ enum_value.value }}">
+                                {{ enum_value.name|replace('_', ' ')|title }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                {% else %}
+                    <input type="{{ field.annotation | field_types }}"
+                           id="{{ field_name }}"
+                           name="{{ field_name }}"
+                           {% if 'required=True' in field|string %}required{% endif %}>
+                {% endif %}
             </div>
         {% endif %}
     {% endfor %}

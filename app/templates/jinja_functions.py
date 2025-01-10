@@ -1,6 +1,7 @@
 from fastapi.templating import Jinja2Templates
 from typing import get_origin, get_args, Union, List
 import datetime
+import enum
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -38,5 +39,12 @@ def getattr_filter(obj, attr):
         result = getattr(result, 'name','')
     return result
 
+def get_fked(obj):
+    for key in obj:
+        print(type(obj[key]), isinstance(obj[key], enum.Enum))
+    fked = {key: obj[key].name if isinstance(obj[key], enum.Enum) else obj[key] for key in obj}    
+    return fked
+
 templates.env.filters['field_types'] = field_types
 templates.env.filters['getattr_filter'] = getattr_filter
+templates.env.filters['get_fked'] = get_fked

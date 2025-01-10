@@ -58,15 +58,22 @@ function openRelatedModal(relation) {
     openModal('createRelated');
 }
 
-function openReferredModelModal(fieldName, modelName, sourceModalId) {
+function openReferredModelModal(fieldName, modelName, sourceModalId, existingData) {
     const modal = document.getElementById('referredModelModal');
     const title = document.getElementById('referredModelTitle');
     const form = document.getElementById('referredModelForm');
 
-    console.log('referrererefed modal')
+    console.log('Opening referred model modal', { fieldName, modelName, sourceModalId, existingData });
 
-    title.textContent = `Add ${modelName}`;
+    title.textContent = existingData ? `Edit ${modelName}` : `Add ${modelName}`;
     form.innerHTML = ''; // Clear previous content
+
+    // Store existing data if we're editing
+    if (existingData) {
+        localStorage.setItem('editing_' + fieldName, JSON.stringify(existingData));
+    } else {
+        localStorage.removeItem('editing_' + fieldName);
+    }
 
     // Fetch the form for the referred model
     fetch(`${window.location.pathname}${fieldName.toLowerCase()}/referred_form`)
@@ -75,6 +82,34 @@ function openReferredModelModal(fieldName, modelName, sourceModalId) {
             form.innerHTML = html;
             form.setAttribute('data-field-name', fieldName);
             form.setAttribute('data-source-modal', sourceModalId);
+            
+            // If we have existing data, populate the form
+            if (existingData) {
+                Object.entries(existingData).forEach(([key, value]) => {
+                    const input = form.querySelector(`[name="${key}"]`);
+                    if (input) {
+                        if (input.type === 'checkbox') {
+                            input.checked = value;
+                        } else if (input.tagName === 'SELECT') {
+                            // For select elements, we need to find the option with matching value
+                            const option = Array.from(input.options).find(opt => 
+                                opt.value === (value?.id?.toString() || value?.toString())
+                            );
+                            if (option) {
+                                option.selected = true;
+                            }
+                        } else {
+                            // Handle enum values that might be objects
+                            if (value && typeof value === 'object' && value.value !== undefined) {
+                                input.value = value.value;
+                            } else {
+                                input.value = value;
+                            }
+                        }
+                    }
+                });
+            }
+
             if (modal) {
                 modal.classList.add('active');
             }
@@ -111,24 +146,71 @@ function storeReferredModel(form) {
     const sourceModalId = form.getAttribute('data-source-modal');
     console.log('Storing referred model data for field:', fieldName, 'Data:', modelData, 'Source Modal:', sourceModalId);
     
-    // Get the current stored models or initialize an empty array
-    let storedModels = JSON.parse(localStorage.getItem(`${fieldName}_models`) || '[]');
-    
-    // Add the new model data
-    storedModels.push(modelData);
-    
-    // Store the updated array back in localStorage
-    localStorage.setItem(`${fieldName}_models`, JSON.stringify(storedModels));
-
-    // Update the main form to show the new item
-    addReferredModelToMainForm(fieldName, modelData, sourceModalId);
+    // Check if we're editing an existing item
+    const existingData = localStorage.getItem('editing_' + fieldName);
+    if (existingData) {
+        // We're editing - update the existing item in the form
+        const existingItem = JSON.parse(existingData);
+        updateExistingItemInForm(fieldName, existingItem.id, modelData, sourceModalId);
+        localStorage.removeItem('editing_' + fieldName);
+    } else {
+        // We're adding a new item
+        let storedModels = JSON.parse(localStorage.getItem(`${fieldName}_models`) || '[]');
+        storedModels.push(modelData);
+        localStorage.setItem(`${fieldName}_models`, JSON.stringify(storedModels));
+        addReferredModelToMainForm(fieldName, modelData, sourceModalId);
+    }
     
     // Close the referred model modal
-    const ref_modal_id = document.getElementById('referredModelModal').id
-    closeModal(ref_modal_id)
+    const ref_modal_id = document.getElementById('referredModelModal').id;
+    closeModal(ref_modal_id);
     
     // Clear the form
     form.reset();
+}
+
+function updateExistingItemInForm(fieldName, itemId, newData, sourceModalId) {
+    const sourceModal = document.getElementById(sourceModalId);
+    if (!sourceModal) {
+        console.error(`Source modal ${sourceModalId} not found`);
+        return;
+    }
+
+    const container = sourceModal.querySelector(`#${fieldName}-container`);
+    if (!container) {
+        console.error(`Container for ${fieldName} not found in ${sourceModalId}`);
+        return;
+    }
+
+    // Find the existing item's input group
+    const existingInputGroup = Array.from(container.querySelectorAll('.input-group')).find(group => {
+        const hiddenInput = group.querySelector(`input[name="${fieldName}[]"]`);
+        return hiddenInput && hiddenInput.value === itemId;
+    });
+
+    if (existingInputGroup) {
+        // Update the display of the existing item
+        const childDetails = existingInputGroup.querySelector('.child-details');
+        if (childDetails) {
+            // Update name if it exists
+            if (newData.name) {
+                const nameField = childDetails.querySelector('.field-value.name');
+                if (nameField) {
+                    nameField.textContent = newData.name;
+                }
+            }
+
+            // Update other fields
+            Object.entries(newData).forEach(([key, value]) => {
+                if (key !== 'id' && key !== 'name') {
+                    const fieldElement = childDetails.querySelector(`[data-field="${key}"] .field-value`);
+                    if (fieldElement) {
+                        fieldElement.textContent = value;
+                    }
+                }
+            });
+        }
+    }
 }
 
 function addReferredModelToMainForm(fieldName, modelData, sourceModalId) {

@@ -10,7 +10,7 @@ from app.models import ToolOrder, ToolOrderCreate, ToolOrderUpdate, ToolOrderRea
 # from app.models import Recipe, RecipeCreate, RecipeUpdate
 from app.models import Measureable, MeasureableCreate, MeasureableUpdate, MeasureableRead
 from app.models import ToolLife, ToolLifeCreate, ToolLifeUpdate, ToolLifeRead
-from app.models import ToolType, ToolTypeCreate, ToolTypeUpdate, ToolTypeRead
+from app.models import ToolType, ToolTypeCreate, ToolTypeUpdate, ToolTypeRead, Sentiment
 from app.models import ChangeReason, ChangeReasonCreate, ChangeReasonUpdate, ChangeReasonRead
 from app.models import ChangeOver, ChangeOverCreate, ChangeOverUpdate, ChangeOverRead
 from app.models import Workpiece, WorkpieceCreate, WorkpieceUpdate, WorkPieceRead
@@ -26,7 +26,7 @@ manufacturers_router = create_generic_router(Manufacturer, ManufacturerRead, Man
 tools_router = create_generic_router(Tool, ToolRead, ToolCreate, ToolUpdate, "Tool")
 tool_attributes_router = create_generic_router(ToolAttribute, ToolAttributeRead, ToolAttributeCreate, ToolAttributeUpdate, "Tool_Attribute")
 # tool_settings_router = create_generic_router(ToolSettings, ToolSettingsCreate, ToolSettingsUpdate, "Tool_Settings")
-tool_type_router = create_generic_router(ToolType, ToolTypeRead, ToolTypeCreate, ToolTypeUpdate, "Tool_Type")
+tool_type_router = create_generic_router(ToolType, ToolTypeRead, ToolTypeCreate, ToolTypeUpdate, "Tool_Type", {"enum_fields": {"sentiment": Sentiment}})
 tool_life_router = create_generic_router(ToolLife, ToolLifeRead, ToolLifeCreate, ToolLifeUpdate, "Tool_Life")
 measureable_router = create_generic_router(Measureable, MeasureableRead, MeasureableCreate, MeasureableUpdate, 'Measureable')
 change_reason_router = create_generic_router(ChangeReason, ChangeReasonRead, ChangeReasonCreate, ChangeReasonUpdate, "Change_Reason")
