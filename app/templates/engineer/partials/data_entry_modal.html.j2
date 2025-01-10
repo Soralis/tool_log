@@ -51,7 +51,7 @@
                             {% if is_required %}required{% endif %}>
                         {% for enum_value in enum_fields[field_name] %}
                             <option value="{{ enum_value.value }}" {% if item and item[field_name] == enum_value %}selected{% endif %}>
-                                {{ enum_value.value }}
+                                {{ enum_value.name|replace('_', ' ')|title }}
                             </option>
                         {% endfor %}
                     </select>
@@ -62,7 +62,7 @@
                         {% for option in relationship_options[field_name[:-3]] %}
                             <option value="{{ option.id }}" 
                                     {% if item and item[field_name] == option.id %}selected{% endif %}>
-                                {% if option.name is defined %}{{ option.name }}{% endif %}{% for field, value in option.items() %}{% if field not in ['id', 'name'] %}  ({{ field|replace('_', ' ')|title }}: {{ value }}){% endif %}{% endfor %}
+                                {% if option.name is defined %}{{ option.name }}{% endif %}{% for field, value in option.items() %}{% if field not in ['id', 'name'] %}  ({{ field|replace('_', ' ')|title }}: {% if value.__class__.__class__.__name__ == 'EnumMeta' %}{{ value.name|replace('_', ' ')|title }}{% elif value is string and value.startswith('<') and value.endswith('>') %}{{ value.split('.')[1].split(':')[0]|replace('_', ' ')|title }}{% else %}{{ value }}{% endif %}){% endif %}{% endfor %}
                             </option>
                         {% endfor %}
                     </select>
@@ -81,7 +81,15 @@
                                             {% if field not in ['id', 'name'] %}
                                             <div class="child-field">
                                                 <span class="field-label">{{ field|replace('_', ' ')|title }}:</span>
-                                                <span class="field-value">{{ value }}</span>
+                                                <span class="field-value">
+                                                    {% if value.__class__.__class__.__name__ == 'EnumType' %}
+                                                        {{ value.name|replace('_', ' ')|title }}
+                                                    {% elif value is string and value.startswith('<') and value.endswith('>') %}
+                                                        {{ value.split('.')[1].split(':')[0]|replace('_', ' ')|title }}
+                                                    {% else %}
+                                                        {{ value }}
+                                                    {% endif %}
+                                                </span>
                                             </div>
                                             {% endif %}
                                         {% endfor %}
@@ -115,8 +123,7 @@
                             {% if item and item[field_name] %}
                                 {% for value in item[field_name] %}
                                     <div class="input-group mb-2">
-                                    TEST
-                                        <input type="text" class="form-control" name="{{ field_name }}[]" value="{{ value }}">
+                                        <input type="text" class="form-control" name="{{ field_name }}[]" value="{% if value.__class__.__class__.__name__ == 'EnumMeta' %}{{ value.name|replace('_', ' ')|title }}{% elif value is string and value.startswith('<') and value.endswith('>') %}{{ value.split('.')[1].split(':')[0]|replace('_', ' ')|title }}{% else %}{{ value }}{% endif %}">
                                         <button type="button" class="btn-list-action btn-remove" onclick="removeListField(this)">x</button>
                                     </div>
                                 {% endfor %}
@@ -142,7 +149,7 @@
                         {% elif field.annotation | field_types == 'checkbox' %}
                         {% if item and item[field_name] %}checked{% endif %}
                         {% else %}
-                        value="{{ item[field_name] if item else '' }}"
+                        value="{% if item and item[field_name].__class__.__class__.__name__ == 'EnumMeta' %}{{ item[field_name].name|replace('_', ' ')|title }}{% elif item and item[field_name] is string and item[field_name].startswith('<') and item[field_name].endswith('>') %}{{ item[field_name].split('.')[1].split(':')[0]|replace('_', ' ')|title }}{% else %}{{ item[field_name] if item else '' }}{% endif %}"
                         {% endif %}>
                 {% endif %}
             </div>

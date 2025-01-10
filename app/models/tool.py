@@ -68,7 +68,6 @@ class ToolAttributeRead(SQLModel):
     id: int
     name: str
     unit: str
-    tool_type: ToolType
 
 
 class Sentiment(IntEnum):
