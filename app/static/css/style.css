@@ -1308,6 +1308,15 @@ video {
   background-color: rgb(239 68 68 / 1);
 }
 
+.bg-slate-900 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(15 23 42 / var(--tw-bg-opacity));
+}
+
+.bg-slate-900\/30 {
+  background-color: rgb(15 23 42 / 0.3);
+}
+
 .bg-transparent {
   background-color: transparent;
 }

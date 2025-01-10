@@ -104,11 +104,8 @@ class ChangeReasonUpdate(ChangeReasonCreate):
     active: bool
 
 
-class ChangeReasonRead(SQLModel):
+class ChangeReasonRead(ChangeReasonBase):
     id: int
-    name: str
-    active: bool
-    tool_type: ToolType
 
 
 class ToolBase(SQLModel):

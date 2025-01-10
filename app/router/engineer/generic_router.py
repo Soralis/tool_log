@@ -8,30 +8,29 @@ from sqlalchemy.sql import sqltypes
 from sqlmodel.sql.sqltypes import AutoString
 from app.database_config import engine
 from app.templates.jinja_functions import templates
-from app.models import Manufacturer, ManufacturerCreate
-from app.models import Measureable,MeasureableCreate
-from app.models import Machine, MachineCreate
-from app.models import User, UserCreate
-from app.models import Tool, ToolCreate, ToolAttribute, ToolAttributeCreate
-from app.models import ToolLife, ToolLifeCreate
-from app.models import ToolType, ToolTypeCreate
-from app.models import Recipe, RecipeCreate
-from app.models import ChangeReason, ChangeReasonCreate
+from app.models import Manufacturer, ManufacturerCreate, ManufacturerRead
+from app.models import Measureable,MeasureableCreate, MeasureableRead
+from app.models import Machine, MachineCreate, MachineRead
+from app.models import User, UserCreate, UserRead
+from app.models import Tool, ToolCreate, ToolRead, ToolAttribute, ToolAttributeCreate, ToolAttributeRead
+from app.models import ToolLife, ToolLifeCreate, ToolLifeRead
+from app.models import ToolType, ToolTypeCreate, ToolTypeRead
+from app.models import Recipe, RecipeCreate, RecipeRead
+from app.models import ChangeReason, ChangeReasonCreate, ChangeReasonRead
 from typing import Type, Dict, Any, ForwardRef, get_origin, get_args, List
 
 # Create a mapping of string names to SQLModel classes
 model_mapping = {
-    'changereason': {"model": ChangeReason, "create": ChangeReasonCreate},
-    "manufacturer": {"model": Manufacturer, "create": ManufacturerCreate},
-    "machine": {"model": Machine, "create": MachineCreate},
-    'measureable':{'model': Measureable, 'create': MeasureableCreate},
-    "user": {"model": User, "create": UserCreate},
-    'tool': {"model": Tool, "create": ToolCreate},
-    'toollife': {"model": ToolLife, "create": ToolLifeCreate},
-    'toolattribute': {"model": ToolAttribute, "create": ToolAttributeCreate},
-    'tooltype': {"model": ToolType, "create": ToolTypeCreate},
-    'recipe': {"model": Recipe, "create": RecipeCreate}
-    # Add other mappings as needed
+    'changereason': {"model": ChangeReason, "create": ChangeReasonCreate, "read": ChangeReasonRead},
+    "manufacturer": {"model": Manufacturer, "create": ManufacturerCreate, "read": ManufacturerRead},
+    "machine": {"model": Machine, "create": MachineCreate, "read": MachineRead},
+    'measureable':{'model': Measureable, 'create': MeasureableCreate, 'read': MeasureableRead},
+    "user": {"model": User, "create": UserCreate, "read": UserRead},
+    'tool': {"model": Tool, "create": ToolCreate, "read": ToolRead},
+    'toollife': {"model": ToolLife, "create": ToolLifeCreate, "read": ToolLifeRead},
+    'toolattribute': {"model": ToolAttribute, "create": ToolAttributeCreate, "read": ToolAttributeRead},
+    'tooltype': {"model": ToolType, "create": ToolTypeCreate, "read": ToolTypeRead},
+    'recipe': {"model": Recipe, "create": RecipeCreate, "read": RecipeRead},
 }
 
 def create_generic_router(
@@ -76,8 +75,10 @@ def create_generic_router(
                             related_model = related_model_info['model']
                             if id:
                                 related_items = session.exec(select(related_model).where(getattr(related_model, f"{item_type.lower()}_id") == id)).all()
+                                # Get the read model for this relation
+                                related_read_model = related_model_info['read']
                                 relations[field_name] = [
-                                    {"id": item.id, "name": getattr(item, 'name', str(item))}
+                                    {field: getattr(item, field) for field in related_read_model.model_fields.keys()}
                                     for item in related_items
                                 ]
                                 children[field_name]['instances'] = relations[field_name]
@@ -91,10 +92,14 @@ def create_generic_router(
                         related_model = globals().get(related_model_name)
                         if related_model:
                             related_items = session.exec(select(related_model)).all()
-                            relations[field_name[:-3]] = [
-                                {"id": item.id, "name": getattr(item, 'name', str(item))}
-                                for item in related_items
-                            ]
+                            # Get the model info and read model
+                            related_model_info = model_mapping.get(related_model_name.lower())
+                            if related_model_info:
+                                related_read_model = related_model_info['read']
+                                relations[field_name[:-3]] = [
+                                    {field: getattr(item, field) for field in related_read_model.model_fields.keys()}
+                                    for item in related_items
+                                ]
         for childname in children:
             if relations.get(childname):
                 del relations[childname]
@@ -383,4 +388,3 @@ def create_generic_router(
         return JSONResponse(content={"message": f"{item_type} updated successfully"}, status_code=202)
 
     return router
-
