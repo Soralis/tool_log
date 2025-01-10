@@ -1,8 +1,10 @@
 import json
+from datetime import datetime
 from fastapi import APIRouter, Request, HTTPException, status, Header
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import ValidationError
 from sqlmodel import Session, select, inspect, SQLModel, func
+from sqlalchemy import Integer, String, Boolean, Float, DateTime
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import sqltypes
 from sqlmodel.sql.sqltypes import AutoString
@@ -166,10 +168,32 @@ def create_generic_router(
         statement = select(model).options(*get_joinedload_options(model))
 
         # Apply filters to the statement
+        def get_column_type(model, key):
+            """Get the Python type for a model's column"""
+            column = inspect(model).columns[key]
+            type_mapping = {
+                Integer: int,
+                String: str,
+                Boolean: bool,
+                Float: float,
+                DateTime: lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
+            }
+            
+            for sql_type, python_type in type_mapping.items():
+                if isinstance(column.type, sql_type):
+                    return python_type
+                    
+            # Default to string if type is not recognized
+            return str
+        
         for key, value in filters.items():
             if value and key != 'with_filter':
-                statement = statement.where(getattr(read_model, key).in_(value.split(','))).options(*get_joinedload_options(model))
-
+                # statement = statement.where(getattr(model, key).in_([int(x) for x in value.split(',')])).options(*get_joinedload_options(model))
+                statement = statement.where(
+                    getattr(model, key).in_(
+                        [get_column_type(model, key)(x) for x in value.split(',')]
+                    )
+                ).options(*get_joinedload_options(model))
         with Session(engine) as session:
             items = session.exec(statement).unique().all()
 
