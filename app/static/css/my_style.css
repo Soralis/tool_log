@@ -995,12 +995,12 @@ textarea {
     textarea,
     select {
         padding: 10px;
-        font-size: 16px;
+        font-size: 24px;
     }
 
     .btn-submit {
         padding: 12px 15px;
-        font-size: 16px;
+        font-size: 24px;
     }
     .btn-add-new {
         padding: 12px 15px;
@@ -1016,7 +1016,7 @@ textarea {
     }
 
     label {
-        font-size: 16px;
+        font-size: 24px;
     }
 
     .btn-submit {
@@ -1096,7 +1096,7 @@ textarea {
 
     .btn-add-field {
         padding: 10px 18px;
-        font-size: 16px;
+        font-size: 24px;
     }
     
     .info-container {
@@ -1122,7 +1122,7 @@ textarea {
 
     .filter-field select,
     .filter-field input[type="checkbox"] {
-        font-size: 16px;
+        font-size: 24px;
         padding: 12px;
     }
 
