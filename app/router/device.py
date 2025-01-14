@@ -55,8 +55,8 @@ async def root(request: Request):
                 for machine in log_device.machines
             ]
         
-        # Fetch all possible machines for the relationship
-        options_statement = select(Machine)
+        # Fetch all possible machines for the relationship, sorted alphabetically by name
+        options_statement = select(Machine).order_by(Machine.name)
         options = session.exec(options_statement).all()
         relationship_options['machines'] = [{"id": opt.id, "name": opt.name} for opt in options]
 
