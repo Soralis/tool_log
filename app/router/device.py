@@ -58,7 +58,14 @@ async def root(request: Request):
         # Fetch all possible machines for the relationship, sorted alphabetically by name
         options_statement = select(Machine).order_by(Machine.name)
         options = session.exec(options_statement).all()
-        relationship_options['machines'] = [{"id": opt.id, "name": opt.name} for opt in options]
+        relationship_options['machines'] = [
+            {
+                "id": opt.id, 
+                "name": opt.name,
+                "is_connected": opt.log_device_id is not None
+            } 
+            for opt in options
+        ]
 
         context = {
             "item": item_dict,
