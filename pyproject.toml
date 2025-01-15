@@ -15,6 +15,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "python-jose[cryptography]>=3.3.0",
     "pytz>=2024.2",
+    "salib>=1.5.1",
     "scipy>=1.15.0",
     "sqlmodel>=0.0.22",
     "tailwindcss>=0.0.1",

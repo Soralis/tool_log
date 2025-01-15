@@ -37,11 +37,9 @@ class ToolTypeUpdate(ToolTypeCreate):
     active: bool
 
 
-class ToolTypeRead:
+class ToolTypeRead(ToolTypeBase):
     id: int
-    name: str
     active: bool
-    perishable: bool
 
 
 class ToolAttribute(SQLModel, table=True):
@@ -115,6 +113,7 @@ class ToolBase(SQLModel):
     manufacturer_id: int = Field(foreign_key='manufacturer.id', ondelete='CASCADE')
     regrind: bool = Field(default=False)
     max_uses: int = Field(default=1)
+    has_serialnumber: bool = Field(default=False)
 
     __table_args__ = (UniqueConstraint('name', 'tool_type_id', 'manufacturer_id'),)
 

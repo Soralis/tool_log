@@ -1,4 +1,5 @@
 from fastapi import APIRouter, WebSocket, Request, Depends, HTTPException
+import numpy as np
 import asyncio
 import json
 from app.templates.jinja_functions import templates
@@ -173,6 +174,7 @@ async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
         "cards": []
     }
 
+    # ROW 1
     details['cards'].append({"id": "main_graph", "title": "Tool Life Trend",
                 "width": 6,  # Full width
                 "height": 2,  # 2 units tall
@@ -240,6 +242,7 @@ async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
         }
     )
 
+    # ROW 3+
     machines = defaultdict(lambda: defaultdict(list))
     for record in records:
         machines[record.machine.name][record.machine_channel].append({'tool_life': record.reached_life,
