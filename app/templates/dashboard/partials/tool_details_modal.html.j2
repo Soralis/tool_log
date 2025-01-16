@@ -201,7 +201,7 @@ window.openToolModal = async function(toolId) {
     const numericId = toolId.split('_')[1];
     
     try {
-        const response = await fetch(`/api/tool/${numericId}/details`);
+        const response = await fetch(`/dashboard/api/tool/${numericId}/details`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
