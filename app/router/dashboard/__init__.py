@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from . import graphs, monitoring
 
+
 router = APIRouter()
 
 # Include the dashboard routers
