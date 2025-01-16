@@ -51,6 +51,7 @@ class WebsocketBypassMiddleware(BaseHTTPMiddleware):
 # Add WebSocket bypass middleware
 app.add_middleware(WebsocketBypassMiddleware)
 
+
 # Setup static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
