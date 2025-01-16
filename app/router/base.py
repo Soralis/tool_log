@@ -8,9 +8,13 @@ from app.templates.jinja_functions import templates
 from app.models import User
 from app.database_config import get_session
 from auth import get_current_operator
+from .dashboard import router as dashboard_router
 
 
 router = APIRouter()
+
+# Include the dashboard router
+router.include_router(dashboard_router)
 
 @router.get("/")
 async def root(request: Request, 

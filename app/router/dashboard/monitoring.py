@@ -5,11 +5,11 @@ from typing import List, Callable
 import asyncio
 from decimal import Decimal
 
-from ..database_config import engine
-from ..models import RequestLog, ServiceMetrics
+from app.database_config import engine
+from app.models import RequestLog, ServiceMetrics
 
 
-router = APIRouter()  # Remove prefix to avoid potential routing issues
+router = APIRouter()
 
 # Store active WebSocket connections
 active_connections: List[WebSocket] = []
@@ -131,6 +131,14 @@ async def websocket_endpoint(websocket: WebSocket):
         if websocket in active_connections:
             active_connections.remove(websocket)
         raise e
+
+@router.get("/monitoring")
+async def monitoring(request: Request):
+    from app.templates.jinja_functions import templates
+    return templates.TemplateResponse(
+        "dashboard/monitoring.html.j2",  # Updated template path
+        {"request": request}
+    )
 
 @router.get("/monitoring/metrics")
 async def get_metrics():

@@ -107,7 +107,7 @@ async def get_tool_life_data(db: Session, limit: int = 50) -> Dict:
 async def graphs(request: Request, db: Session = Depends(get_session)):
     graphs = await get_tool_graphs(db)
     return templates.TemplateResponse(
-        "graphs.html.j2",
+        "dashboard/graphs.html.j2",  # Updated template path
         {
             "request": request,
             "server_address": get_ip_address(),
