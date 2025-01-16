@@ -44,11 +44,8 @@ app.add_middleware(
 # Custom middleware to bypass authentication for monitoring routes
 class WebsocketBypassMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        print('gay 1', request.url.path)
         if request.url.path.startswith("/ws"):
-            print('gay 2')
             return await call_next(request)
-        print('gay 3')
         return await call_next(request)
 
 # Add WebSocket bypass middleware
