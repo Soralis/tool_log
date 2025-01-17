@@ -13,39 +13,33 @@
 </style>
 {% endblock %}
 
+{% block subinfo %}
+    <div class="flex items-center space-x-8 text-sm font-mono">
+        <div class="flex justify-between">
+            <div class="flex items-center">
+                <div class="w-8 h-4 mr-2 ml-4 border-2 border-[rgb(75,192,192)] bg-[rgb(75,192,192)]/50"></div>
+                <span>Tool Life</span>
+            </div>
+            <div class="flex items-center">
+                <div class="w-8 h-4 mr-2 ml-4 border-t-2 border-dashed border-[rgb(255,99,132)]"></div>
+                <span>Trendline</span>
+            </div>
+            <div class="flex items-center">
+                <div class="w-8 h-4 mr-2 ml-4 border-t-2 border-dashed border-[rgb(255,206,86)]"></div>
+                <span>Mean</span>
+            </div>
+            <div class="flex items-center">
+                <div class="w-8 h-4 mr-2 ml-4 border-2 border-[rgb(255,206,86)] bg-[rgb(255,206,86)]/10"></div>
+                <span>Mean ± Std Dev</span>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
 {% block content %}
 <div class="p-2">
     <div class="mx-auto">
         {% include 'dashboard/partials/tool_details_modal.html.j2' %}
-
-        <!-- Fixed legend at top -->
-        <div class="bg-gray-800 p-2 rounded-lg shadow mb-2">
-            <div class="grid grid-cols-3 items-center">
-            {% block subinfo %}
-                <div class="flex items-center space-x-8 text-sm font-mono">
-                    <div class="flex justify-between">
-                        <div class="flex items-center">
-                            <div class="w-8 h-4 mr-2 ml-4 border-2 border-[rgb(75,192,192)] bg-[rgb(75,192,192)]/50"></div>
-                            <span>Tool Life</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-8 h-4 mr-2 ml-4 border-t-2 border-dashed border-[rgb(255,99,132)]"></div>
-                            <span>Trendline</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-8 h-4 mr-2 ml-4 border-t-2 border-dashed border-[rgb(255,206,86)]"></div>
-                            <span>Mean</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-8 h-4 mr-2 ml-4 border-2 border-[rgb(255,206,86)] bg-[rgb(255,206,86)]/10"></div>
-                            <span>Mean ± Std Dev</span>
-                        </div>
-                    </div>
-                </div>
-            {% endblock %}
-            </div>
-        </div>
-
         <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
             {% for graph in graphs %}
             <div class="bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-700 transition-colors" 
@@ -205,7 +199,7 @@
 
     function connectWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/tools`);
+        ws = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/tools`);
         
         ws.onopen = function() {
             statusDiv.className = 'hidden';
@@ -280,17 +274,39 @@
         return ws
     }
 
-    // Initialize all graphs once DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize components in the correct order
+    function initializeComponents() {
+        // Initialize graphs
         document.querySelectorAll('.graph-container').forEach(container => {
             const id = container.id;
             const type = container.dataset.type;
             initializeGraph(id, type);
         });
-    });
 
-    // Start WebSocket connection
-    connectWebSocket();
+        // Start WebSocket connection
+        connectWebSocket();
+    }
+
+    // Wait for both DOM and date range to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+        // First initialize date range if not already initialized
+        if (!window.dateRangeInitialized) {
+            window.dateRangeInitialized = true;
+            window.initializeDateRange();
+        }
+        
+        // Initialize page components after date range is ready
+        if (window.dateRangeInitialized) {
+            console.log('Date range already initialized, starting components');
+            initializeComponents();
+        } else {
+            console.log('Waiting for date range initialization...');
+            document.addEventListener('dateRangeInitialized', () => {
+                console.log('Date range initialization event received, starting components');
+                initializeComponents();
+            });
+        }
+    });
 
     // Cleanup on page unload
     window.addEventListener('beforeunload', () => {

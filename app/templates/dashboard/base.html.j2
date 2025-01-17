@@ -281,18 +281,30 @@
             const unit = document.getElementById('time-unit').value;
             const max = getUnitMax(unit);
             
+            // Get current values as percentages of their max
+            const oldMax = parseInt(startRange.max);
+            const startPercent = parseInt(startRange.value) / oldMax;
+            const endPercent = parseInt(endRange.value) / oldMax;
+            
             // Update slider ranges
             startRange.max = max;
             endRange.max = max;
             
-            // Set default values (last unit)
-            endRange.value = max;
-            startRange.value = Math.max(max - 1, 0);
+            // Convert percentages to new values
+            startRange.value = Math.round(startPercent * max);
+            endRange.value = Math.round(endPercent * max);
             
             // Save to localStorage
             localStorage.setItem('timeUnit', unit);
             localStorage.setItem('startRange', startRange.value);
             localStorage.setItem('endRange', endRange.value);
+            
+            console.log('Updated time unit:', {
+                unit,
+                max,
+                startValue: startRange.value,
+                endValue: endRange.value
+            });
             
             setRangeValues();
             emitDateRangeChange();
@@ -396,13 +408,53 @@
             document.dispatchEvent(dateRangeEvent);
         }
 
-        // Initialize on DOM load
-        document.addEventListener('DOMContentLoaded', function() {
+        // Initialize date range controls
+        function initializeDateRange() {
+            console.log('Initializing date range...');
+            
             // Initialize references
             startRange = document.getElementById('start-range');
             endRange = document.getElementById('end-range');
             range = document.querySelector('.slider-range');
             rangeValues = document.getElementById('range-values');
+
+            if (!startRange || !endRange || !range || !rangeValues) {
+                console.warn('Date range elements not found, skipping initialization');
+                return;
+            }
+
+            // Load saved preferences from localStorage
+            const savedUnit = localStorage.getItem('timeUnit');
+            const savedStartRange = localStorage.getItem('startRange');
+            const savedEndRange = localStorage.getItem('endRange');
+            
+            console.log('Loaded from localStorage:', {
+                savedUnit,
+                savedStartRange,
+                savedEndRange
+            });
+
+            // Set the time unit first (this will set max values)
+            const timeUnitSelect = document.getElementById('time-unit');
+            if (timeUnitSelect) {
+                timeUnitSelect.value = savedUnit || 'day';
+            }
+
+            // Get max value for the current unit
+            const max = getUnitMax(timeUnitSelect.value);
+            
+            // Set range values
+            if (savedStartRange !== null && savedEndRange !== null) {
+                startRange.max = max;
+                endRange.max = max;
+                startRange.value = savedStartRange;
+                endRange.value = savedEndRange;
+            } else {
+                startRange.max = max;
+                endRange.max = max;
+                endRange.value = max;
+                startRange.value = Math.max(max - 1, 0);
+            }
 
             // Add event listeners for sliders
             ['input'].forEach(event => {
@@ -416,22 +468,31 @@
                 endRange.addEventListener(event, emitDateRangeChange);
             });
 
-            // Load saved preferences from localStorage
-            const savedUnit = localStorage.getItem('timeUnit') || 'day';
-            const savedStartRange = localStorage.getItem('startRange');
-            const savedEndRange = localStorage.getItem('endRange');
-            
-            // Initialize time unit and slider
-            document.getElementById('time-unit').value = savedUnit;
-            updateTimeUnit();
-            
-            // Apply saved values if they exist
-            if (savedStartRange && savedEndRange) {
-                startRange.value = savedStartRange;
-                endRange.value = savedEndRange;
-                setRangeValues();
-                emitDateRangeChange();
-            }
+            // Add change listener for time unit
+            timeUnitSelect.addEventListener('change', updateTimeUnit);
+
+            // Update display
+            setRangeValues();
+            emitDateRangeChange();
+
+            console.log('Date range initialized with:', {
+                unit: timeUnitSelect.value,
+                startValue: startRange.value,
+                endValue: endRange.value
+            });
+
+            // Dispatch event to notify that date range is initialized
+            console.log('Date range initialization complete, dispatching event');
+            document.dispatchEvent(new Event('dateRangeInitialized'));
+        }
+
+        // Make initialization function globally available
+        window.initializeDateRange = initializeDateRange;
+
+        // Initialize on DOM load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded in base template, initializing date range');
+            initializeDateRange();
         });
     </script>
     {% block scripts %}{% endblock %}

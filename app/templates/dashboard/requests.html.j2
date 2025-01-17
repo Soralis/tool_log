@@ -58,6 +58,9 @@
 
 {% block scripts %}
 <script>
+    // Global WebSocket reference
+    let ws = null;
+    
     function formatUptime(seconds) {
         const days = Math.floor(seconds / 86400);
         const hours = Math.floor((seconds % 86400) / 3600);
@@ -114,8 +117,9 @@
 
     // WebSocket connection with retry logic
     function connectWebSocket() {
+        console.log('Connecting to WebSocket...');
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/requests`);
+        ws = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/requests`);
         const statusDiv = document.getElementById('connection-status');
         
         ws.onopen = function() {
@@ -147,7 +151,41 @@
         return ws;
     }
 
-    // Start the WebSocket connection
-    connectWebSocket();
+    // Initialize components in the correct order
+    function initializeComponents() {
+        console.log('Initializing components...');
+        // Start WebSocket connection
+        connectWebSocket();
+    }
+
+    // Wait for both DOM and date range to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, initializing...');
+        // First initialize date range if not already initialized
+        if (!window.dateRangeInitialized) {
+            window.dateRangeInitialized = true;
+            window.initializeDateRange();
+        }
+        
+        // Initialize page components after date range is ready
+        if (window.dateRangeInitialized) {
+            console.log('Date range already initialized, starting components');
+            initializeComponents();
+        } else {
+            console.log('Waiting for date range initialization...');
+            document.addEventListener('dateRangeInitialized', () => {
+                console.log('Date range initialization event received, starting components');
+                initializeComponents();
+            });
+        }
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        if (ws) {
+            console.log('Closing WebSocket connection...');
+            ws.close();
+        }
+    });
 </script>
 {% endblock %}
