@@ -14,7 +14,7 @@ from .dashboard import router as dashboard_router
 router = APIRouter()
 
 # Include the dashboard router
-router.include_router(dashboard_router)
+# router.include_router(dashboard_router)
 
 @router.get("/")
 async def root(request: Request, 
