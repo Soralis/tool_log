@@ -21,6 +21,7 @@
         <!-- Fixed legend at top -->
         <div class="bg-gray-800 p-2 rounded-lg shadow mb-2">
             <div class="grid grid-cols-3 items-center">
+            {% block subinfo %}
                 <div class="flex items-center space-x-8 text-sm font-mono">
                     <div class="flex justify-between">
                         <div class="flex items-center">
@@ -41,7 +42,7 @@
                         </div>
                     </div>
                 </div>
-                <h1 class="text-2xl  text-center font-bold">Tool Life Monitoring</h1>
+            {% endblock %}
             </div>
         </div>
 
