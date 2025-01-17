@@ -527,15 +527,16 @@ textarea {
 
 .burger-menu {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    /* top: 20px; */
+    padding-top: 5px;
+    right: 40px;
     z-index: 1000;
     background-color: transparent;
     box-shadow: none;
 }
 .burger-icon {
     cursor: pointer;
-    padding: 10px;
+    /* padding: 10px; */
     background-color: transparent;
     border-radius: 5px;
     z-index: 1000;

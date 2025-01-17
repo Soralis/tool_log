@@ -70,7 +70,7 @@ async def log_request(request: Request, call_next: Callable, db: Session):
     
     return response
 
-@router.websocket("/ws/monitoring")
+@router.websocket("/ws/requests")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     active_connections.append(websocket)
@@ -132,15 +132,15 @@ async def websocket_endpoint(websocket: WebSocket):
             active_connections.remove(websocket)
         raise e
 
-@router.get("/monitoring")
-async def monitoring(request: Request):
+@router.get("/requests")
+async def requests(request: Request):
     from app.templates.jinja_functions import templates
     return templates.TemplateResponse(
-        "dashboard/monitoring.html.j2",  # Updated template path
+        "dashboard/requests.html.j2",  # Updated template path
         {"request": request}
     )
 
-@router.get("/monitoring/metrics")
+@router.get("/requests/metrics")
 async def get_metrics():
     db = Session(engine)
     try:
@@ -160,7 +160,7 @@ async def get_metrics():
     finally:
         db.close()
 
-@router.get("/monitoring/recent-requests")
+@router.get("/requests/recent-requests")
 async def get_recent_requests():
     db = Session(engine)
     try:

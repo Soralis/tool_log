@@ -5,27 +5,12 @@ import json
 from app.templates.jinja_functions import templates
 from datetime import datetime
 from collections import defaultdict
-import socket
 from sqlmodel import Session, select
 from app.database_config import get_session
 from app.models.tool import Tool, ToolLife
 from typing import Dict, List
-import numpy as np
 from scipy.stats import linregress
 router = APIRouter()
-
-def get_ip_address():
-    try:
-        # Get local IP
-        hostname = socket.gethostname()
-        local_ip = socket.gethostbyname(hostname)
-        if local_ip == '127.0.1.1':
-            local_ip = '10.0.36.192'
-            
-        # Fallback to just local IP if public IP fetch fails
-        return f"{hostname} (IP: {local_ip})"
-    except:
-        return "Unable to get IP address"
 
 async def get_tool_graphs(db: Session) -> List[Dict]:
     # Get all active tools that have tool life records
@@ -103,14 +88,13 @@ async def get_tool_life_data(db: Session, limit: int = 50) -> Dict:
     
     return data
 
-@router.get("/graphs")
-async def graphs(request: Request, db: Session = Depends(get_session)):
+@router.get("/tools")
+async def tools(request: Request, db: Session = Depends(get_session)):
     graphs = await get_tool_graphs(db)
     return templates.TemplateResponse(
-        "dashboard/graphs.html.j2",  # Updated template path
+        "dashboard/tools.html.j2",  # Updated template path
         {
             "request": request,
-            "server_address": get_ip_address(),
             "graphs": graphs
         }
     )
@@ -413,8 +397,8 @@ async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
 
     return details
 
-@router.websocket("/ws/graphs")
-async def websocket_graphs(websocket: WebSocket, db: Session = Depends(get_session)):
+@router.websocket("/ws/tools")
+async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_session)):
     await websocket.accept()
     
     try:

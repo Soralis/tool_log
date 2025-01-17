@@ -1,0 +1,70 @@
+{% extends "dashboard/base.html.j2" %}
+
+{% block title %}Dashboard Overview{% endblock %}
+
+{% block head %}
+<script src="https://unpkg.com/htmx.org@1.9.6"></script>
+<style>
+    .dashboard-card {
+        @apply bg-gray-200 rounded-lg shadow-lg p-4;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-center">Dashboard Overview</h1>
+    <h3 class="text-center mb-8">Server Address: {{ server_address }}</h3>
+    
+    <!-- Main grid container -->
+    <div class="grid grid-cols-12 gap-4">
+        <!-- Example card spanning 4 columns -->
+        <div class="col-span-12 md:col-span-4 dashboard-card">
+            <h2 class="text-xl font-semibold mb-4">Card 1</h2>
+            <div class="h-64" id="card1-content">
+                <!-- Content will be loaded via htmx -->
+            </div>
+        </div>
+
+        <!-- Example card spanning 8 columns -->
+        <div class="col-span-12 md:col-span-8 dashboard-card">
+            <h2 class="text-xl font-semibold mb-4">Card 2</h2>
+            <div class="h-64" id="card2-content">
+                <!-- Content will be loaded via htmx -->
+            </div>
+        </div>
+
+        <!-- Example card spanning full width -->
+        <div class="col-span-12 dashboard-card">
+            <h2 class="text-xl font-semibold mb-4">Card 3</h2>
+            <div class="h-64" id="card3-content">
+                <!-- Content will be loaded via htmx -->
+            </div>
+        </div>
+
+        <!-- Example cards spanning 6 columns each -->
+        <div class="col-span-12 md:col-span-6 dashboard-card">
+            <h2 class="text-xl font-semibold mb-4">Card 4</h2>
+            <div class="h-64" id="card4-content">
+                <!-- Content will be loaded via htmx -->
+            </div>
+        </div>
+
+        <div class="col-span-12 md:col-span-6 dashboard-card">
+            <h2 class="text-xl font-semibold mb-4">Card 5</h2>
+            <div class="h-64" id="card5-content">
+                <!-- Content will be loaded via htmx -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize dashboard components
+        console.log('Dashboard initialized');
+    });
+</script>
+{% endblock %}

@@ -64,7 +64,7 @@ async def monitoring_middleware(request: Request, call_next):
     if not request.url.path.startswith("/static"):  # Skip static files
         db = next(get_session())
         try:
-            return await dashboard.monitoring.log_request(request, call_next, db)
+            return await dashboard.requests.log_request(request, call_next, db)
         finally:
             db.close()
     return await call_next(request)

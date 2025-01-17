@@ -6,46 +6,55 @@
     <title>{% block title %}Dashboard{% endblock %}</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='favicon.ico') }}">
     <link href="{{ url_for('static', path='css/style.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/my_style.css') }}">
     {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-900 text-gray-100">
     <!-- Navigation -->
-    <nav class="bg-gray-800 border-b border-gray-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <span class="text-xl font-bold">Tool Log</span>
-                    </div>
-                    <div class="hidden md:block">
-                        <div class="ml-10 flex items-baseline space-x-4">
-                            <a href="/dashboard/monitoring" class="px-3 py-2 rounded-md text-sm font-medium {% if request.url.path == '/dashboard/monitoring' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
-                                Monitoring
-                            </a>
-                            <a href="/dashboard/graphs" class="px-3 py-2 rounded-md text-sm font-medium {% if request.url.path == '/dashboard/graphs' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
-                                Graphs
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <nav class="burger-menu">
+        <div class="burger-icon" onclick="toggleMenu()">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
         </div>
+        <ul class="menu-items">
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/dashboard/tools/">Tools</a></li>
+            <li><a href="/dashboard/requests/">Requests</a></li>
+            <hr>
+            <li><a href="#" id="reload-button">
+                    Reload
+                </a>
+            </li>
+            <!-- Add more menu items here as needed -->
+        </ul>
     </nav>
-
     <!-- Page Content -->
     <main class="min-h-screen">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-gray-800 border-t border-gray-700">
-        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-            <p class="text-center text-gray-400 text-sm">
-                Tool Log Dashboard
-            </p>
-        </div>
-    </footer>
+    <script>
+        // Burger Menu
+        function toggleMenu() {
+            const menuItems = document.querySelector('.menu-items');
+            menuItems.classList.toggle('show');
+        }
 
+        // Initialize all graphs once DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize reload button
+            const reloadButton = document.getElementById('reload-button');
+            if (reloadButton) {
+                reloadButton.addEventListener('click', hardReload);
+            }
+        });
+
+        function hardReload() {
+            console.log('Hard reloading...');
+            location.reload(true);
+        }
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
