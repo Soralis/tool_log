@@ -6,7 +6,73 @@
 <script src="https://unpkg.com/htmx.org@1.9.6"></script>
 <style>
     .dashboard-card {
-        @apply bg-gray-200 rounded-lg shadow-lg p-4;
+        @apply bg-gray-800 rounded-lg shadow-lg p-4;
+    }
+
+    .multi-range {
+        position: relative;
+        height: 50px;
+    }
+
+    .multi-range input[type="range"] {
+        position: absolute;
+        width: calc(100% + 16px);  /* Add handle diameter to allow for offset */
+        pointer-events: none;
+        appearance: none;
+        height: 2px;
+        background: none;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+    }
+
+    .multi-range input[type="range"]:first-of-type {
+        left: -8px;  /* Offset left handle */
+    }
+
+    .multi-range input[type="range"]:last-of-type {
+        left: 8px;  /* Offset right handle to the right */
+    }
+
+    .multi-range input[type="range"]::-webkit-slider-thumb {
+        pointer-events: auto;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #3b82f6;
+        border: 2px solid #e5e7eb;
+        cursor: pointer;
+    }
+
+    .multi-range input[type="range"]::-moz-range-thumb {
+        pointer-events: auto;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #3b82f6;
+        border: 2px solid #e5e7eb;
+        cursor: pointer;
+    }
+
+    .multi-range .slider-track {
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background: #4b5563;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+
+    .multi-range .slider-range {
+        position: absolute;
+        height: 2px;
+        background: #3b82f6;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
     }
 </style>
 {% endblock %}
@@ -18,11 +84,62 @@
     
     <!-- Main grid container -->
     <div class="grid grid-cols-12 gap-4">
-        <!-- Example card spanning 4 columns -->
+        <!-- Date Range Picker Card -->
         <div class="col-span-12 md:col-span-4 dashboard-card">
-            <h2 class="text-xl font-semibold mb-4">Card 1</h2>
-            <div class="h-64" id="card1-content">
-                <!-- Content will be loaded via htmx -->
+            <h2 class="text-xl font-semibold mb-4">Date Range Selection</h2>
+            <div class="space-y-6" id="card1-content">
+                <!-- Time Unit Selector -->
+                <div class="flex justify-between items-center mb-4">
+                    <select id="time-unit" 
+                        class="bg-gray-700 border border-gray-600 text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5"
+                        onchange="updateTimeUnit()">
+                        <option value="day">Day</option>
+                        <option value="week">Week</option>
+                        <option value="month">Month</option>
+                        <option value="quarter">Quarter</option>
+                        <option value="year">Year</option>
+                    </select>
+                </div>
+
+                <!-- Date Range Slider -->
+                <div class="multi-range mb-8">
+                    <div class="slider-track"></div>
+                    <div class="slider-range"></div>
+                    <input type="range" id="start-range" min="0" value="0" class="absolute">
+                    <input type="range" id="end-range" min="0" value="0" class="absolute">
+                </div>
+                <div class="text-sm text-gray-400 text-center mt-4" id="range-values"></div>
+                
+                <!-- Date Inputs -->
+                <div class="flex flex-col space-y-4">
+                    <div class="flex flex-col space-y-2">
+                        <label for="start-date" class="text-sm font-medium text-gray-300">Start Date</label>
+                        <input 
+                            type="date" 
+                            id="start-date" 
+                            name="start-date"
+                            class="bg-gray-700 border border-gray-600 text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                        >
+                    </div>
+                    
+                    <div class="flex flex-col space-y-2">
+                        <label for="end-date" class="text-sm font-medium text-gray-300">End Date</label>
+                        <input 
+                            type="date" 
+                            id="end-date" 
+                            name="end-date"
+                            class="bg-gray-700 border border-gray-600 text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                        >
+                    </div>
+
+                    <button 
+                        type="button"
+                        class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors duration-200"
+                        onclick="updateDateRange()"
+                    >
+                        Apply Date Range
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -62,9 +179,270 @@
 
 {% block scripts %}
 <script>
+    // Global references
+    let startRange, endRange, range, rangeValues, startDateInput, endDateInput;
+
+    // Define date constants
+    const EARLIEST_DATE = setMidnight(new Date('2022-03-23T00:00:00'));
+    const TODAY = setMidnight(new Date());
+    const TOTAL_DAYS = Math.floor((TODAY - EARLIEST_DATE) / (1000 * 60 * 60 * 24));
+    const TOTAL_WEEKS = Math.floor(TOTAL_DAYS / 7);
+    const TOTAL_MONTHS = (TODAY.getFullYear() - EARLIEST_DATE.getFullYear()) * 12 + 
+                        (TODAY.getMonth() - EARLIEST_DATE.getMonth());
+    const TOTAL_QUARTERS = Math.floor(TOTAL_MONTHS / 3);
+    const TOTAL_YEARS = TODAY.getFullYear() - EARLIEST_DATE.getFullYear();
+
+    // Global functions
+    function getUnitMax(unit) {
+        switch(unit) {
+            case 'day': return TOTAL_DAYS;
+            case 'week': return TOTAL_WEEKS;
+            case 'month': return TOTAL_MONTHS;
+            case 'quarter': return TOTAL_QUARTERS;
+            case 'year': return TOTAL_YEARS;
+            default: return TOTAL_DAYS;
+        }
+    }
+
+    function setMidnight(date) {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+
+    function setEndOfDay(date) {
+        const d = new Date(date);
+        d.setHours(23, 59, 59, 999);
+        return d;
+    }
+
+    function getStartOfWeek(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+        d.setDate(diff);
+        return setMidnight(d);
+    }
+
+    function getEndOfWeek(date) {
+        const d = getStartOfWeek(date);
+        d.setDate(d.getDate() + 6);
+        return setEndOfDay(d);
+    }
+
+    function getStartOfMonth(date) {
+        const d = new Date(date);
+        d.setDate(1);
+        return setMidnight(d);
+    }
+
+    function getEndOfMonth(date) {
+        const d = new Date(date);
+        d.setMonth(d.getMonth() + 1);
+        d.setDate(0);
+        return setEndOfDay(d);
+    }
+
+    function getStartOfQuarter(date) {
+        const d = new Date(date);
+        const month = d.getMonth();
+        d.setMonth(Math.floor(month / 3) * 3);
+        d.setDate(1);
+        return setMidnight(d);
+    }
+
+    function getEndOfQuarter(date) {
+        const d = getStartOfQuarter(date);
+        d.setMonth(d.getMonth() + 3);
+        d.setDate(0);
+        return setEndOfDay(d);
+    }
+
+    function getQuarterName(date) {
+        const month = date.getMonth();
+        const quarter = Math.floor(month / 3) + 1;
+        return `Q${quarter}`;
+    }
+
+    function getStartOfYear(date) {
+        const d = new Date(date);
+        d.setMonth(0);
+        d.setDate(1);
+        return setMidnight(d);
+    }
+
+    function getEndOfYear(date) {
+        const d = new Date(date);
+        d.setMonth(11);
+        d.setDate(31);
+        return setEndOfDay(d);
+    }
+
+    function unitsToDate(units, unit, max, isEnd = false) {
+        // Only return TODAY for end date at max value
+        if (units === max && isEnd) {
+            return new Date(TODAY);
+        }
+
+        let date = new Date(EARLIEST_DATE);
+        switch(unit) {
+            case 'day':
+                date.setDate(date.getDate() + units);
+                return isEnd ? setEndOfDay(date) : setMidnight(date);
+            case 'week':
+                date.setDate(date.getDate() + (units * 7));
+                return isEnd ? getEndOfWeek(date) : getStartOfWeek(date);
+            case 'month':
+                date.setMonth(date.getMonth() + units);
+                return isEnd ? getEndOfMonth(date) : getStartOfMonth(date);
+            case 'quarter':
+                date.setMonth(date.getMonth() + (units * 3));
+                return isEnd ? getEndOfQuarter(date) : getStartOfQuarter(date);
+            case 'year':
+                date.setFullYear(date.getFullYear() + units);
+                return isEnd ? getEndOfYear(date) : getStartOfYear(date);
+        }
+        return date;
+    }
+
+    function updateTimeUnit() {
+        const unit = document.getElementById('time-unit').value;
+        const max = getUnitMax(unit);
+        
+        // Update slider ranges
+        startRange.max = max;
+        endRange.max = max;
+        
+        // Set default values (last unit)
+        endRange.value = max;
+        startRange.value = Math.max(max - 1, 0);
+        
+        setRangeValues();
+    }
+
+    function setRangeValues() {
+        const unit = document.getElementById('time-unit').value;
+        const startUnits = parseInt(startRange.value);
+        const endUnits = parseInt(endRange.value);
+        const max = getUnitMax(unit);
+        
+        // Convert slider values to dates
+        const startDate = unitsToDate(startUnits, unit, max, false);
+        const endDate = unitsToDate(endUnits, unit, max, true);
+        
+        // Update range bar position and width
+        const startPercent = (startUnits / max) * 100;
+        const endPercent = (endUnits / max) * 100;
+        
+        // Adjust percentages to account for handle offsets
+        const handleWidth = 16; // Total handle width
+        const containerWidth = range.parentElement.offsetWidth;
+        const offsetPercent = (handleWidth / containerWidth) * 100;
+
+        // Adjust the range bar position and width
+        range.style.left = startPercent + '%';
+        range.style.width = (endPercent - startPercent) + '%';
+        
+        // Update date inputs
+        startDateInput.valueAsDate = startDate;
+        endDateInput.valueAsDate = endDate;
+        
+        // Update display text with unit-specific formatting
+        let dateFormat;
+        switch(unit) {
+            case 'day':
+                dateFormat = new Intl.DateTimeFormat('default', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                break;
+            case 'week':
+                dateFormat = new Intl.DateTimeFormat('default', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                rangeValues.textContent = `Week of ${dateFormat.format(startDate)} - ${dateFormat.format(endDate)}`;
+                return;
+            case 'month':
+                dateFormat = new Intl.DateTimeFormat('default', {
+                    year: 'numeric',
+                    month: 'long'
+                });
+                break;
+            case 'quarter':
+                dateFormat = new Intl.DateTimeFormat('default', { year: 'numeric' });
+                rangeValues.textContent = `${getQuarterName(startDate)} ${dateFormat.format(startDate)} - ${getQuarterName(endDate)} ${dateFormat.format(endDate)}`;
+                return;
+            case 'year':
+                dateFormat = new Intl.DateTimeFormat('default', {
+                    year: 'numeric'
+                });
+                break;
+        }
+        
+        rangeValues.textContent = `${dateFormat.format(startDate)} - ${dateFormat.format(endDate)}`;
+    }
+
+    function updateDateRange() {
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        
+        if (!startDate || !endDate) {
+            console.error('Please select both start and end dates');
+            return;
+        }
+
+        if (new Date(startDate) > new Date(endDate)) {
+            console.error('Start date cannot be after end date');
+            return;
+        }
+
+        // Trigger HTMX request or WebSocket update with new date range
+        console.log('Date range updated:', { startDate, endDate });
+        
+        // Emit event for other components
+        const dateRangeEvent = new CustomEvent('dateRangeChanged', {
+            detail: { startDate, endDate }
+        });
+        document.dispatchEvent(dateRangeEvent);
+    }
+
+    // Initialize on DOM load
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize dashboard components
-        console.log('Dashboard initialized');
+        // Initialize references
+        startRange = document.getElementById('start-range');
+        endRange = document.getElementById('end-range');
+        range = document.querySelector('.slider-range');
+        rangeValues = document.getElementById('range-values');
+        startDateInput = document.getElementById('start-date');
+        endDateInput = document.getElementById('end-date');
+
+        // Add event listeners
+        startRange.addEventListener('input', function() {
+            const startVal = parseInt(startRange.value);
+            const endVal = parseInt(endRange.value);
+            
+            if (startVal >= endVal) {
+                startRange.value = endVal;
+            }
+            setRangeValues();
+        });
+
+        endRange.addEventListener('input', function() {
+            const startVal = parseInt(startRange.value);
+            const endVal = parseInt(endRange.value);
+            
+            if (endVal <= startVal) {
+                endRange.value = startVal;
+            }
+            setRangeValues();
+        });
+
+        // Initialize time unit and slider
+        document.getElementById('time-unit').value = 'day';
+        updateTimeUnit();
     });
 </script>
 {% endblock %}
