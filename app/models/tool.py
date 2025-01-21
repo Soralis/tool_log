@@ -208,10 +208,11 @@ class ToolLife(ToolLifeBase, table=True):
     tool_order: ToolOrder = Relationship(back_populates='tool_lifes')
     change_reason: ChangeReason = Relationship(back_populates='tool_lifes')
     tool_position: 'ToolPosition' = Relationship(back_populates='tool_lifes')
+    notes: List['Note'] = Relationship(back_populates='tool_life')
 
 
 class ToolLifeCreate(ToolLifeBase):
-    pass
+    notes: List['Note'] = []
 
 
 class ToolLifeUpdate(ToolLifeCreate):
@@ -222,3 +223,29 @@ class ToolLifeRead(SQLModel):
     id: int
     name: str
     tool: Tool
+
+class NoteBase(SQLModel):
+    note: str
+    user_id: int = Field(foreign_key='user.id')
+
+class Note(NoteBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    tool_life_id: int = Field(foreign_key='toollife.id', ondelete='CASCADE', index=True)
+
+    tool_life: ToolLife = Relationship(back_populates='notes')
+    user: 'User' = Relationship(back_populates='notes')
+
+class NoteRead(SQLModel):
+    id: int
+    note: str
+
+class NoteCreate(NoteBase):
+    pass
+
+class NoteUpdate(NoteBase):
+    id: int
+

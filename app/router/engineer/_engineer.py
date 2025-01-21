@@ -10,6 +10,7 @@ from app.models import ToolOrder, ToolOrderCreate, ToolOrderUpdate, ToolOrderRea
 # from app.models import Recipe, RecipeCreate, RecipeUpdate
 from app.models import Measureable, MeasureableCreate, MeasureableUpdate, MeasureableRead
 from app.models import ToolLife, ToolLifeCreate, ToolLifeUpdate, ToolLifeRead
+from app.models import Note, NoteCreate, NoteUpdate, NoteRead
 from app.models import ToolType, ToolTypeCreate, ToolTypeUpdate, ToolTypeRead, Sentiment
 from app.models import ChangeReason, ChangeReasonCreate, ChangeReasonUpdate, ChangeReasonRead
 from app.models import ChangeOver, ChangeOverCreate, ChangeOverUpdate, ChangeOverRead
@@ -28,6 +29,7 @@ tool_attributes_router = create_generic_router(ToolAttribute, ToolAttributeRead,
 # tool_settings_router = create_generic_router(ToolSettings, ToolSettingsCreate, ToolSettingsUpdate, "Tool_Settings")
 tool_type_router = create_generic_router(ToolType, ToolTypeRead, ToolTypeCreate, ToolTypeUpdate, "Tool_Type", {"enum_fields": {"sentiment": Sentiment}})
 tool_life_router = create_generic_router(ToolLife, ToolLifeRead, ToolLifeCreate, ToolLifeUpdate, "Tool_Life")
+note_router = create_generic_router(Note, NoteRead, NoteCreate, NoteUpdate, "Note")
 measureable_router = create_generic_router(Measureable, MeasureableRead, MeasureableCreate, MeasureableUpdate, 'Measureable')
 change_reason_router = create_generic_router(ChangeReason, ChangeReasonRead, ChangeReasonCreate, ChangeReasonUpdate, "Change_Reason", {"enum_fields": {"sentiment": Sentiment}})
 tool_orders_router = create_generic_router(ToolOrder, ToolOrderRead, ToolOrderCreate, ToolOrderUpdate, "Tool_Order")
@@ -47,6 +49,7 @@ router.include_router(change_reason_router, prefix="/change_reasons", tags=["cha
 router.include_router(tool_orders_router, prefix="/tool_orders", tags=["tool_orders"])
 # router.include_router(recipe_router, prefix="/recipes", tags=["recipes"])
 router.include_router(tool_life_router, prefix="/tool_lifes", tags=["tool_lifes"])
+router.include_router(note_router, prefix="/notes", tags=["notes"])
 router.include_router(tool_type_router, prefix="/tool_types", tags=["tool_types"])
 router.include_router(measureable_router, prefix='/measureable', tags=['measureable'])
 router.include_router(change_over_router, prefix="/change_overs", tags=["change_overs"])

@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from fastapi import APIRouter, Request, HTTPException, status, Header
+from fastapi import APIRouter, Request, HTTPException, status, Header, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import ValidationError
 from sqlmodel import Session, select, inspect, SQLModel, func
@@ -16,10 +16,12 @@ from app.models import Machine, MachineCreate, MachineRead
 from app.models import User, UserCreate, UserRead
 from app.models import Tool, ToolCreate, ToolRead, ToolAttribute, ToolAttributeCreate, ToolAttributeRead
 from app.models import ToolLife, ToolLifeCreate, ToolLifeRead
+from app.models import Note, NoteCreate, NoteRead
 from app.models import ToolType, ToolTypeCreate, ToolTypeRead
 from app.models import Recipe, RecipeCreate, RecipeRead
 from app.models import ChangeReason, ChangeReasonCreate, ChangeReasonRead
 from typing import Type, Dict, Any, ForwardRef, get_origin, get_args, List
+from auth import get_current_operator
 
 # Create a mapping of string names to SQLModel classes
 model_mapping = {
@@ -30,6 +32,7 @@ model_mapping = {
     "user": {"model": User, "create": UserCreate, "read": UserRead},
     'tool': {"model": Tool, "create": ToolCreate, "read": ToolRead},
     'toollife': {"model": ToolLife, "create": ToolLifeCreate, "read": ToolLifeRead},
+    'note': {"model": Note, "create": NoteCreate, "read": NoteRead},
     'toolattribute': {"model": ToolAttribute, "create": ToolAttributeCreate, "read": ToolAttributeRead},
     'tooltype': {"model": ToolType, "create": ToolTypeCreate, "read": ToolTypeRead},
     'recipe': {"model": Recipe, "create": RecipeCreate, "read": RecipeRead},
@@ -350,7 +353,7 @@ def create_generic_router(
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @router.put("/{item_id}")
-    async def update_item(item_id: int, request: Request):
+    async def update_item(item_id: int, request: Request, user: User = Depends(get_current_operator)):
         form_dict, existing_relations, new_relations = await get_form_data(request)
 
         if item_id != int(form_dict['id']):
@@ -396,6 +399,7 @@ def create_generic_router(
                     related_create_model = related_model_info['create']
                     for new_item_data in new_items:
                         new_item_data[f'{item_type.lower()}_id'] = item_id
+                        new_item_data['user_id'] = user.id
                         try:
                             validated_new_item = related_create_model(**new_item_data)
                             new_item = related_model_info['model'](**validated_new_item.model_dump())
