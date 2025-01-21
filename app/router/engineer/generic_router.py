@@ -131,15 +131,16 @@ def create_generic_router(
         referred_model = referred_child['create_model']
         if not referred_model:
             raise HTTPException(status_code=404, detail="Referred model not found")
+        
+        context = router.context.copy()
+        context['model']= referred_model
+        context["field_name"]= field_name
+        context['form_action']= f'/engineer/{field_name.lower()}'
 
         return templates.TemplateResponse(
             request=request,
             name="engineer/partials/referred_model_modal.html.j2",
-            context={
-                "model": referred_model,
-                "field_name": field_name,
-                "form_action": f"/engineer/{field_name.lower()}"
-            }
+            context=context
         )
 
     @router.get("/filter")
