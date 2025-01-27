@@ -107,8 +107,12 @@ class ChangeReasonRead(ChangeReasonBase):
 
 class ToolBase(SQLModel):
     name: str = Field(index=True)
+    manufacturer_name: str = Field(unique=True)
     number: str = Field(index=True, unique=True)
+    erp_number: Optional[str] = Field(default=None, index=True, unique=True)
+    cpn_number: Optional[str] = Field(default=None, index=True, unique=True)
     description: Optional[str] = None
+    
     tool_type_id: int = Field(foreign_key='tooltype.id', ondelete='CASCADE')
     manufacturer_id: int = Field(foreign_key='manufacturer.id', ondelete='CASCADE')
     regrind: bool = Field(default=False)
@@ -227,6 +231,7 @@ class ToolLifeRead(SQLModel):
 class NoteBase(SQLModel):
     note: str
     user_id: int = Field(foreign_key='user.id')
+    sentiment: Sentiment = Field(default=Sentiment.NEUTRAL)
 
 class Note(NoteBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

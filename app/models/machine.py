@@ -35,12 +35,12 @@ class MeasureableUpdate(MeasureableCreate):
 class MeasureableRead(MeasureableBase):
     id: int
     active: bool
-    machine: 'Machine'
 
 
 class MachineBase(SQLModel):
     name: str = Field(index=True, unique=True)
     description: Optional[str] = None
+    cost_center: int = Field(unique=True)
     model: Optional[str] = Field(default=None)
     manufacturer: Optional[str] = Field(default=None)
     measures_tool_life: bool = Field(default=False)
