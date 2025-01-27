@@ -5,7 +5,7 @@
     class="space-y-6 p-4 sm:p-6 md:p-8">
     <div>
         {% if machines|length > 1 %}
-            <label for="machine-select" class="block text-2xl font-medium text-gray-700 sm:text-4xl">Select Machine</label>
+            <label for="machine-select" class="block text-2xl font-medium sm:text-4xl">Select Machine</label>
             <select id="machine-select" name="machine_id" class="mt-1 block w-full pl-3 pr-10 py-4 text-xl border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base rounded-md">
                 <option value="">Select a machine</option>
                 {% for machine in machines %}
