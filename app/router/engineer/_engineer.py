@@ -18,7 +18,6 @@ from app.models import Workpiece, WorkpieceCreate, WorkpieceUpdate, WorkPieceRea
 from .generic_router import create_generic_router
 from .recipes import router as recipes_router
 
-
 router = APIRouter()
 
 # Create generic routers
