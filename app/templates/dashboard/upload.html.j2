@@ -8,6 +8,20 @@
     <div class="p-6 bg-slate-800 rounded-lg shadow-md">
       <h2 class="text-xl font-semibold mb-3">Tool Consumption Data</h2>
       <p class="text-gray-200 mb-4">Upload Excel/CSV files containing tool consumption data.</p>
+      <button
+        onclick="toggleInstructions('consumption')"
+        class="text-gray-200 hover:text-teal-500 mb-2 flex items-center"
+      >
+        <span id="consumptionArrow" class="mr-2">▶</span>
+        Where do I get the data?
+      </button>
+      <ul id="consumptionInstructions" class="list-disc list-inside text-gray-200 mb-4 hidden">
+        <li>Gaaga</li>
+        <li>go to asdasd # MB51</li>
+        <li>asddd 'get variant'</li>
+        <li>Enter 'CMB51' ing the gsdfgsdf'vadfsiant' field and 'JJEFFERS' in the 'createdfgdfgs by' field</li>
+        <li>And then ...</li>
+      </ul>
       <button 
         onclick="openUploadModal('tool-consumption', 'Tool Consumption Data')"
         class="bg-teal-700 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
@@ -19,8 +33,24 @@
     <!-- Parts Produced Upload Button -->
     <div class="p-6 bg-slate-800 rounded-lg shadow-md">
       <h2 class="text-xl font-semibold mb-3">Parts Production Data</h2>
-      <p class="text-gray-200 mb-4">Upload Excel/CSV files containing parts production data.</p>
-      <p class="text-gray-200 mb-4">Get Data from SAP</p>
+      <p class="text-gray-200 mb-4">Upload Excel file containing parts production data.</p>
+      <button
+        onclick="toggleInstructions('production')"
+        class="text-gray-200 hover:text-teal-500 mb-2 flex items-center"
+      >
+        <span id="productionArrow" class="mr-2">▶</span>
+        Where do I get the data?
+      </button>
+      <ul id="productionInstructions" class="list-disc list-inside text-gray-200 mb-4 hidden">
+        <li>Open SAP</li>
+        <li>go to transaction # MB51</li>
+        <li>Click 'get variant'</li>
+        <li>Enter 'CMB51' in the 'variant' field and 'JJEFFERS' in the 'created by' field</li>
+        <li>Execute popup</li>
+        <li>Execute MB51 main screen</li>
+        <li>Right click anywhere in the data to export to spreadsheet</li>
+        <li>And then ...</li>
+      </ul>
       <button 
         onclick="openUploadModal('parts-produced', 'Parts Production Data')"
         class="bg-teal-700 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
@@ -81,6 +111,21 @@
 </div>
 
 <script>
+  function toggleInstructions(data) {
+    console.log(data)
+    const instructions = document.getElementById(`${data}Instructions`);
+    const arrow = document.getElementById(`${data}Arrow`);
+    const button = arrow.parentElement;
+    
+    if (instructions.classList.contains('hidden')) {
+      instructions.classList.remove('hidden');
+      arrow.textContent = '▼';
+    } else {
+      instructions.classList.add('hidden');
+      arrow.textContent = '▶';
+    }
+  }
+
   function openUploadModal(type, title) {
     document.getElementById('uploadModal').classList.remove('hidden');
     document.getElementById('modalTitle').textContent = title;

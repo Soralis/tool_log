@@ -1060,6 +1060,14 @@ video {
   resize: both;
 }
 
+.list-inside {
+  list-style-position: inside;
+}
+
+.list-disc {
+  list-style-type: disc;
+}
+
 .appearance-none {
   -webkit-appearance: none;
      -moz-appearance: none;
@@ -1921,6 +1929,11 @@ video {
 .hover\:text-gray-800:hover {
   --tw-text-opacity: 1;
   color: rgb(31 41 55 / var(--tw-text-opacity));
+}
+
+.hover\:text-teal-500:hover {
+  --tw-text-opacity: 1;
+  color: rgb(20 184 166 / var(--tw-text-opacity));
 }
 
 .hover\:text-white:hover {

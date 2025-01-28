@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Request, File, UploadFile
 from fastapi.responses import HTMLResponse
 
-from sqlmodel import Session, select, inspect, SQLModel, func
+from sqlmodel import Session, select
 from sqlalchemy.dialects.postgresql import insert
 import io
 import openpyxl
-from datetime import datetime
 import pandas as pd
 
 from app.models import OrderCompletion, User, Workpiece
@@ -53,7 +52,7 @@ async def upload_parts_produced(file: UploadFile = File(...)):
             
             # Prepare all valid records
             records = []
-            for idx, row in df.iterrows():
+            for _, row in df.iterrows():
                 if row['Document Date'] is None:
                     continue
                 try:
