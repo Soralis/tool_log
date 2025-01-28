@@ -15,7 +15,9 @@ from .recipe import (
 from .model_connections import RecipeTool
 from .user import User, UserBase, UserCreate, UserUpdate, UserRead, UserRole, Token
 from .change_over import ChangeOver, ChangeOverBase, ChangeOverCreate, ChangeOverUpdate, ChangeOverRead
-from .workpiece import Workpiece, WorkpieceBase, WorkpieceCreate, WorkpieceUpdate, WorkPieceRead
+from .workpiece import (Workpiece, WorkpieceBase, WorkpieceCreate, WorkpieceUpdate, WorkPieceRead,
+                        OrderCompletion, OrderCompletionCreate, OrderCompletionUpdate, OrderCompletionRead
+                        )
 from .manufacturer import Manufacturer, ManufacturerBase, ManufacturerCreate, ManufacturerUpdate, ManufacturerRead
 from .log_device import LogDevice, LogDeviceSetMachine
 
@@ -51,6 +53,7 @@ __all__ = [
     
     # Workpiece
     "Workpiece", "WorkpieceBase", "WorkpieceCreate", "WorkpieceUpdate", "WorkPieceRead",
+    "OrderCompletion", "OrderCompletionCreate", "OrderCompletionUpdate", "OrderCompletionRead",
     
     # Manufacturer
     "Manufacturer", "ManufacturerBase", "ManufacturerCreate", "ManufacturerUpdate", "ManufacturerRead",

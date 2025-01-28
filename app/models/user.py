@@ -7,6 +7,7 @@ from enum import IntEnum
 if TYPE_CHECKING:
     from .tool import ToolLife, ToolOrder, Note
     from .change_over import ChangeOver
+    from .workpiece import OrderCompletion
 
 
 class UserRole(IntEnum):
@@ -40,6 +41,7 @@ class User(UserBase, table=True):
     performed_change_overs: List['ChangeOver'] = Relationship(back_populates='user')
     tool_orders: List['ToolOrder'] = Relationship(back_populates='user')
     notes: List['Note'] = Relationship(back_populates='user')
+    order_completions: List['OrderCompletion'] = Relationship(back_populates='user')
 
 
 class UserCreate(UserBase):
