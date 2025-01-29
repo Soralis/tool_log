@@ -25,6 +25,7 @@ class Token(SQLModel):
 class UserBase(SQLModel):
     initials: str = Field(index=True, max_length=4, unique=True)
     name: str
+    number: Optional[str]
     pin: str = Field(min_length=3, max_length=5)
     role: UserRole
 
@@ -57,6 +58,7 @@ class UserUpdate(UserCreate):
 class UserRead(SQLModel):
     id: int
     name: str
+    number: str
     initials: str
     role: UserRole
     active: bool
