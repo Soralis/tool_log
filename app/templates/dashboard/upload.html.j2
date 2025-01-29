@@ -162,14 +162,15 @@
         
         if (response.ok) {
           const data = await response.json();
-          messageDiv.textContent = `File "${data.filename}" uploaded successfully!`;
+          const stats = data.result;
+          messageDiv.textContent = `File "${data.filename}" uploaded successfully! Processed ${stats.total_records} records (${stats.inserted} inserted, ${stats.conflicts} duplicates skipped)`;
           messageDiv.classList.remove('bg-yellow-100', 'border-yellow-400', 'text-yellow-700');
           messageDiv.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
           
           // Auto close modal after successful upload
-          setTimeout(() => {
+          {# setTimeout(() => {
             closeUploadModal();
-          }, 2000);
+          }, 2000); #}
         } else {
           throw new Error('Upload failed');
         }

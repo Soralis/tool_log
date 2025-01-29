@@ -45,11 +45,20 @@ async def read_excel(file: UploadFile, key_column: str, sheet_name: str = 'Sheet
 
     return df
 
-async def write_to_db(records: list, model, session: Session):
+async def write_to_db(records: list, model, session: Session, result: dict):
     stmt = insert(model).values(records)
-    stmt = stmt.on_conflict_do_nothing() # index_elements=['document_number']
-    session.exec(stmt)
+    stmt = stmt.on_conflict_do_nothing()
+    stmt = stmt.returning(model.id)
+
+    inserted_rows = session.exec(stmt).fetchall()
+    num_conflicts = len(records) - len(inserted_rows)
     session.commit()    
+
+    result['total_records'] += len(records)
+    result['inserted'] += len(inserted_rows)
+    result['conflicts'] += num_conflicts
+
+    return result
 
 @router.get("/upload", response_class=HTMLResponse)
 async def upload_page(request: Request):
@@ -85,6 +94,7 @@ async def upload_tool_consumption(file: UploadFile = File(...)):
 
         # Prepare all valid records
         records = []
+        result = {'total_records': 0, 'inserted': 0, 'conflicts': 0}
         for _, row in df.iterrows():
             if row[key_column] is None:
                 continue
@@ -154,14 +164,14 @@ async def upload_tool_consumption(file: UploadFile = File(...)):
                 print(e)
 
             if len(records) > 100:
-                await write_to_db(records, ToolConsumption, session)
+                result = await write_to_db(records, ToolConsumption, session, result)
                 records = []
         
         # Insert all records in a single operation, ignoring duplicates
         if records:
-            await write_to_db(records, ToolConsumption, session)
+            result = await write_to_db(records, ToolConsumption, session, result)
 
-    return {"filename": file.filename, "type": "tool_consumption"}
+    return {"filename": file.filename, "type": "tool_consumption", 'result': result}
 
 
 @router.post("/upload/parts-produced")
@@ -182,6 +192,7 @@ async def upload_parts_produced(file: UploadFile = File(...)):
         
         # Prepare all valid records
         records = []
+        result = {'total_records': 0, 'inserted': 0, 'conflicts': 0}
         for _, row in df.iterrows():
             if row[key_column] is None:
                 continue
@@ -202,11 +213,11 @@ async def upload_parts_produced(file: UploadFile = File(...)):
                 print(e)
 
             if len(records) > 100:
-                await write_to_db(records, OrderCompletion, session)
+                result = await write_to_db(records, OrderCompletion, session, result)
                 records = []
         
         # Insert all records in a single operation, ignoring duplicates
         if records:
-            await write_to_db(records, OrderCompletion, session)
+            result = await write_to_db(records, OrderCompletion, session, result)
 
-    return {"filename": file.filename, "type": "parts_produced"}
+    return {"filename": file.filename, "type": "parts_produced", 'result': result}
