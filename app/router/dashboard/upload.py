@@ -46,17 +46,30 @@ async def read_excel(file: UploadFile, key_column: str, sheet_name: str = 'Sheet
     return df
 
 async def write_to_db(records: list, model, session: Session, result: dict):
-    stmt = insert(model).values(records)
-    stmt = stmt.on_conflict_do_nothing()
-    stmt = stmt.returning(model.id)
+    valid_records = []
+    for record in records:
+        try:
+            # Validate record by attempting to create model instance
+            model(**record)
+            valid_records.append(record)
+        except Exception as e:
+            print(f"Data validation error: {e}")
+            result['bad_data'] += 1
+            result['total_records'] += 1
+            continue
 
-    inserted_rows = session.exec(stmt).fetchall()
-    num_conflicts = len(records) - len(inserted_rows)
-    session.commit()    
+    if valid_records:
+        stmt = insert(model).values(valid_records)
+        stmt = stmt.on_conflict_do_nothing()
+        stmt = stmt.returning(model.id)
 
-    result['total_records'] += len(records)
-    result['inserted'] += len(inserted_rows)
-    result['conflicts'] += num_conflicts
+        inserted_rows = session.exec(stmt).fetchall()
+        num_skipped = len(valid_records) - len(inserted_rows)
+        session.commit()    
+
+        result['total_records'] += len(valid_records)
+        result['inserted'] += len(inserted_rows)
+        result['skipped'] += num_skipped
 
     return result
 
@@ -94,7 +107,7 @@ async def upload_tool_consumption(file: UploadFile = File(...)):
 
         # Prepare all valid records
         records = []
-        result = {'total_records': 0, 'inserted': 0, 'conflicts': 0}
+        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
         for _, row in df.iterrows():
             if row[key_column] is None:
                 continue
@@ -107,7 +120,8 @@ async def upload_tool_consumption(file: UploadFile = File(...)):
                 
                 machine, machine_id = None, None
                 if row['Machine']:
-                    machine = machines.get(row['Machine'].split('-', 1)[1], None)
+                    machine_number = row['Machine']
+                    machine = machines.get(machine_number.split('-', 1)[-1] if machine_number.startswith('00') else machine_number, None)
                     machine_id = machine.id if machine else None
 
                 tool_id = tools.get(row['Item'], None)
@@ -192,7 +206,7 @@ async def upload_parts_produced(file: UploadFile = File(...)):
         
         # Prepare all valid records
         records = []
-        result = {'total_records': 0, 'inserted': 0, 'conflicts': 0}
+        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
         for _, row in df.iterrows():
             if row[key_column] is None:
                 continue
