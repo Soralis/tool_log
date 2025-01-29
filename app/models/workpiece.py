@@ -5,6 +5,7 @@ from sqlmodel import Field, SQLModel, Relationship
 if TYPE_CHECKING:
     from .recipe import Recipe
     from .user import User
+    from .tool import ToolConsumption
 
 
 class WorkpieceBase(SQLModel):
@@ -20,7 +21,7 @@ class Workpiece(WorkpieceBase, table=True):
 
     recipes: List['Recipe'] = Relationship(back_populates='workpiece')
     order_completions: List['OrderCompletion'] = Relationship(back_populates='workpiece')
-
+    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='workpiece')
 
 class WorkpieceCreate(WorkpieceBase):
     pass

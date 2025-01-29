@@ -1,7 +1,7 @@
 from typing import Optional, List, Dict, TYPE_CHECKING
 from sqlmodel import Field, SQLModel, Relationship, Column, JSON
 from sqlalchemy import UniqueConstraint
-from datetime import datetime
+from datetime import datetime as dt
 from decimal import Decimal
 from enum import IntEnum
 from .model_connections import RecipeTool
@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from .machine import Machine
     from .user import User
     from .manufacturer import Manufacturer
+    from .workpiece import Workpiece
 
 
 class ToolTypeBase(SQLModel):
@@ -131,6 +132,7 @@ class Tool(ToolBase, table=True):
     tool_lifes: List['ToolLife'] = Relationship(back_populates='tool')
     tool_orders: List['ToolOrder'] = Relationship(back_populates='tool')
     tool_positions: List['ToolPosition'] = Relationship(back_populates='tool')
+    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='tool')
 
 
 class ToolCreate(ToolBase):
@@ -163,8 +165,8 @@ class ToolOrder(ToolOrderBase, table=True):
     tool: Tool = Relationship(back_populates='tool_orders')
     tool_lifes: List['ToolLife'] = Relationship(back_populates='tool_order')
     fulfilled: bool = Field(default=False, nullable=False)
-    order_date: datetime = Field(default_factory=datetime.now, nullable=False)
-    delivery_date: Optional[datetime] = Field(default=None)
+    order_date: dt = Field(default_factory=dt.now, nullable=False)
+    delivery_date: Optional[dt] = Field(default=None)
     user_id: Optional[int] = Field(foreign_key='user.id')
     user: 'User' = Relationship(back_populates='tool_orders')
 
@@ -175,7 +177,7 @@ class ToolOrderCreate(ToolOrderBase):
 
 class ToolOrderUpdate(ToolOrderCreate):
     id: int
-    delivery_date: Optional[datetime] = Field(default=None)
+    delivery_date: Optional[dt] = Field(default=None)
     fulfilled: bool = Field(default=False, nullable=False)
 
 
@@ -193,7 +195,7 @@ class ToolLifeBase(SQLModel):
 
 class ToolLife(ToolLifeBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    timestamp: datetime = Field(default_factory=datetime.now, nullable=False)
+    timestamp: dt = Field(default_factory=dt.now, nullable=False)
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
     additional_measurements: Dict = Field(default_factory=dict, sa_column=Column(JSON))
 
@@ -236,8 +238,8 @@ class NoteBase(SQLModel):
 class Note(NoteBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: dt = Field(default_factory=dt.now)
+    updated_at: dt = Field(default_factory=dt.now)
 
     tool_life_id: int = Field(foreign_key='toollife.id', ondelete='CASCADE', index=True)
 
@@ -253,4 +255,27 @@ class NoteCreate(NoteBase):
 
 class NoteUpdate(NoteBase):
     id: int
+
+class ToolConsumption(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    datetime: dt = Field(index=True)
+    number: str = Field(index=True, unique=True)
+    consumption_type: str = Field(index=True)
+    quantity: int
+    value: Decimal = Field(max_digits=10, decimal_places=2)
+    price: Decimal = Field(max_digits=10, decimal_places=2)
+    
+    machine_id: Optional[int] = Field(foreign_key='machine.id', default=None)
+    tool_id: int = Field(foreign_key='tool.id')
+    recipe_id: Optional[int] = Field(foreign_key='recipe.id', default=None)
+    tool_position_id: Optional[int] = Field(foreign_key='toolposition.id', default=None)
+    user_id: Optional[int] = Field(foreign_key='user.id', default=None)
+    workpiece_id: Optional[int] = Field(foreign_key='workpiece.id', ondelete='CASCADE', default=None)
+
+    machine: 'Machine' = Relationship(back_populates='tool_consumptions')
+    tool: 'Tool' = Relationship(back_populates='tool_consumptions')
+    recipe: 'Recipe' = Relationship(back_populates='tool_consumptions')
+    tool_position: 'ToolPosition' = Relationship(back_populates='tool_consumptions')
+    user: 'User' = Relationship(back_populates='tool_consumptions')
+    workpiece: 'Workpiece' = Relationship(back_populates='tool_consumptions')
 

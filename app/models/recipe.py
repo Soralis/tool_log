@@ -8,7 +8,7 @@ from .model_connections import RecipeTool
 if TYPE_CHECKING:
     from .machine import Machine
     from .workpiece import Workpiece
-    from .tool import Tool, ToolLife
+    from .tool import Tool, ToolLife, ToolConsumption
     from .change_over import ChangeOver
 
 
@@ -30,7 +30,8 @@ class Recipe(RecipeBase, table=True):
     workpiece: 'Workpiece' = Relationship(back_populates='recipes')
     tools: List['Tool'] = Relationship(back_populates='recipes', link_model=RecipeTool)
     tool_lifes: List['ToolLife'] = Relationship(back_populates='recipe')
-    change_overs: List['ChangeOver'] = Relationship(back_populates='recipe')
+    change_overs: List['ChangeOver'] = Relationship(back_populates='recipe')    
+    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='recipe')
 
 
 class RecipeCreate(RecipeBase):
@@ -61,6 +62,7 @@ class ToolPosition(SQLModel, table=True):
     tool_id: Optional[int] = Field(foreign_key='tool.id')
     tool: 'Tool' = Relationship(back_populates='tool_positions')
     tool_lifes: List['ToolLife'] = Relationship(back_populates='tool_position')
+    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='tool_position')
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
     expected_life: Optional[int] = Field(default=None, gt=0)
     

@@ -4,7 +4,7 @@ from sqlalchemy import UniqueConstraint
 
 if TYPE_CHECKING:
     from .log_device import LogDevice
-    from .tool import ToolLife
+    from .tool import ToolLife, ToolConsumption
     from .recipe import Recipe
     from .change_over import ChangeOver
 
@@ -57,6 +57,7 @@ class Machine(MachineBase, table=True):
     tool_lifes: List['ToolLife'] = Relationship(back_populates='machine')
     recipes: List['Recipe'] = Relationship(back_populates='machine', sa_relationship_kwargs={"foreign_keys": "[Recipe.machine_id]"})
     change_overs: List['ChangeOver'] = Relationship(back_populates='machine', cascade_delete=True)
+    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='machine', cascade_delete=True)
 
     current_recipe_id: Optional[int] = Field(default=None, foreign_key='recipe.id')
     current_recipe: 'Recipe' = Relationship(back_populates='machine', sa_relationship_kwargs={"foreign_keys": "[Machine.current_recipe_id]"})
