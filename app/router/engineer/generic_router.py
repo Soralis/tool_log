@@ -157,19 +157,22 @@ def create_generic_router(
         )
 
     @router.get("/list", response_class=HTMLResponse)
-    async def get_item_list(request: Request, hx_request: str = Header(None)):
-        def get_joinedload_options(model: SQLModel) -> List[joinedload]:
+    async def get_item_list(request: Request):
+        def get_joinedload_options(model: SQLModel, read_model: SQLModel) -> List[joinedload]:
             """
             Generates joinedload options for a given SQLAlchemy model.
-            It will eagerly load the first-level relationships, while keeping the nested relationships as IDs.
+            It will eagerly load the first-level relationships that are defined in the read_model, 
+            while keeping the nested relationships as IDs.
             """
             joinedload_options = []
-            for name in model.__sqlmodel_relationships__.keys():
-                joinedload_options.append(joinedload(getattr(model, name)))
+            for name, field in read_model.__fields__.items():
+                print(f"Field: {name}, Type: {field.__getattribute__('annotation')}, isinstance: {isinstance(field.__getattribute__('annotation'), ForwardRef)}")
+                if isinstance(field.__getattribute__('annotation'), ForwardRef):
+                    joinedload_options.append(joinedload(getattr(model, name)))
             return joinedload_options
         
         filters = request.query_params
-        statement = select(model).options(*get_joinedload_options(model))
+        statement = select(model).options(*get_joinedload_options(model, read_model))
 
         # Apply filters to the statement
         def get_column_type(model, key):
@@ -192,12 +195,11 @@ def create_generic_router(
         
         for key, value in filters.items():
             if value and key != 'with_filter':
-                # statement = statement.where(getattr(model, key).in_([int(x) for x in value.split(',')])).options(*get_joinedload_options(model))
                 statement = statement.where(
                     getattr(model, key).in_(
                         [get_column_type(model, key)(x) for x in value.split(',')]
                     )
-                ).options(*get_joinedload_options(model))
+                ).options(*get_joinedload_options(model, read_model))
         with Session(engine) as session:
             items = session.exec(statement).unique().all()
 
