@@ -40,19 +40,19 @@
                             <label for="current-pin" class="block text-2xl font-medium text-gray-300 sm:text-4xl">Current PIN</label>
                             <input type="password" inputmode="numeric" pattern="[0-9]*" id="current-pin" name="current_pin"
                                 class="mt-1 block w-full pl-3 pr-10 py-4 text-xl border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base rounded-md"
-                                oninput="javascript: if (this.value.length > 6) this.value = this.value.slice(0, 6)" minlength="3">
+                                minlength="3" maxlength="6">
                         </div>
                         <div>
                             <label for="new-pin" class="block text-2xl font-medium text-gray-300 sm:text-4xl">New PIN</label>
                             <input type="password" inputmode="numeric" pattern="[0-9]*" id="new-pin" name="new_pin"
                                 class="mt-1 block w-full pl-3 pr-10 py-4 text-xl border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base rounded-md"
-                                oninput="javascript: if (this.value.length > 6) this.value = this.value.slice(0, 6)" minlength="3">
+                                minlength="3" maxlength="6">
                         </div>
                         <div>
                             <label for="confirm-pin" class="block text-2xl font-medium text-gray-300 sm:text-4xl">Confirm New PIN</label>
                             <input type="password" inputmode="numeric" pattern="[0-9]*" id="confirm-pin" name="confirm_pin"
                                 class="mt-1 block w-full pl-3 pr-10 py-4 text-xl border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-base rounded-md"
-                                oninput="javascript: if (this.value.length > 6) this.value = this.value.slice(0, 6)" minlength="3">
+                                minlength="3" maxlength="6">
                         </div>
                         <div>
                             <button type="submit" class="w-full flex justify-center py-4 px-6 border border-transparent rounded-md shadow-sm text-3xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">
