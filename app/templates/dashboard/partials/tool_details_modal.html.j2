@@ -182,7 +182,7 @@ function resetModalContent() {
 }
 
 // Make openToolModal globally available
-window.openToolModal = async function(toolId) {
+window.openToolModal = async function(toolId, dateRange) {
     const modal = document.getElementById('toolDetailsModal');
     if (!modal) {
         console.error('Modal element not found in openToolModal');
@@ -201,7 +201,12 @@ window.openToolModal = async function(toolId) {
     const numericId = toolId.split('_')[1];
     
     try {
-        const response = await fetch(`/dashboard/api/tool/${numericId}/details`);
+        // Build URL with date range parameters
+        const params = new URLSearchParams({
+            start_date: dateRange.startDate || '',
+            end_date: dateRange.endDate || ''
+        });
+        const response = await fetch(`/dashboard/api/tool/${numericId}/details?${params}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }

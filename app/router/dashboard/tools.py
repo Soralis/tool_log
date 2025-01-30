@@ -12,15 +12,20 @@ from typing import Dict, List
 from scipy.stats import linregress
 router = APIRouter()
 
-async def get_tool_graphs(db: Session) -> List[Dict]:
-    # Get all active tools that have tool life records
+async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: datetime = None) -> List[Dict]:
+    # Get all active tools
     statement = select(Tool).where(Tool.active == True)
     tools = db.exec(statement).all()
     
     graphs = []
     for tool in tools:
-        # Check if tool has any life records
-        statement = select(ToolLife).where(ToolLife.tool_id == tool.id).limit(1)
+        # Check if tool has any life records in the date range
+        statement = select(ToolLife).where(ToolLife.tool_id == tool.id)
+        if start_date:
+            statement = statement.where(ToolLife.timestamp >= start_date)
+        if end_date:
+            statement = statement.where(ToolLife.timestamp <= end_date)
+        
         if db.exec(statement).first():
             graphs.append({
                 "id": f"tool_{tool.id}",
@@ -30,20 +35,22 @@ async def get_tool_graphs(db: Session) -> List[Dict]:
     
     return graphs
 
-async def get_tool_life_data(db: Session, limit: int = 50) -> Dict:
+async def get_tool_life_data(db: Session, start_date: datetime = None, end_date: datetime = None) -> Dict:
     # Get active tools with life records
     statement = select(Tool).where(Tool.active == True)
     tools = db.exec(statement).all()
     
     data = {}
     for tool in tools:
-        # Get only the last 10 records for this tool, ordered by timestamp
-        statement = (
-            select(ToolLife)
-            .where(ToolLife.tool_id == tool.id)
-            .order_by(ToolLife.timestamp.desc())
-            .limit(limit)
-        )
+        # Build query with date filters
+        statement = select(ToolLife).where(ToolLife.tool_id == tool.id)
+        
+        if start_date:
+            statement = statement.where(ToolLife.timestamp >= start_date)
+        if end_date:
+            statement = statement.where(ToolLife.timestamp <= end_date)
+            
+        statement = statement.order_by(ToolLife.timestamp.asc())
         records = list(db.exec(statement))
         
         # Only include tools that have records
@@ -90,6 +97,7 @@ async def get_tool_life_data(db: Session, limit: int = 50) -> Dict:
 
 @router.get("/tools")
 async def tools(request: Request, db: Session = Depends(get_session)):
+    # Get initial graphs without date filtering
     graphs = await get_tool_graphs(db)
     return templates.TemplateResponse(
         "dashboard/tools.html.j2",  # Updated template path
@@ -100,25 +108,45 @@ async def tools(request: Request, db: Session = Depends(get_session)):
     )
 
 @router.get("/api/tool/{tool_id}/details")
-async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
+async def get_tool_details(
+    tool_id: int, 
+    start_date: str = None, 
+    end_date: str = None, 
+    db: Session = Depends(get_session)
+):
     """Get detailed information about a specific tool"""
     # Get tool information
     tool = db.get(Tool, tool_id)
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
     
-    # Get tool life records
-    statement = (
-        select(ToolLife)
-        .where(ToolLife.tool_id == tool_id)
-        .order_by(ToolLife.timestamp.desc())
-        .limit(50)
-    )
+    # Convert date strings to datetime objects
+    start = datetime.fromisoformat(start_date) if start_date and start_date != 'null' else None
+    end = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else None
+    
+    # Get tool life records with date filtering
+    statement = select(ToolLife).where(ToolLife.tool_id == tool_id)
+    if start:
+        statement = statement.where(ToolLife.timestamp >= start)
+    if end:
+        statement = statement.where(ToolLife.timestamp <= end)
+    statement = statement.order_by(ToolLife.timestamp.asc())
     records = list(db.exec(statement))
     records.reverse()  # Chronological order
+
+    # Define cards for the modal
+    details = {
+        "title": f"{tool.name} (#{tool.number})",
+        "cards": []
+    }
     
     if not records:
-        raise HTTPException(status_code=404, detail="No tool life data found")
+        details['cards'].append({"id": "no_data", "title": f"No Data Available for the timeframe from {start} to {end}.",
+                "width": 12,
+                "height": 2,
+            }
+        )
+        return details
     
     # Calculate statistics
     values = [record.reached_life for record in records]
@@ -151,12 +179,6 @@ async def get_tool_details(tool_id: int, db: Session = Depends(get_session)):
         wear_rate = abs(values[i] - values[i-1])
         wear_rates.append(wear_rate)
         wear_dates.append(timestamps[i].strftime("%m/%d"))
-
-    # Define cards for the modal
-    details = {
-        "title": f"{tool.name} (#{tool.number})",
-        "cards": []
-    }
 
     # ROW 1
     details['cards'].append({"id": "main_graph", "title": "Tool Life Trend",
@@ -404,10 +426,25 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
     try:
         while True:
             try:
-                # Get latest tool life data
-                data = await get_tool_life_data(db)
-                await websocket.send_text(json.dumps(data))
-                await asyncio.sleep(5)  # Update every second
+                # Receive date range from client
+                message = await websocket.receive_text()
+                date_range = json.loads(message)
+                
+                # Convert ISO strings to datetime objects
+                start_date = datetime.fromisoformat(date_range['startDate']) if date_range.get('startDate') and date_range['startDate'] != 'null' else None
+                end_date = datetime.fromisoformat(date_range['endDate']) if date_range.get('endDate') and date_range['endDate'] != 'null' else None
+                
+                # Get filtered graphs and data
+                graphs = await get_tool_graphs(db, start_date, end_date)
+                data = await get_tool_life_data(db, start_date, end_date)
+                
+                # Send both graphs and data
+                response = {
+                    "graphs": graphs,
+                    "data": data
+                }
+                await websocket.send_text(json.dumps(response))
+                await asyncio.sleep(5)  # Update every 5 seconds
             except RuntimeError as e:
                 if "close message has been sent" in str(e):
                     break

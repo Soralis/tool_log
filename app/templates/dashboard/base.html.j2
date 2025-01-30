@@ -162,7 +162,8 @@
         const TOTAL_WEEKS = Math.floor(TOTAL_DAYS / 7);
         const TOTAL_MONTHS = (TODAY.getFullYear() - EARLIEST_DATE.getFullYear()) * 12 + 
                             (TODAY.getMonth() - EARLIEST_DATE.getMonth());
-        const TOTAL_QUARTERS = Math.floor(TOTAL_MONTHS / 3);
+        const TOTAL_QUARTERS = Math.floor((TODAY.getFullYear() - EARLIEST_DATE.getFullYear()) * 4 + 
+                              Math.floor(TODAY.getMonth() / 3) - Math.floor(EARLIEST_DATE.getMonth() / 3));
         const TOTAL_YEARS = TODAY.getFullYear() - EARLIEST_DATE.getFullYear();
 
         // Global functions
@@ -252,9 +253,9 @@
         }
 
         function unitsToDate(units, unit, max, isEnd = false) {
-            // Only return TODAY for end date at max value
+            // Return null for end date at max value to indicate "now"
             if (units === max && isEnd) {
-                return new Date(TODAY);
+                return null;
             }
 
             let date = new Date(EARLIEST_DATE);
@@ -264,13 +265,25 @@
                     return isEnd ? setEndOfDay(date) : setMidnight(date);
                 case 'week':
                     date.setDate(date.getDate() + (units * 7));
+                    if (isEnd && units === max) {
+                        return null;
+                    }
                     return isEnd ? getEndOfWeek(date) : getStartOfWeek(date);
                 case 'month':
                     date.setMonth(date.getMonth() + units);
                     return isEnd ? getEndOfMonth(date) : getStartOfMonth(date);
                 case 'quarter':
-                    date.setMonth(date.getMonth() + (units * 3));
-                    return isEnd ? getEndOfQuarter(date) : getStartOfQuarter(date);
+                    const startYear = EARLIEST_DATE.getFullYear();
+                    const startQuarter = Math.floor(EARLIEST_DATE.getMonth() / 3);
+                    const totalQuarters = units;
+                    const targetYear = startYear + Math.floor((startQuarter + totalQuarters) / 4);
+                    const targetQuarter = (startQuarter + totalQuarters) % 4;
+                    
+                    date = new Date(targetYear, targetQuarter * 3, 1);
+                    if (isEnd && units === max) {
+                        return null;
+                    }
+                    return isEnd ? getEndOfQuarter(date) : setMidnight(date);
                 case 'year':
                     date.setFullYear(date.getFullYear() + units);
                     return isEnd ? getEndOfYear(date) : getStartOfYear(date);
@@ -350,7 +363,9 @@
                         month: 'short',
                         day: 'numeric'
                     });
-                    rangeValues.textContent = `Week of ${dateFormat.format(startDate)} - ${dateFormat.format(endDate)}`;
+                    rangeValues.textContent = endDate ? 
+                        `Week of ${dateFormat.format(startDate)} - ${dateFormat.format(endDate)}` :
+                        `Week of ${dateFormat.format(startDate)} - Now`;
                     return;
                 case 'month':
                     dateFormat = new Intl.DateTimeFormat('default', {
@@ -360,7 +375,9 @@
                     break;
                 case 'quarter':
                     dateFormat = new Intl.DateTimeFormat('default', { year: 'numeric' });
-                    rangeValues.textContent = `${getQuarterName(startDate)} ${dateFormat.format(startDate)} - ${getQuarterName(endDate)} ${dateFormat.format(endDate)}`;
+                    rangeValues.textContent = endDate ? 
+                        `${getQuarterName(startDate)} ${dateFormat.format(startDate)} - ${getQuarterName(endDate)} ${dateFormat.format(endDate)}` :
+                        `${getQuarterName(startDate)} ${dateFormat.format(startDate)} - Now`;
                     return;
                 case 'year':
                     dateFormat = new Intl.DateTimeFormat('default', {
@@ -369,7 +386,9 @@
                     break;
             }
             
-            rangeValues.textContent = `${dateFormat.format(startDate)} - ${dateFormat.format(endDate)}`;
+            rangeValues.textContent = endDate ? 
+                `${dateFormat.format(startDate)} - ${dateFormat.format(endDate)}` :
+                `${dateFormat.format(startDate)} - Now`;
         }
 
         // Event handlers
@@ -400,10 +419,20 @@
             const endDate = unitsToDate(endUnits, unit, max, true);
 
             // Format dates as ISO strings for the event
+            // Log the date range update
+            console.log('Date range updated:', {
+                unit,
+                startDate: startDate.toISOString(),
+                endDate: endDate ? endDate.toISOString() : 'Now',
+                startUnits,
+                endUnits,
+                max
+            });
+
             const dateRangeEvent = new CustomEvent('dateRangeChanged', {
-                detail: { 
-                    startDate: startDate.toISOString(), 
-                    endDate: endDate.toISOString() 
+                detail: {
+                    startDate: startDate.toISOString(),
+                    endDate: endDate ? endDate.toISOString() : null
                 }
             });
             document.dispatchEvent(dateRangeEvent);
