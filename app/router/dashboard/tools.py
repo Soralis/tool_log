@@ -3,13 +3,14 @@ import numpy as np
 import asyncio
 import json
 from app.templates.jinja_functions import templates
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
 from sqlmodel import Session, select
 from app.database_config import get_session
 from app.models.tool import Tool, ToolLife
 from typing import Dict, List
 from scipy.stats import linregress
+from .utils import get_condensed_data
 router = APIRouter()
 
 async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: datetime = None) -> List[Dict]:
@@ -55,12 +56,15 @@ async def get_tool_life_data(db: Session, start_date: datetime = None, end_date:
         
         # Only include tools that have records
         if records:
-            # Reverse to get chronological order
-            records.reverse()
-            values = [record.reached_life for record in records]
+            # Get condensed data points
+            records.reverse()  # Chronological order
+            condensed_data = get_condensed_data(records)
+            
+            # Extract timestamps and values
+            timestamps, values = zip(*condensed_data) if condensed_data else ([], [])
             
             # Calculate statistics
-            if len (values) > 1:
+            if len(values) > 1:
                 mean = np.mean(values)
                 std = np.std(values)
                 
@@ -68,15 +72,14 @@ async def get_tool_life_data(db: Session, start_date: datetime = None, end_date:
                 x = np.arange(len(values))
                 slope, intercept, _, _, _ = linregress(x, values)
                 trendline = [slope * i + intercept for i in x]
-
             else:
-                mean = values[0]
+                mean = values[0] if values else 0
                 std = 0
-                trendline = [mean]
+                trendline = [mean] if values else []
             
             data[f"tool_{tool.id}"] = {
-                "labels": [record.timestamp.isoformat() for record in records],
-                "values": values,
+                "labels": [ts.isoformat() for ts in timestamps],
+                "values": list(values),
                 "mean": mean,
                 "std": std,
                 "trendline": trendline,
@@ -148,9 +151,11 @@ async def get_tool_details(
         )
         return details
     
+    # Get condensed data points
+    condensed_data = get_condensed_data(records)
+    timestamps, values = zip(*condensed_data) if condensed_data else ([], [])
+    
     # Calculate statistics
-    values = [record.reached_life for record in records]
-    timestamps = [record.timestamp for record in records]
     mean = np.mean(values)
     std = np.std(values)
     

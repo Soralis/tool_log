@@ -47,7 +47,6 @@
                     e.preventDefault();
                     e.stopPropagation();
                     const graphId = '{{ graph.id }}';
-                    console.log('Graph clicked:', graphId);
                     const graphDiv = document.getElementById(graphId);
                     if (graphDiv && window.graphs[graphId]) {
                         const dateRange = {
@@ -207,15 +206,17 @@
         
         ws.onopen = function() {
             statusDiv.className = 'hidden';
-            // Send initial date range
+            // Send initial date range if available
             if (ws.readyState === WebSocket.OPEN) {
-                const event = new CustomEvent('dateRangeChanged', {
-                    detail: {
-                        startDate: localStorage.getItem('startDate'),
-                        endDate: localStorage.getItem('endDate')
-                    }
-                });
-                handleDateRangeChange(event);
+                const startDate = localStorage.getItem('startDate');
+                const endDate = localStorage.getItem('endDate');
+                if (startDate || endDate) {
+                    console.log('Sending initial date range:', { startDate, endDate });
+                    ws.send(JSON.stringify({
+                        startDate: startDate,
+                        endDate: endDate
+                    }));
+                }
             }
         };
         

@@ -313,6 +313,12 @@
             localStorage.setItem('startRange', startRange.value);
             localStorage.setItem('endRange', endRange.value);
             
+            // Update date range in localStorage
+            const startDate = unitsToDate(parseInt(startRange.value), unit, max, false);
+            const endDate = unitsToDate(parseInt(endRange.value), unit, max, true);
+            localStorage.setItem('startDate', startDate.toISOString());
+            localStorage.setItem('endDate', endDate ? endDate.toISOString() : 'null');
+            
             console.log('Updated time unit:', {
                 unit,
                 max,
@@ -402,9 +408,18 @@
                 endRange.value = startVal;
             }
             
+            const unit = document.getElementById('time-unit').value;
+            const max = getUnitMax(unit);
+            
             // Save to localStorage
             localStorage.setItem('startRange', startRange.value);
             localStorage.setItem('endRange', endRange.value);
+            
+            // Update date range in localStorage
+            const startDate = unitsToDate(parseInt(startRange.value), unit, max, false);
+            const endDate = unitsToDate(parseInt(endRange.value), unit, max, true);
+            localStorage.setItem('startDate', startDate.toISOString());
+            localStorage.setItem('endDate', endDate ? endDate.toISOString() : 'null');
             
             setRangeValues();
         }
