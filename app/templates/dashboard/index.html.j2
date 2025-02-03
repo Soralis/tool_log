@@ -17,6 +17,18 @@
     .selection {
         @apply mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md bg-gray-700 text-gray-100;
     }
+    .selectable-button {
+        @apply px-4 py-2 text-left rounded-md bg-gray-700 text-gray-100 transition-colors cursor-pointer;
+    }
+    .selectable-button.selected {
+        @apply bg-indigo-600 hover:bg-indigo-700;
+    }
+    .selectable-button:hover:not(.selected) {
+        @apply bg-gray-600;
+    }
+    .checkbox-hidden {
+        @apply hidden;
+    }
 </style>
 {% endblock %}
 
@@ -27,15 +39,64 @@
         <div class="col-span-2 dashboard-card">
             <div class="space-y-6" id="card1-content">
                 <div class="selection-container">
-                    <label class="selection-label">Products</label>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="selection-label">Products</label>
+                        <div class="space-x-2">
+                            <button class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                                    onclick="AllCheckboxes(this, true)">
+                                Select All
+                            </button>
+                            <button class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                                    onclick="AllCheckboxes(this, false)">
+                                Clear All
+                            </button>
+                        </div>
+                    </div>
                     <div class="flex flex-col gap-2 h-64 overflow-y-auto pr-2" id="product-select">
-                        <!-- Products will be populated via WebSocket -->
+                        {% for name, id in products.items() %}
+                        <label class="selectable-button" data-value="{{ id }}">
+                            <input type="checkbox" 
+                                   name="selected_products" 
+                                   value="{{ id }}" 
+                                   class="checkbox-hidden"
+                                   hx-get="/dashboard/api/filter"
+                                   hx-trigger="change"
+                                   hx-target="#card2-content"
+                                   hx-include="[name='selected_products'], [name='selected_operations']">
+                            {{ name }}
+                        </label>
+                        {% endfor %}
                     </div>
                 </div>
                 <div class="selection-container">
                     <label class="selection-label">Operations</label>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="selection-label">Operations</label>
+                        <div class="space-x-2">
+                            <button class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                                    onclick="AllCheckboxes(this, true)">
+                                Select All
+                            </button>
+                            <button class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                                    onclick="AllCheckboxes(this, false)">
+                                Clear All
+                            </button>
+                        </div>
+                    </div>
                     <div class="flex flex-col gap-2 h-64 overflow-y-auto pr-2" id="operation-select">
-                        <!-- Operations will be populated via WebSocket -->
+                        {% for name, id in operations.items() %}
+                        <label class="selectable-button" data-value="{{ id }}">
+                            <input type="checkbox" 
+                                   name="selected_operations" 
+                                   value="{{ id }}" 
+                                   class="checkbox-hidden"
+                                   hx-get="/dashboard/api/filter"
+                                   hx-trigger="change"
+                                   hx-target="#card2-content"
+                                   hx-include="[name='selected_products'], [name='selected_operations']">
+                            {{ name }}
+                        </label>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -49,101 +110,65 @@
             </div>
         </div>
 
-        <!-- Example card spanning full width -->
-        <div class="col-span-12 dashboard-card">
-            <h2 class="text-xl font-semibold mb-4">Card 3</h2>
-            <div class="h-64" id="card3-content">
-                <!-- Content will be loaded via htmx -->
-            </div>
-        </div>
-
-        <!-- Example cards spanning 6 columns each -->
-        <div class="col-span-12 md:col-span-6 dashboard-card">
-            <h2 class="text-xl font-semibold mb-4">Card 4</h2>
-            <div class="h-64" id="card4-content">
-                <!-- Content will be loaded via htmx -->
-            </div>
-        </div>
-
-        <div class="col-span-12 md:col-span-6 dashboard-card">
-            <h2 class="text-xl font-semibold mb-4">Card 5</h2>
-            <div class="h-64" id="card5-content">
-                <!-- Content will be loaded via htmx -->
-            </div>
-        </div>
+        <!-- Remaining cards... (keep existing structure) -->
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    const selectedProducts = new Set();
-    const selectedOperations = new Set();
-    
-    const ws = new WebSocket(`ws://${window.location.host}/dashboard/ws/dashboard`);
-    
-    function createToggleButton(name, id, selectedSet) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = `toggle-btn px-4 py-2 rounded-full border border-gray-600 hover:bg-gray-700 transition-colors ${
-            selectedSet.has(id) ? 'bg-indigo-600' : ''
-        }`;
-        button.dataset.id = id;
-        button.textContent = name;
-        button.onclick = function() {
-            this.classList.toggle('bg-indigo-600');
-            if (selectedSet.has(id)) {
-                selectedSet.delete(id);
-            } else {
-                selectedSet.add(id);
-            }
-        };
-        return button;
+document.addEventListener('htmx:afterRequest', function(evt) {
+    if (evt.detail.requestConfig.path.startsWith('/dashboard/api/filter')) {
+        // Get current selections from URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const selectedProducts = params.getAll('selected_products');
+        const selectedOperations = params.getAll('selected_operations');
+
+        // Update button states
+        document.querySelectorAll('.selectable-button').forEach(button => {
+            const value = button.dataset.value;
+            const isProduct = button.closest('#product-select');
+            const isSelected = isProduct ? 
+                selectedProducts.includes(value) : 
+                selectedOperations.includes(value);
+            
+            button.classList.toggle('selected', isSelected);
+        });
     }
+});
 
-    function createSelectionList(containerId, items, selectedSet) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = '';
+// Handle select all functionality
+function AllCheckboxes(button, value) {
+    const container = button.closest('.selection-container');
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    
+    // Set all checkbox values
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = value;
+    });
 
-        // Add All/None buttons
-        const allBtn = createToggleButton('All', 'all', selectedSet);
-        allBtn.onclick = () => {
-            items.forEach(([_, id]) => selectedSet.add(id));
-            container.querySelectorAll('.toggle-btn').forEach(btn => {
-                if (btn.dataset.id !== 'all' && btn.dataset.id !== 'none') {
-                    btn.classList.add('bg-indigo-600');
-                }
-            });
-        };
-        container.appendChild(allBtn);
+    // Initialize HTMX on the checkboxes
+    checkboxes.forEach(checkbox => htmx.process(checkbox));
 
-        const noneBtn = createToggleButton('None', 'none', selectedSet);
-        noneBtn.onclick = () => {
-            selectedSet.clear();
-            container.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('bg-indigo-600'));
-        };
-        container.appendChild(noneBtn);
-
-        // Add items
-        items
-            .sort(([aName], [bName]) => aName.localeCompare(bName))
-            .forEach(([name, id]) => {
-                container.appendChild(createToggleButton(name, id, selectedSet));
-            });
+    // Find the first checkbox and trigger its HTMX request
+    const firstCheckbox = checkboxes[0];
+    if (firstCheckbox) {
+        htmx.trigger(firstCheckbox, 'change');
     }
-    
-    ws.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        
-        // Update product selection
-        createSelectionList('product-select', Object.entries(data.products), selectedProducts);
-        
-        // Update operation selection
-        createSelectionList('operation-select', Object.entries(data.operations), selectedOperations);
-    };
-    
-    ws.onclose = function() {
-        console.log('WebSocket connection closed');
-    };
+}
+
+// Handle selectable button clicks
+document.querySelectorAll('.selectable-button').forEach(button => {
+    button.addEventListener('click', function() {
+        const checkbox = this.querySelector('input[type="checkbox"]');
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change'));
+    });
+});
+
+// Initialize selections from URL on page load
+document.addEventListener('DOMContentLoaded', function() {
+    htmx.trigger('[name="selected_products"], [name="selected_operations"]', 'change');
+});
 </script>
 {% endblock %}
