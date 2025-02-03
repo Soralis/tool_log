@@ -7,7 +7,7 @@ import socket
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
-from app.models import Tool, ToolLife, RequestLog, ServiceMetrics
+from app.models import Tool, ToolLife, RequestLog, ServiceMetrics, Workpiece, Machine
 
 router = APIRouter()
 
@@ -29,7 +29,13 @@ def get_ip_address():
         return "Unable to get IP address"
     
 
-# 
+def get_products(db: Session):
+    workpieces = db.exec(select(Workpiece)).all()
+    return {workpiece.name: workpiece.id for workpiece in workpieces}
+
+def get_operations(db: Session):
+    operations = db.exec(select(Machine)).all()
+    return {operation.name: operation.id for operation in operations}
 
 @router.get("/")
 async def dashboard(request: Request, db: Session = Depends(get_session)):
@@ -43,59 +49,43 @@ async def dashboard(request: Request, db: Session = Depends(get_session)):
     )
 
 @router.get("/api/dashboard/summary")
-async def get_dashboard_summary(db: Session = Depends(get_session)):
+async def get_dashboard_summary(db: Session = Depends(get_session), 
+                                selected_products: List[int] = None, 
+                                selected_operations: List[int] = None):
     """Get summary statistics for the dashboard"""
-    # Get service metrics
-    metrics = db.exec(select(ServiceMetrics)).first()
-    
-    # Get tool statistics
-    total_tools = db.exec(select(Tool)).all()
-    active_tools = [tool for tool in total_tools if tool.active]
-    
-    # Get recent tool life entries
-    recent_tool_life = db.exec(
-        select(ToolLife)
-        .order_by(ToolLife.timestamp.desc())
-        .limit(100)
-    ).all()
-    
-    # Get recent requests
-    recent_requests = db.exec(
-        select(RequestLog)
-        .order_by(RequestLog.timestamp.desc())
-        .limit(100)
-    ).all()
+    products = get_products(db)
+    operations = get_operations(db)
     
     return {
-        "service_metrics": {
-            "total_requests": metrics.total_requests if metrics else 0,
-            "total_errors": metrics.total_errors if metrics else 0,
-            "avg_response_time": float(metrics.avg_response_time) if metrics else 0
-        },
-        "tool_metrics": {
-            "total_tools": len(total_tools),
-            "active_tools": len(active_tools),
-            "recent_tool_changes": len(recent_tool_life)
-        },
-        "request_metrics": {
-            "recent_requests": len(recent_requests),
-            "recent_errors": sum(1 for req in recent_requests if req.status_code >= 400)
-        }
+        "products": products,
+        "operations": operations,
     }
 
 @router.websocket("/ws/dashboard")
 async def websocket_dashboard(websocket: WebSocket, db: Session = Depends(get_session)):
     await websocket.accept()
     active_connections.append(websocket)
+    user_filters = {"selected_products": [], "selected_operations": []}
     
     try:
         while True:
             try:
-                # Get latest dashboard data
-                summary = await get_dashboard_summary(db)
+                # # Receive filter updates from client
+                # message = await websocket.receive_text()
+                # data = json.loads(message)
+                # user_filters["selected_products"] = data.get("selectedProducts", [])
+                # user_filters["selected_operations"] = data.get("selectedOperations", [])
+                
+                # Get filtered dashboard data
+                summary = await get_dashboard_summary(db, user_filters["selected_products"], user_filters["selected_operations"])
                 await websocket.send_text(json.dumps(summary))
                 await asyncio.sleep(5)  # Update every 5 seconds
                 
+            except asyncio.TimeoutError:
+                # If no message received, send current summary
+                summary = await get_dashboard_summary(db, user_filters["selected_products"], user_filters["selected_operations"])
+                await websocket.send_text(json.dumps(summary))
+                await asyncio.sleep(5)
             except RuntimeError as e:
                 if "close message has been sent" in str(e):
                     break

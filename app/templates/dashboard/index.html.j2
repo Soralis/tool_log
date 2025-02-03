@@ -4,10 +4,18 @@
 {% block subinfo %}<h3>Server Address: {{ server_address }}</h3>{% endblock %}
 
 {% block head %}
-<script src="https://unpkg.com/htmx.org@1.9.6"></script>
 <style>
     .dashboard-card {
         @apply bg-gray-800 rounded-lg shadow-lg p-4;
+    }
+    .selection-container {
+        @apply space-y-2 mb-4;
+    }
+    .selection-label {
+        @apply block text-sm font-medium text-gray-300;
+    }
+    .selection {
+        @apply mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md bg-gray-700 text-gray-100;
     }
 </style>
 {% endblock %}
@@ -16,10 +24,20 @@
 <div class="mx-auto px-4 py-8">   
     <!-- Main grid container -->
     <div class="grid grid-cols-12 gap-4">
-        <div class="col-span-12 md:col-span-4 dashboard-card">
-            <h2 class="text-xl font-semibold mb-4">Card 1</h2>
+        <div class="col-span-2 dashboard-card">
             <div class="space-y-6" id="card1-content">
-                <!-- Content will be loaded via htmx -->
+                <div class="selection-container">
+                    <label class="selection-label">Products</label>
+                    <div class="flex flex-col gap-2 h-64 overflow-y-auto pr-2" id="product-select">
+                        <!-- Products will be populated via WebSocket -->
+                    </div>
+                </div>
+                <div class="selection-container">
+                    <label class="selection-label">Operations</label>
+                    <div class="flex flex-col gap-2 h-64 overflow-y-auto pr-2" id="operation-select">
+                        <!-- Operations will be populated via WebSocket -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -58,4 +76,74 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+    const selectedProducts = new Set();
+    const selectedOperations = new Set();
+    
+    const ws = new WebSocket(`ws://${window.location.host}/dashboard/ws/dashboard`);
+    
+    function createToggleButton(name, id, selectedSet) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `toggle-btn px-4 py-2 rounded-full border border-gray-600 hover:bg-gray-700 transition-colors ${
+            selectedSet.has(id) ? 'bg-indigo-600' : ''
+        }`;
+        button.dataset.id = id;
+        button.textContent = name;
+        button.onclick = function() {
+            this.classList.toggle('bg-indigo-600');
+            if (selectedSet.has(id)) {
+                selectedSet.delete(id);
+            } else {
+                selectedSet.add(id);
+            }
+        };
+        return button;
+    }
+
+    function createSelectionList(containerId, items, selectedSet) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+
+        // Add All/None buttons
+        const allBtn = createToggleButton('All', 'all', selectedSet);
+        allBtn.onclick = () => {
+            items.forEach(([_, id]) => selectedSet.add(id));
+            container.querySelectorAll('.toggle-btn').forEach(btn => {
+                if (btn.dataset.id !== 'all' && btn.dataset.id !== 'none') {
+                    btn.classList.add('bg-indigo-600');
+                }
+            });
+        };
+        container.appendChild(allBtn);
+
+        const noneBtn = createToggleButton('None', 'none', selectedSet);
+        noneBtn.onclick = () => {
+            selectedSet.clear();
+            container.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('bg-indigo-600'));
+        };
+        container.appendChild(noneBtn);
+
+        // Add items
+        items
+            .sort(([aName], [bName]) => aName.localeCompare(bName))
+            .forEach(([name, id]) => {
+                container.appendChild(createToggleButton(name, id, selectedSet));
+            });
+    }
+    
+    ws.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        
+        // Update product selection
+        createSelectionList('product-select', Object.entries(data.products), selectedProducts);
+        
+        // Update operation selection
+        createSelectionList('operation-select', Object.entries(data.operations), selectedOperations);
+    };
+    
+    ws.onclose = function() {
+        console.log('WebSocket connection closed');
+    };
+</script>
 {% endblock %}
