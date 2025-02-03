@@ -142,6 +142,9 @@ async def authenticate_operator(initials: str, pin: str):
         operator = session.exec(select(User).where(User.initials == initials, User.pin == pin)).one_or_none()
         if operator is None:
             raise HTTPException(status_code=401, detail="Invalid initials or PIN")
+        
+        if not operator.active:
+            raise HTTPException(status_code=401, detail="Operator account is deactivated")
 
         # Create token without expiration in JWT
         access_token = create_token(
