@@ -43,7 +43,12 @@
 
     document.body.addEventListener('htmx:responseError', function(evt) {
         const errorDiv = document.getElementById('login-error');
-        errorDiv.textContent = 'Login failed. Please check your initials and PIN.';
+        try {
+            const response = JSON.parse(evt.detail.xhr.response);
+            errorDiv.textContent = response.error || 'Login failed. Please check your initials and PIN. 1';
+        } catch (error) {
+            errorDiv.textContent = 'Login failed. Please check your initials and PIN. 2';
+        }
         errorDiv.style.display = 'block';
     });
 

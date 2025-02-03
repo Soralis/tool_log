@@ -144,7 +144,7 @@ async def authenticate_operator(initials: str, pin: str):
             raise HTTPException(status_code=401, detail="Invalid initials or PIN")
         
         if not operator.active:
-            raise HTTPException(status_code=401, detail="Operator account is deactivated")
+            raise HTTPException(status_code=401, detail="Account is deactivated")
 
         # Create token without expiration in JWT
         access_token = create_token(
