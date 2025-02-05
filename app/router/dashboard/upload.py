@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, File, UploadFile
+from fastapi import APIRouter, Request, File, UploadFile, Form
 from fastapi.responses import HTMLResponse
 
 from sqlmodel import Session, select
@@ -16,34 +16,78 @@ from app.templates.jinja_functions import templates
 router = APIRouter()
 
 
-async def read_excel(file: UploadFile, key_column: str, sheet_name: str = 'Sheet1'):
-    """Read an Excel file and return a DataFrame"""
-    # Read it, 'f' type is bytes
+async def get_excel_sheets(file: UploadFile):
+    """Get list of sheets in Excel file"""
     if not file.filename.lower().endswith('.xlsx'):
         return None
     
-    f = await file.read()
-    xlsx = io.BytesIO(f)
-    wb = openpyxl.load_workbook(xlsx)
+    content = await file.read()
+    file.seek(0)  # Reset file pointer for future reads
+    xlsx = io.BytesIO(content)
+    wb = openpyxl.load_workbook(xlsx, data_only=True)
+    sheets = wb.sheetnames
+    print(f"Available sheets: {sheets}")
+    return sheets
+
+async def preview_excel_sheet(file: UploadFile, sheet_name: str = None):
+    """Preview first 10 rows of specified sheet without header detection"""
+    if not file.filename.lower().endswith('.xlsx'):
+        return None
+    
+    content = await file.read()
+    file.seek(0)  # Reset file pointer for future reads
+    xlsx = io.BytesIO(content)
+    wb = openpyxl.load_workbook(xlsx, data_only=True)
     ws = wb[sheet_name]
 
     df = pd.DataFrame(ws.values)
+    preview_rows = min(10, len(df))  # Show up to 10 rows for better header selection
 
-    for idx, row in df.iterrows():
-        try: 
-            if key_column in row.values:
-                print('found row:', idx)
-                print(row)
-                break
-        except KeyError:
+    return {
+        'rows': df.head(preview_rows).values.tolist(),
+        'total_rows': len(df)
+    }
+
+async def read_excel(file: UploadFile, sheet_names: str = None, header_row: int = None):
+    """Read specified sheets from Excel file and return combined DataFrame"""
+    if not file.filename.lower().endswith('.xlsx'):
+        return None
+    
+    content = await file.read()
+    file.seek(0)  # Reset file pointer for future reads
+    xlsx = io.BytesIO(content)
+    wb = openpyxl.load_workbook(xlsx, data_only=True)
+    print(f"Reading Excel file with sheets: {sheet_names}")
+    
+    # Convert comma-separated string to list, or use all sheets
+    sheet_list = sheet_names.split(',') if sheet_names else wb.sheetnames
+    print(f"Processing sheets: {sheet_list}")
+    
+    dfs = []
+    for sheet_name in sheet_list:
+        print(f"Processing sheet: {sheet_name}")
+        ws = wb[sheet_name]
+        df = pd.DataFrame(ws.values)
+        
+        if header_row is not None and header_row < len(df):
+            # Use the specified row as header
+            df.columns = df.iloc[header_row]
+            df = df[header_row + 1:]
+            print(f"Using row {header_row} as header")
+            print(f"Columns: {df.columns.tolist()}")
+        else:
+            print("Warning: Invalid header row specified")
             continue
 
-    df.columns = df.iloc[idx]
-    df = df[idx+1:]
+        df.dropna(axis=1, thresh=3, inplace=True)
+        dfs.append(df)
 
-    df.dropna(axis=1, thresh=3, inplace=True)
-
-    return df
+    final_df = pd.concat(dfs) if dfs else None
+    if final_df is not None:
+        print(f"Successfully combined {len(dfs)} sheets, total rows: {len(final_df)}")
+    else:
+        print("Warning: No data frames to combine")
+    return final_df
 
 async def write_to_db(records: list, model, session: Session, result: dict):
     valid_records = []
@@ -81,20 +125,60 @@ async def upload_page(request: Request):
         {"request": request}
     )
 
+@router.post("/upload/preview-sheets")
+async def preview_sheets(file: UploadFile = File(...)):
+    """Get list of sheets in Excel file"""
+    sheets = await get_excel_sheets(file)
+    if sheets is None:
+        return {"error": "Unsupported file type"}
+    return sheets
+
+
+@router.post("/upload/preview-sheet")
+async def preview_sheet(
+    file: UploadFile = File(...),
+    sheet_name: str = Form(None),
+):
+    """Preview first 10 rows of specified sheet"""
+    print(f"Previewing sheet: {sheet_name}")
+    if not sheet_name or sheet_name == "undefined":
+        print("Error: Sheet name is required")
+        return {"error": "Sheet name is required"}
+    
+    try:
+        print(f"Reading file: {file.filename}, sheet: {sheet_name}")
+        preview = await preview_excel_sheet(file, sheet_name)
+        if preview is None:
+            print("Error: Preview returned None")
+            return {"error": "Unsupported file type or invalid sheet name"}
+        print(f"Preview successful: {len(preview['rows'])} rows")
+        return preview
+    except Exception as e:
+        print(f"Error previewing sheet: {e}")
+        return {"error": str(e)}
+
 @router.post("/upload/tool-consumption")
-async def upload_tool_consumption(file: UploadFile = File(...)):
+async def upload_tool_consumption(
+    file: UploadFile = File(...),
+    sheet_names: str = Form(None),
+    header_row: int = Form(None)
+):
     """Handle tool consumption file upload"""
     print(f'Processing tool consumption file: {file.filename}')
 
-    key_column = 'Trans Date'
-    df = await read_excel(file, key_column, 'Results')
+    df = await read_excel(file, sheet_names, header_row)
+
+    if df is None:
+        return {"filename": file.filename, "type": "tool_consumption", "error": "Failed to read file"}
+
+    print(df.head(10))
 
     with Session(engine) as session:
         users = session.exec(select(User)).all()
-        users = {user.name.lower(): user.id for user in users}
+        users = {user.number: user.id for user in users}
 
         machines = session.exec(select(Machine)).all()
-        machines = {machine.description: machine for machine in machines}
+        machines = {str(machine.cost_center): machine for machine in machines}
 
         tools = session.exec(select(Tool)).all()
         tools = {tool.number: tool.id for tool in tools}
@@ -109,27 +193,24 @@ async def upload_tool_consumption(file: UploadFile = File(...)):
         records = []
         result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
         for _, row in df.iterrows():
-            if row[key_column] is None:
-                continue
             try:
                 user_id = None
-                if row['Employee Name']:
-                    username = row['Employee Name'].split(', ')
-                    username = f'{username[1].lower()} {username[0].lower()}' if len(username) >= 1 else False
-                    user_id = users.get(username, None)
+                if row.get('Employee'):
+                    user_number = row['Employee'].split(' ')[0]
+                    user_id = users.get(user_number, None)
                 
                 machine, machine_id = None, None
-                if row['Machine']:
-                    machine_number = row['Machine']
-                    machine = machines.get(machine_number.split('-', 1)[-1] if machine_number.startswith('00') else machine_number, None)
-                    machine_id = machine.id if machine else None
+                if row.get('Cost Center'):
+                    cost_center = row['Cost Center'].split(' ')[0]
+                    machine = machines[cost_center]
+                    machine_id = machine.id
 
-                tool_id = tools.get(row['Item'], None)
+                tool_id = tools.get(row['CPN'])
                 if tool_id is None:
                     new_tool = Tool(
-                        number=row['Item'],
+                        number=row['CPN'],
                         manufacturer_name=row['Description'],
-                        name=row['Description2'] if row['Description2'] is not None else row['Description'],
+                        name=row['PartDescription2'] if row['PartDescription2'] is not None else row['Description'],
                         manufacturer_id=manufacturer.id,
                         tool_type_id=tool_type.id
                     )
@@ -137,10 +218,10 @@ async def upload_tool_consumption(file: UploadFile = File(...)):
                     session.commit()
                     session.refresh(new_tool)
                     tool_id = new_tool.id
-                    tools[row['Item']] = tool_id
+                    tools[row['CPN']] = tool_id
                                         
                 workpiece_id = None
-                if row['Product']:
+                if row.get('Product'):
                     workpiece_id = workpieces.get(row['Product'], None)
 
                 recipe_id, tool_position_id = None, None
@@ -155,18 +236,14 @@ async def upload_tool_consumption(file: UploadFile = File(...)):
                                     break
                             if recipe_id:
                                 break
-                
-                date = row['Trans Date']
-                time = datetime.strptime(row['Trans Time'], "%I:%M%p").time()
-                item_datetime = date + timedelta(hours=time.hour, minutes=time.minute)
 
                 records.append({
-                    'datetime': item_datetime,
-                    'number': row['Trans Number'],
-                    'consumption_type': row['Type Desc'],
-                    'quantity': row['Qty'],
-                    'value': row['Extension'],
-                    'price': row['Price'],
+                    'datetime': row['OrderDateTime'],
+                    'number': row['TransactionId'],
+                    'consumption_type': row['TransactionType'],
+                    'quantity': row['IssuedQuantity'],
+                    'value': float(row['ExtendedPrice']) if row.get('ExtendedPrice') else 0.0,
+                    'price': float(row['SellPrice']) if row.get('SellPrice') else 0.0,
                     'user_id': user_id,
                     'machine_id': machine_id,
                     'tool_id': tool_id,
@@ -189,12 +266,15 @@ async def upload_tool_consumption(file: UploadFile = File(...)):
 
 
 @router.post("/upload/parts-produced")
-async def upload_parts_produced(file: UploadFile = File(...)):
+async def upload_parts_produced(
+    file: UploadFile = File(...),
+    sheet_names: str = Form(None),
+    header_row: int = Form(None)
+):
     """Handle parts production file upload"""
     print(f'Processing parts production file: {file.filename}')
 
-    key_column = 'Posting Date'
-    df = await read_excel(file, key_column)
+    df = await read_excel(file, sheet_names, header_row)
 
     if df is None:
         return {"filename": file.filename, "type": "parts_produced", "error": "Unsupported file type"}
@@ -208,8 +288,6 @@ async def upload_parts_produced(file: UploadFile = File(...)):
         records = []
         result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
         for _, row in df.iterrows():
-            if row[key_column] is None:
-                continue
             try:
                 records.append({
                     'quantity': row['Qty in unit of entry'],

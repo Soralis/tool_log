@@ -58,11 +58,7 @@
                             <input type="checkbox" 
                                    name="selected_products" 
                                    value="{{ id }}" 
-                                   class="checkbox-hidden"
-                                   hx-get="/dashboard/api/filter"
-                                   hx-trigger="change"
-                                   hx-target="#card2-content"
-                                   hx-include="[name='selected_products'], [name='selected_operations']">
+                                   class="checkbox-hidden">
                             {{ name }}
                         </label>
                         {% endfor %}
@@ -89,11 +85,7 @@
                             <input type="checkbox" 
                                    name="selected_operations" 
                                    value="{{ id }}" 
-                                   class="checkbox-hidden"
-                                   hx-get="/dashboard/api/filter"
-                                   hx-trigger="change"
-                                   hx-target="#card2-content"
-                                   hx-include="[name='selected_products'], [name='selected_operations']">
+                                   class="checkbox-hidden">
                             {{ name }}
                         </label>
                         {% endfor %}
@@ -159,11 +151,11 @@ function AllCheckboxes(button, value) {
 
 // Handle selectable button clicks
 document.querySelectorAll('.selectable-button').forEach(button => {
-    button.addEventListener('click', function() {
-        const checkbox = this.querySelector('input[type="checkbox"]');
-        checkbox.checked = !checkbox.checked;
-        checkbox.dispatchEvent(new Event('change'));
-    });
+        button.addEventListener('click', function() {
+            const checkbox = this.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            // HTMX will automatically handle the change event
+        });
 });
 
 // Initialize selections from URL on page load

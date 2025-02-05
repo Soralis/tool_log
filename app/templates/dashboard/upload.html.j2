@@ -16,10 +16,10 @@
         Where do I get the data?
       </button>
       <ul id="consumptionInstructions" class="list-disc list-inside text-gray-200 mb-4 hidden">
-        <li>Gaaga</li>
-        <li>go to asdasd # MB51</li>
-        <li>asddd 'get variant'</li>
-        <li>Enter 'CMB51' ing the gsdfgsdf'vadfsiant' field and 'JJEFFERS' in the 'createdfgdfgs by' field</li>
+        <li>Open SAP</li>
+        <li>Go to transaction # MB51</li>
+        <li>Click 'get variant' (Shift + F5)</li>
+        <li>Enter 'CMB51' in the 'variant' field and 'JJEFFERS' in the 'created by' field</li>
         <li>And then ...</li>
       </ul>
       <button 
@@ -62,8 +62,8 @@
   </div>
 
   <!-- Upload Modal -->
-  <div id="uploadModal" class="fixed inset-0 backdrop-blur-sm bg-black/30 hidden flex items-center justify-center">
-    <div class="bg-slate-800 p-8 rounded-lg shadow-xl">
+  <div id="uploadModal" class="fixed inset-0 backdrop-blur-sm bg-black/30 hidden flex items-center justify-center z-50">
+    <div class="bg-slate-800 p-8 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto w-full max-w-4xl mx-4">
       <div class="flex justify-between items-center mb-4">
         <h2 id="modalTitle" class="text-xl font-bold"></h2>
         <button onclick="closeUploadModal()" class="text-gray-500 hover:text-gray-700">
@@ -88,6 +88,22 @@
             required
           >
         </div>
+
+        <div id="sheetSelection" class="hidden mb-4">
+          <label class="block text-sm font-bold mb-2">Select Sheets to Process</label>
+          <div id="sheetList" class="space-y-2"></div>
+        </div>
+
+        <div id="sheetPreview" class="hidden mb-4">
+          <label class="block text-sm font-bold mb-2">Sheet Preview</label>
+          <label class="block text-sm font-bold mb-2">Select Header Row</label>
+          <div class="overflow-x-auto bg-slate-700 rounded-lg p-4 max-h-[50vh]">
+            <table id="previewTable" class="min-w-full divide-y divide-slate-600">
+              <tbody id="previewBody" class="divide-y divide-slate-600">
+              </tbody>
+            </table>
+          </div>
+        </div>
         
         <div class="flex justify-end space-x-4">
           <button 
@@ -99,6 +115,7 @@
           </button>
           <button 
             type="submit"
+            id="uploadButton"
             class="bg-teal-700 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
           >
             Upload
@@ -133,10 +150,164 @@
     document.getElementById('uploadType').value = type;
     document.getElementById('message').classList.add('hidden');
     document.getElementById('file').value = '';
+    document.getElementById('sheetSelection').classList.add('hidden');
+    document.getElementById('sheetPreview').classList.add('hidden');
   }
 
   function closeUploadModal() {
     document.getElementById('uploadModal').classList.add('hidden');
+  }
+
+  async function getSheetsAndPreview(file) {
+    // Clear any existing sheet selection and preview
+    document.getElementById('sheetSelection').classList.add('hidden');
+    document.getElementById('sheetPreview').classList.add('hidden');
+    document.getElementById('sheetList').innerHTML = '';
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('/dashboard/upload/preview-sheets', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (response.ok) {
+        const sheets = await response.json();
+        const sheetList = document.getElementById('sheetList');
+        sheetList.innerHTML = '';
+        
+        sheets.forEach(sheet => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.value = sheet;
+          button.id = `sheet-${sheet}`;
+          button.className = 'w-full mb-2 py-2 px-4 rounded text-left text-gray-200 bg-slate-700 hover:bg-slate-600 focus:outline-none';
+          button.textContent = sheet;
+          button.dataset.selected = 'false';
+          
+          button.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const wasSelected = button.dataset.selected === 'true';
+            
+            if (!wasSelected) {
+              // Deselect all other buttons
+              sheetList.querySelectorAll('button').forEach(btn => {
+                btn.dataset.selected = 'false';
+                btn.className = 'w-full mb-2 py-2 px-4 rounded text-left text-gray-200 bg-slate-700 hover:bg-slate-600 focus:outline-none';
+              });
+              
+              // Select this button
+              button.dataset.selected = 'true';
+              button.className = 'w-full mb-2 py-2 px-4 rounded text-left text-white bg-teal-700 hover:bg-teal-600 focus:outline-none';
+              
+              // Show preview
+              await previewSheet(file, sheet);
+            } else {
+              // Deselect this button
+              button.dataset.selected = 'false';
+              button.className = 'w-full mb-2 py-2 px-4 rounded text-left text-gray-200 bg-slate-700 hover:bg-slate-600 focus:outline-none';
+              
+              // Hide preview
+              document.getElementById('sheetPreview').classList.add('hidden');
+            }
+          });
+          
+          sheetList.appendChild(button);
+        });
+        
+        document.getElementById('sheetSelection').classList.remove('hidden');
+        document.getElementById('uploadButton').textContent = 'Next';
+      }
+    } catch (error) {
+      console.error('Error getting sheets:', error);
+    }
+  }
+
+  async function previewSheet(file, sheetName) {
+    console.log('Previewing sheet:', sheetName);
+    
+    if (!sheetName) {
+      console.error('No sheet name provided');
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('sheet_name', sheetName.toString());
+    
+    try {
+      // Show loading state
+      const previewDiv = document.getElementById('sheetPreview');
+      previewDiv.classList.remove('hidden');
+      previewDiv.innerHTML = '<div class="text-center py-4 text-gray-200">Loading preview...</div>';
+      
+      console.log('Sending preview request with data:', {
+        file: file.name,
+        sheet_name: sheetName
+      });
+      
+      const response = await fetch('/dashboard/upload/preview-sheet', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const preview = await response.json();
+      if (preview.error) {
+        console.error('Preview error:', preview.error);
+        previewDiv.innerHTML = `<div class="text-center py-4 text-red-500">${preview.error}</div>`;
+        return;
+      }
+      
+      console.log('Preview data received:', preview);
+      
+      // Reset preview div
+      previewDiv.innerHTML = `
+        <label class="block text-sm font-bold mb-2">Select Header Row</label>
+        <div class="overflow-x-auto bg-slate-700 rounded-lg p-4 max-h-[50vh]">
+          <table id="previewTable" class="min-w-full divide-y divide-slate-600">
+            <tbody id="previewBody" class="divide-y divide-slate-600"></tbody>
+          </table>
+        </div>
+      `;
+      
+      const body = document.getElementById('previewBody');
+      
+      // Build rows with radio buttons
+      preview.rows.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-600';
+
+        // Add radio button cell
+        const radioCell = document.createElement('td');
+        radioCell.className = 'px-4 py-2 text-sm text-gray-200 whitespace-nowrap';
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'headerRow';
+        radio.value = rowIndex;
+        radio.className = 'mr-2';
+        if (rowIndex === 0) {
+          radio.checked = true;
+        }
+        radioCell.appendChild(radio);
+        tr.appendChild(radioCell);
+
+        // Add data cells
+        row.forEach(cell => {
+          const td = document.createElement('td');
+          td.className = 'px-4 py-2 text-sm text-gray-200 whitespace-nowrap';
+          td.textContent = cell || '';
+          tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+      
+      console.log('Preview table updated');
+    } catch (error) {
+      console.error('Error previewing sheet:', error);
+      previewDiv.innerHTML = '<div class="text-center py-4 text-red-500">Error loading preview</div>';
+    }
   }
 
   document.getElementById('uploadForm').addEventListener('submit', async function(e) {
@@ -145,12 +316,43 @@
     const fileInput = document.getElementById('file');
     const messageDiv = document.getElementById('message');
     const uploadType = document.getElementById('uploadType').value;
+    const sheetSelection = document.getElementById('sheetSelection');
     
     if (fileInput.files.length > 0) {
       const formData = new FormData();
       formData.append('file', fileInput.files[0]);
       
-      messageDiv.textContent = 'Uploading...';
+      // If sheet selection is visible, get selected sheets
+      if (!sheetSelection.classList.contains('hidden')) {
+        const selectedSheets = Array.from(
+          document.querySelectorAll('button[data-selected="true"]')
+        ).map(button => button.value);
+        
+      if (selectedSheets.length === 0) {
+        messageDiv.textContent = 'Please select at least one sheet to process';
+        messageDiv.classList.remove('hidden', 'bg-green-100', 'bg-yellow-100');
+        messageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+        return;
+      }
+
+      const selectedRadio = document.querySelector('input[name="headerRow"]:checked');
+      if (!selectedRadio) {
+        messageDiv.textContent = 'Please select a header row';
+        messageDiv.classList.remove('hidden', 'bg-green-100', 'bg-yellow-100');
+        messageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+        return;
+      }
+      
+      formData.append('sheet_names', selectedSheets.join(','));
+      formData.append('header_row', selectedRadio.value);
+      messageDiv.textContent = 'Processing selected sheets...';
+      } else if (fileInput.files[0]) {
+        // First step - get sheets
+        document.getElementById('sheetPreview').classList.add('hidden');  // Hide any existing preview
+        await getSheetsAndPreview(fileInput.files[0]);
+        return;
+      }
+      
       messageDiv.classList.remove('hidden', 'bg-green-100', 'bg-red-100');
       messageDiv.classList.add('bg-yellow-100', 'border-yellow-400', 'text-yellow-700');
       
@@ -166,11 +368,6 @@
           messageDiv.textContent = `File "${data.filename}" uploaded successfully! Processed ${stats.total_records} records (${stats.inserted} inserted, ${stats.skipped} duplicates skipped, ${stats.bad_data} rejected due to invalid data)`;
           messageDiv.classList.remove('bg-yellow-100', 'border-yellow-400', 'text-yellow-700');
           messageDiv.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
-          
-          // Auto close modal after successful upload
-          {# setTimeout(() => {
-            closeUploadModal();
-          }, 2000); #}
         } else {
           throw new Error('Upload failed');
         }
