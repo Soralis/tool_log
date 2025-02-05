@@ -7,7 +7,7 @@ from .tool import (
     ToolOrder, ToolOrderBase, ToolOrderCreate, ToolOrderUpdate, ToolOrderRead,
     ToolLife, ToolLifeBase, ToolLifeCreate, ToolLifeUpdate, ToolLifeRead, Note, NoteCreate, NoteUpdate, NoteRead,
     ChangeReason, ChangeReasonBase, ChangeReasonCreate, ChangeReasonUpdate, ChangeReasonRead,
-    ToolConsumption
+    ToolConsumption, ToolConsumptionCreate
 )
 from .recipe import (
     Recipe, RecipeBase, RecipeCreate, RecipeUpdate, RecipeRead,
@@ -38,7 +38,7 @@ __all__ = [
     "ToolLife", "ToolLifeBase", "ToolLifeCreate", "ToolLifeUpdate", "ToolLifeRead",
     "ChangeReason", "ChangeReasonBase", "ChangeReasonCreate", "ChangeReasonUpdate", "ChangeReasonRead",
     "Note", "NoteCreate", "NoteUpdate", "NoteRead",
-    "ToolConsumption",
+    "ToolConsumption", "ToolConsumptionCreate",
     
     # Recipe
     "Recipe", "RecipeBase", "RecipeCreate", "RecipeUpdate", "RecipeRead",

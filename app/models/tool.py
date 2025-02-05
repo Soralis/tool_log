@@ -279,3 +279,17 @@ class ToolConsumption(SQLModel, table=True):
     user: 'User' = Relationship(back_populates='tool_consumptions')
     workpiece: 'Workpiece' = Relationship(back_populates='tool_consumptions')
 
+
+class ToolConsumptionCreate(SQLModel):
+    datetime: dt
+    number: str
+    consumption_type: str
+    quantity: int
+    value: Decimal
+    price: Decimal
+    machine_id: Optional[int]
+    tool_id: int
+    recipe_id: Optional[int]
+    tool_position_id: Optional[int]
+    user_id: Optional[int]
+    workpiece_id: Optional[int]

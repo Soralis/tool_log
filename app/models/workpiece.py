@@ -39,18 +39,18 @@ class WorkPieceRead(SQLModel):
 
 
 class OrderCompletionBase(SQLModel):
-    quantity: int
+    quantity: int = Field(nullable=False)
     vendor: Optional[str] = Field(default=None, index=True)
     batch: Optional[str] = Field(default=None, index=True)
     customer: Optional[str] = Field(default=None, index=True)
     order: Optional[str] = Field(default=None, index=True)
-    document_number: str = Field(unique=True, index=True)
-    date: dt.date = Field(index=True)
-    time: dt.time
-    value: float
+    document_number: str = Field(unique=True, index=True, nullable=False)
+    date: dt.date = Field(index=True, nullable=False)
+    time: dt.time = Field(nullable=False)
+    value: float = Field(nullable=False)
 
-    workpiece_id: int = Field(foreign_key='workpiece.id', ondelete='CASCADE', index=True)
-    user_id: Optional[int] = Field(foreign_key='user.id', ondelete='SET NULL', index=True)
+    workpiece_id: int = Field(foreign_key='workpiece.id', ondelete='CASCADE', index=True, nullable=False)
+    user_id: Optional[int] = Field(foreign_key='user.id', ondelete='SET NULL', index=True, default=None)
 
 class OrderCompletion(OrderCompletionBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

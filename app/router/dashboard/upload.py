@@ -6,9 +6,8 @@ from sqlalchemy.dialects.postgresql import insert
 import io
 import openpyxl
 import pandas as pd
-from datetime import datetime, timedelta
 
-from app.models import OrderCompletion, User, Workpiece, ToolConsumption, Tool, Machine, Manufacturer, ToolType
+from app.models import OrderCompletion, OrderCompletionCreate, User, Workpiece, ToolConsumption, ToolConsumptionCreate, Tool, Machine, Manufacturer, ToolType
 
 from app.database_config import engine
 from app.templates.jinja_functions import templates
@@ -89,13 +88,13 @@ async def read_excel(file: UploadFile, sheet_names: str = None, header_row: int 
         print("Warning: No data frames to combine")
     return final_df
 
-async def write_to_db(records: list, model, session: Session, result: dict):
+async def write_to_db(records: list, model, create_model, session: Session, result: dict):
     valid_records = []
     for record in records:
         try:
             # Validate record by attempting to create model instance
-            model(**record)
-            valid_records.append(record)
+            validated_data = create_model(**record).dict(exclude_unset=True)
+            valid_records.append(validated_data)
         except Exception as e:
             print(f"Data validation error: {e}")
             result['bad_data'] += 1
@@ -255,12 +254,12 @@ async def upload_tool_consumption(
                 print(e)
 
             if len(records) > 100:
-                result = await write_to_db(records, ToolConsumption, session, result)
+                result = await write_to_db(records, ToolConsumption, ToolConsumptionCreate, session, result)
                 records = []
         
         # Insert all records in a single operation, ignoring duplicates
         if records:
-            result = await write_to_db(records, ToolConsumption, session, result)
+            result = await write_to_db(records, ToolConsumption, ToolConsumptionCreate, session, result)
 
     return {"filename": file.filename, "type": "tool_consumption", 'result': result}
 
@@ -305,11 +304,11 @@ async def upload_parts_produced(
                 print(e)
 
             if len(records) > 100:
-                result = await write_to_db(records, OrderCompletion, session, result)
+                result = await write_to_db(records, OrderCompletion, OrderCompletionCreate, session, result)
                 records = []
         
         # Insert all records in a single operation, ignoring duplicates
         if records:
-            result = await write_to_db(records, OrderCompletion, session, result)
+            result = await write_to_db(records, OrderCompletion, OrderCompletionCreate, session, result)
 
     return {"filename": file.filename, "type": "parts_produced", 'result': result}
