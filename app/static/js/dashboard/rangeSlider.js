@@ -1,4 +1,4 @@
-import { getUnitMax, unitsToDate } from './dateUtils.js';
+import { getUnitMax, unitsToDate, getQuarterName } from './dateUtils.js';
 
 // Global references
 let startRange, endRange, range, rangeValues;
@@ -169,9 +169,10 @@ function emitDateRangeChange() {
         detail: {
             startDate: startDate.toISOString(),
             endDate: endDate ? endDate.toISOString() : null
-        }
+        },
+        bubbles: true
     });
-    document.dispatchEvent(dateRangeEvent);
+    document.body.dispatchEvent(dateRangeEvent);
 }
 
 export function initializeDateRange() {

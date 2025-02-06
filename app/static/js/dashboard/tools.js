@@ -278,10 +278,12 @@ function handleWebSocketMessage(event) {
 function handleFilterChange(event) {
     if (ws && ws.readyState === WebSocket.OPEN) {
         const filterData = {
-            startDate: event.detail.startDate,
-            endDate: event.detail.endDate,
-            selectedOperations: event.detail.selectedOperations || JSON.parse(localStorage.getItem('selectedOperations') || '[]'),
-            selectedProducts: event.detail.selectedProducts || JSON.parse(localStorage.getItem('selectedProducts') || '[]')
+            startDate: event.detail?.startDate || localStorage.getItem('startDate') || null,
+            endDate: event.detail?.endDate || localStorage.getItem('endDate') || null,
+            selectedOperations: event.detail?.selectedOperations || 
+                (localStorage.getItem('selectedOperations') ? JSON.parse(localStorage.getItem('selectedOperations')) : []),
+            selectedProducts: event.detail?.selectedProducts || 
+                (localStorage.getItem('selectedProducts') ? JSON.parse(localStorage.getItem('selectedProducts')) : [])
         };
         console.log('Sending filter data to websocket:', filterData);
         ws.send(JSON.stringify(filterData));
@@ -331,6 +333,7 @@ export function initializeComponents() {
 
     // Listen for filter changes
     document.addEventListener('filterChanged', handleFilterChange);
+    document.addEventListener('dateRangeChanged', handleFilterChange);
 
     // Start WebSocket connection
     connectWebSocket();

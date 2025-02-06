@@ -27,7 +27,7 @@ async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: da
             statement = statement.where(ToolLife.timestamp >= start_date)
         if end_date:
             statement = statement.where(ToolLife.timestamp <= end_date)
-            
+
         statement = statement.where(ToolLife.machine_id.in_(selected_operations))
         statement = (
             statement
@@ -449,7 +449,6 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
             try:
                 # Receive date range from client
                 message = await websocket.receive_text()
-                print('message:', message)
                 filters = json.loads(message)
                 
                 # Convert ISO strings to datetime objects

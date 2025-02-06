@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, Depends, Query
 from sqlmodel import Session, select
 from typing import List
 import socket
+from datetime import datetime
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
@@ -47,6 +48,37 @@ async def dashboard(request: Request):
             "server_address": get_ip_address()
         }
     )
+
+@router.get("/api/example-card")
+async def get_example_card(request: Request,
+                          db: Session = Depends(get_session),
+                          selected_products: List[int] = Query([]),
+                          selected_operations: List[int] = Query([]),
+                          start_date: str = Query(None),
+                          end_date: str = Query(None)):
+    """Get example card data based on filters"""
+    start_date = datetime.fromisoformat(start_date) if start_date else None
+    end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'Now' else None
+    # Example query using filters
+    query = select(ToolConsumption)
+    query = query.where(ToolConsumption.workpiece_id.in_(selected_products))
+    query = query.where(ToolConsumption.machine_id.in_(selected_operations))
+    if start_date:
+        query = query.where(ToolConsumption.datetime >= start_date)
+    if end_date:
+        query = query.where(ToolConsumption.datetime <= end_date)
+    
+    data = db.exec(query).all()
+    
+    # Calculate some example metrics
+    total_consumptions = len(data)
+    avg_tool_life = 798.4321
+    
+    return templates.TemplateResponse("dashboard/partials/example_card.html.j2", {
+        "request": request,
+        "total_consumptions": total_consumptions,
+        "avg_tool_life": round(avg_tool_life, 2)
+    })
 
 @router.get("/api/filter")
 async def get_dashboard_filter(request: Request, 

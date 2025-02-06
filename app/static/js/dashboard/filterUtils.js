@@ -53,6 +53,9 @@ export function saveSelections() {
     localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts));
     localStorage.setItem('selectedOperations', JSON.stringify(selectedOperations));
     
+    // Update filters display
+    updateSelectedFilters();
+    
     // Dispatch filter change event
     const event = new CustomEvent('filterChanged', {
         detail: {
@@ -61,7 +64,8 @@ export function saveSelections() {
         },
         bubbles: true
     });
-    document.dispatchEvent(event);
+    document.body.dispatchEvent(event);
+    console.log('Selections saved:', selectedProducts, selectedOperations);
 }
 
 // Handle select all functionality
@@ -79,18 +83,9 @@ export function AllCheckboxes(button, value) {
         label.classList.toggle('hover:bg-gray-600', !value);
     });
 
-    // Initialize HTMX on the checkboxes
-    checkboxes.forEach(checkbox => htmx.process(checkbox));
-
     // Update filters display and save selections
     updateSelectedFilters();
     saveSelections();
-
-    // Find the first checkbox and trigger its HTMX request
-    const firstCheckbox = checkboxes[0];
-    if (firstCheckbox) {
-        htmx.trigger(firstCheckbox, 'change');
-    }
 }
 
 // Initialize selections
@@ -112,22 +107,23 @@ export function initializeSelections() {
     updateSelectedFilters();
 }
 
-// Handle individual checkbox clicks
+// Handle individual checkbox changes
 export function setupFilterClickHandlers() {
-    document.addEventListener('click', function(event) {
-        const label = event.target.closest('label[data-value]');
-        if (label) {
-            const checkbox = label.querySelector('input[type="checkbox"]');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                label.classList.toggle('bg-indigo-600', checkbox.checked);
-                label.classList.toggle('hover:bg-indigo-700', checkbox.checked);
-                label.classList.toggle('hover:bg-gray-600', !checkbox.checked);
-                updateSelectedFilters();
-                saveSelections();
-                htmx.trigger(checkbox, 'change');
+    const productSelect = document.getElementById('product-select');
+    const operationSelect = document.getElementById('operation-select');
+    
+    [productSelect, operationSelect].forEach(container => {
+        container.addEventListener('change', function(event) {
+            if (event.target.matches('input[type="checkbox"]')) {
+                const label = event.target.closest('label');
+                if (label) {
+                    label.classList.toggle('bg-indigo-600', event.target.checked);
+                    label.classList.toggle('hover:bg-indigo-700', event.target.checked);
+                    label.classList.toggle('hover:bg-gray-600', !event.target.checked);
+                    saveSelections();
+                }
             }
-        }
+        });
     });
 }
 

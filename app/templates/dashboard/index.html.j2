@@ -15,6 +15,18 @@
 <div class="mx-auto px-4 py-8">   
     <!-- Main grid container -->
     <div class="grid grid-cols-12 gap-4">
+        <!-- Example card that updates with filters -->
+        <div class="col-span-12 md:col-span-6 dashboard-card">
+            <h2 class="text-xl font-semibold mb-4">Tool Consumption Overview</h2>
+            <div id="example-card-content"
+                 hx-get="/dashboard/api/example-card"
+                 hx-trigger="load, filterChanged from:body, dateRangeChanged from:body"
+                 hx-include="[name='selected_products'],[name='selected_operations']"
+                 hx-swap="innerHTML">
+                <!-- Content will be loaded via htmx -->
+            </div>
+        </div>
+
         <!-- Example card spanning 8 columns -->
         <div class="col-span-12 md:col-span-8 dashboard-card">
             <h2 class="text-xl font-semibold mb-4">Card 2</h2>
@@ -22,66 +34,44 @@
                 <!-- Content will be loaded via htmx -->
             </div>
         </div>
-
-        <!-- Remaining cards... (keep existing structure) -->
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('htmx:afterRequest', function(evt) {
-    if (evt.detail.requestConfig.path.startsWith('/dashboard/api/filter')) {
-        // Get current selections from URL parameters
-        const params = new URLSearchParams(window.location.search);
-        const selectedProducts = params.getAll('selected_products');
-        const selectedOperations = params.getAll('selected_operations');
+document.addEventListener('htmx:configRequest', function(evt) {
+    if (evt.detail.path === '/dashboard/api/example-card') {
+        // Get selections from localStorage
+        const selectedProducts = JSON.parse(localStorage.getItem('selectedProducts') || '[]');
+        const selectedOperations = JSON.parse(localStorage.getItem('selectedOperations') || '[]');
+        
+        // Get dates from localStorage
+        let startDate = localStorage.getItem('startDate');
+        let endDate = localStorage.getItem('endDate');
+        
+        // Handle the case where endDate is "Now"
+        if (endDate === 'null') {
+            endDate = 'Now';
+        }
 
-        // Update button states
-        document.querySelectorAll('.selectable-button').forEach(button => {
-            const value = button.dataset.value;
-            const isProduct = button.closest('#product-select');
-            const isSelected = isProduct ? 
-                selectedProducts.includes(value) : 
-                selectedOperations.includes(value);
-            
-            button.classList.toggle('selected', isSelected);
+        console.log('Filter data:', {
+            selectedProducts,
+            selectedOperations,
+            startDate,
+            endDate
         });
+
+        // Add to request parameters
+        evt.detail.parameters = {
+            ...evt.detail.parameters,
+            selected_products: selectedProducts,
+            selected_operations: selectedOperations,
+            start_date: startDate,
+            end_date: endDate
+        };
     }
 });
 
-// Handle select all functionality
-function AllCheckboxes(button, value) {
-    const container = button.closest('.selection-container');
-    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-    
-    // Set all checkbox values
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = value;
-    });
-
-    // Initialize HTMX on the checkboxes
-    checkboxes.forEach(checkbox => htmx.process(checkbox));
-
-    // Find the first checkbox and trigger its HTMX request
-    const firstCheckbox = checkboxes[0];
-    if (firstCheckbox) {
-        htmx.trigger(firstCheckbox, 'change');
-    }
-}
-
-// Handle selectable button clicks
-document.querySelectorAll('.selectable-button').forEach(button => {
-        button.addEventListener('click', function() {
-            const checkbox = this.querySelector('input[type="checkbox"]');
-            checkbox.checked = !checkbox.checked;
-            // HTMX will automatically handle the change event
-        });
-});
-
-// Initialize selections from URL on page load
-document.addEventListener('DOMContentLoaded', function() {
-    htmx.trigger('[name="selected_products"], [name="selected_operations"]', 'change');
-});
 </script>
 {% endblock %}
