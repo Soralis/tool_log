@@ -21,16 +21,18 @@
             <div id="example-card-content"
                  hx-get="/dashboard/api/example-card"
                  hx-trigger="load, filterChanged from:body, dateRangeChanged from:body"
-                 hx-include="[name='selected_products'],[name='selected_operations']"
                  hx-swap="innerHTML">
                 <!-- Content will be loaded via htmx -->
             </div>
         </div>
 
-        <!-- Example card spanning 8 columns -->
-        <div class="col-span-12 md:col-span-8 dashboard-card">
-            <h2 class="text-xl font-semibold mb-4">Card 2</h2>
-            <div class="h-64" id="card2-content">
+        <!-- Spend Summary Card -->
+        <div class="col-span-12 md:col-span-6 dashboard-card">
+            <h2 class="text-xl font-semibold mb-4">Spend Summary</h2>
+            <div id="spend-summary-card-content"
+                 hx-get="/dashboard/api/spend-summary"
+                 hx-trigger="load, filterChanged from:body, dateRangeChanged from:body"
+                 hx-swap="innerHTML">
                 <!-- Content will be loaded via htmx -->
             </div>
         </div>
@@ -39,39 +41,12 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script type="module">
+import { configureHtmxRequest } from '/static/js/dashboard/htmxConfig.js';
+
 document.addEventListener('htmx:configRequest', function(evt) {
-    if (evt.detail.path === '/dashboard/api/example-card') {
-        // Get selections from localStorage
-        const selectedProducts = JSON.parse(localStorage.getItem('selectedProducts') || '[]');
-        const selectedOperations = JSON.parse(localStorage.getItem('selectedOperations') || '[]');
-        
-        // Get dates from localStorage
-        let startDate = localStorage.getItem('startDate');
-        let endDate = localStorage.getItem('endDate');
-        
-        // Handle the case where endDate is "Now"
-        if (endDate === 'null') {
-            endDate = 'Now';
-        }
-
-        console.log('Filter data:', {
-            selectedProducts,
-            selectedOperations,
-            startDate,
-            endDate
-        });
-
-        // Add to request parameters
-        evt.detail.parameters = {
-            ...evt.detail.parameters,
-            selected_products: selectedProducts,
-            selected_operations: selectedOperations,
-            start_date: startDate,
-            end_date: endDate
-        };
-    }
+    configureHtmxRequest(evt, '/dashboard/api/example-card');
+    configureHtmxRequest(evt, '/dashboard/api/spend-summary');
 });
-
 </script>
 {% endblock %}
