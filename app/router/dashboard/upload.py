@@ -56,7 +56,6 @@ async def read_excel(file: UploadFile, sheet_names: str = None, header_row: int 
     file.seek(0)  # Reset file pointer for future reads
     xlsx = io.BytesIO(content)
     wb = openpyxl.load_workbook(xlsx, data_only=True)
-    print(f"Reading Excel file with sheets: {sheet_names}")
     
     # Convert comma-separated string to list, or use all sheets
     sheet_list = sheet_names.split(',') if sheet_names else wb.sheetnames
@@ -139,21 +138,15 @@ async def preview_sheet(
     sheet_name: str = Form(None),
 ):
     """Preview first 10 rows of specified sheet"""
-    print(f"Previewing sheet: {sheet_name}")
     if not sheet_name or sheet_name == "undefined":
-        print("Error: Sheet name is required")
         return {"error": "Sheet name is required"}
     
     try:
-        print(f"Reading file: {file.filename}, sheet: {sheet_name}")
         preview = await preview_excel_sheet(file, sheet_name)
         if preview is None:
-            print("Error: Preview returned None")
             return {"error": "Unsupported file type or invalid sheet name"}
-        print(f"Preview successful: {len(preview['rows'])} rows")
         return preview
     except Exception as e:
-        print(f"Error previewing sheet: {e}")
         return {"error": str(e)}
 
 @router.post("/upload/tool-consumption")
