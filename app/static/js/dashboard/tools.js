@@ -116,15 +116,18 @@ function connectWebSocket() {
     
     ws.onopen = function() {
         statusDiv.className = 'hidden';
-        // Send initial date range if available
+        // Send initial filter state if available
         if (ws.readyState === WebSocket.OPEN) {
             const startDate = localStorage.getItem('startDate');
             const endDate = localStorage.getItem('endDate');
-            if (startDate || endDate) {
-                console.log('Sending initial date range:', { startDate, endDate });
+            const selectedOperations = localStorage.getItem('selectedOperations');
+            const selectedProducts = localStorage.getItem('selectedProducts');
+            if (startDate || endDate || selectedOperations || selectedProducts) {
                 ws.send(JSON.stringify({
                     startDate: startDate,
-                    endDate: endDate
+                    endDate: endDate,
+                    selectedOperations: JSON.parse(selectedOperations || '[]'),
+                    selectedProducts: JSON.parse(selectedProducts || '[]')
                 }));
             }
         }
@@ -271,19 +274,17 @@ function handleWebSocketMessage(event) {
     });
 }
 
-// Handle date range changes
-function handleDateRangeChange(event) {
-    // Store date range in localStorage
-    localStorage.setItem('startDate', event.detail.startDate);
-    localStorage.setItem('endDate', event.detail.endDate);
-    
+// Handle filter changes from any source
+function handleFilterChange(event) {
     if (ws && ws.readyState === WebSocket.OPEN) {
-        const dateRange = {
+        const filterData = {
             startDate: event.detail.startDate,
-            endDate: event.detail.endDate
+            endDate: event.detail.endDate,
+            selectedOperations: event.detail.selectedOperations || JSON.parse(localStorage.getItem('selectedOperations') || '[]'),
+            selectedProducts: event.detail.selectedProducts || JSON.parse(localStorage.getItem('selectedProducts') || '[]')
         };
-        console.log('Sending date range to websocket:', dateRange);
-        ws.send(JSON.stringify(dateRange));
+        console.log('Sending filter data to websocket:', filterData);
+        ws.send(JSON.stringify(filterData));
     }
 }
 
@@ -328,8 +329,8 @@ export function initializeComponents() {
     // Setup graph card click handlers
     setupGraphCardClickHandlers();
 
-    // Listen for date range changes
-    document.addEventListener('dateRangeChanged', handleDateRangeChange);
+    // Listen for filter changes
+    document.addEventListener('filterChanged', handleFilterChange);
 
     // Start WebSocket connection
     connectWebSocket();

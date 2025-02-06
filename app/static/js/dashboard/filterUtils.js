@@ -43,7 +43,7 @@ export function updateSelectedFilters() {
     filtersDisplay.textContent = displayText;
 }
 
-// Save selections to localStorage
+// Save selections to localStorage and dispatch event
 export function saveSelections() {
     const selectedProducts = Array.from(document.querySelectorAll('#product-select input:checked'))
         .map(checkbox => checkbox.value);
@@ -52,6 +52,16 @@ export function saveSelections() {
     
     localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts));
     localStorage.setItem('selectedOperations', JSON.stringify(selectedOperations));
+    
+    // Dispatch filter change event
+    const event = new CustomEvent('filterChanged', {
+        detail: {
+            selectedProducts,
+            selectedOperations
+        },
+        bubbles: true
+    });
+    document.dispatchEvent(event);
 }
 
 // Handle select all functionality
@@ -83,7 +93,7 @@ export function AllCheckboxes(button, value) {
     }
 }
 
-// Initialize selections on page load
+// Initialize selections
 export function initializeSelections() {
     // Get selections from URL parameters and localStorage
     const params = new URLSearchParams(window.location.search);

@@ -3,17 +3,18 @@ import numpy as np
 import asyncio
 import json
 from app.templates.jinja_functions import templates
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import defaultdict
 from sqlmodel import Session, select
 from app.database_config import get_session
-from app.models.tool import Tool, ToolLife
+from app.models import Tool, ToolLife, Recipe
 from typing import Dict, List
 from scipy.stats import linregress
 from .utils import get_condensed_data
 router = APIRouter()
 
-async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: datetime = None) -> List[Dict]:
+async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: datetime = None,
+                          selected_operations: list = [], selected_products: list = []) -> List[Dict]:
     # Get all active tools
     statement = select(Tool).where(Tool.active == True)
     tools = db.exec(statement).all()
@@ -26,6 +27,13 @@ async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: da
             statement = statement.where(ToolLife.timestamp >= start_date)
         if end_date:
             statement = statement.where(ToolLife.timestamp <= end_date)
+            
+        statement = statement.where(ToolLife.machine_id.in_(selected_operations))
+        statement = (
+            statement
+            .join(Recipe, ToolLife.recipe_id == Recipe.id)
+            .where(Recipe.workpiece_id.in_(selected_products))
+        )
         
         if db.exec(statement).first():
             graphs.append({
@@ -36,7 +44,8 @@ async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: da
     
     return graphs
 
-async def get_tool_life_data(db: Session, start_date: datetime = None, end_date: datetime = None) -> Dict:
+async def get_tool_life_data(db: Session, start_date: datetime = None, end_date: datetime = None,
+                          selected_operations: list = [], selected_products: list = []) -> Dict:
     # Get active tools with life records
     statement = select(Tool).where(Tool.active == True)
     tools = db.exec(statement).all()
@@ -50,6 +59,13 @@ async def get_tool_life_data(db: Session, start_date: datetime = None, end_date:
             statement = statement.where(ToolLife.timestamp >= start_date)
         if end_date:
             statement = statement.where(ToolLife.timestamp <= end_date)
+
+        statement = statement.where(ToolLife.machine_id.in_(selected_operations))
+        statement = (
+            statement
+            .join(Recipe, ToolLife.recipe_id == Recipe.id)
+            .where(Recipe.workpiece_id.in_(selected_products))
+        )
             
         statement = statement.order_by(ToolLife.timestamp.asc())
         records = list(db.exec(statement))
@@ -433,15 +449,18 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
             try:
                 # Receive date range from client
                 message = await websocket.receive_text()
-                date_range = json.loads(message)
+                print('message:', message)
+                filters = json.loads(message)
                 
                 # Convert ISO strings to datetime objects
-                start_date = datetime.fromisoformat(date_range['startDate']) if date_range.get('startDate') and date_range['startDate'] != 'null' else None
-                end_date = datetime.fromisoformat(date_range['endDate']) if date_range.get('endDate') and date_range['endDate'] != 'null' else None
-                
+                start_date = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
+                end_date = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
+                selected_operations = [int(op) for op in filters.get('selectedOperations', [])]
+                selected_products = [int(prod) for prod in filters.get('selectedProducts', [])]
+
                 # Get filtered graphs and data
-                graphs = await get_tool_graphs(db, start_date, end_date)
-                data = await get_tool_life_data(db, start_date, end_date)
+                graphs = await get_tool_graphs(db, start_date, end_date, selected_operations, selected_products)
+                data = await get_tool_life_data(db, start_date, end_date, selected_operations, selected_products)
                 
                 # Send both graphs and data
                 response = {
