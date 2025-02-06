@@ -24,19 +24,25 @@ def get_ip_address():
         return "Unable to get IP address"
 
 
-@router.get("/")
-async def dashboard(request: Request, db: Session = Depends(get_session)):
-    """Render the main dashboard page"""
+@router.get("/api/filter-options")
+async def get_filter_options(request: Request, db: Session = Depends(get_session)):
+    """Get available filter options (products and operations)"""
     products = db.exec(select(Workpiece)).all()
     products = {workpiece.name: workpiece.id for workpiece in products}
     operations = db.exec(select(Machine)).all()
     operations = {operation.name: operation.id for operation in operations}
+    
+    return {
+        "products": products,
+        "operations": operations
+    }
 
+@router.get("/")
+async def dashboard(request: Request):
+    """Render the main dashboard page"""
     return templates.TemplateResponse(
         "dashboard/index.html.j2",
         {
-            "products": products,
-            "operations": operations,
             "request": request,
             "server_address": get_ip_address()
         }

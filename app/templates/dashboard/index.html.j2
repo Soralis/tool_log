@@ -8,27 +8,6 @@
     .dashboard-card {
         @apply bg-gray-800 rounded-lg shadow-lg p-4;
     }
-    .selection-container {
-        @apply space-y-2 mb-4;
-    }
-    .selection-label {
-        @apply block text-sm font-medium text-gray-300;
-    }
-    .selection {
-        @apply mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md bg-gray-700 text-gray-100;
-    }
-    .selectable-button {
-        @apply px-4 py-2 text-left rounded-md bg-gray-700 text-gray-100 transition-colors cursor-pointer;
-    }
-    .selectable-button.selected {
-        @apply bg-indigo-600 hover:bg-indigo-700;
-    }
-    .selectable-button:hover:not(.selected) {
-        @apply bg-gray-600;
-    }
-    .checkbox-hidden {
-        @apply hidden;
-    }
 </style>
 {% endblock %}
 
@@ -36,64 +15,6 @@
 <div class="mx-auto px-4 py-8">   
     <!-- Main grid container -->
     <div class="grid grid-cols-12 gap-4">
-        <div class="col-span-2 dashboard-card">
-            <div class="space-y-6" id="card1-content">
-                <div class="selection-container">
-                    <div class="flex justify-between items-center mb-2">
-                        <label class="selection-label">Products</label>
-                        <div class="space-x-2">
-                            <button class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                                    onclick="AllCheckboxes(this, true)">
-                                Select All
-                            </button>
-                            <button class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                                    onclick="AllCheckboxes(this, false)">
-                                Clear All
-                            </button>
-                        </div>
-                    </div>
-                    <div class="flex flex-col gap-2 h-64 overflow-y-auto pr-2" id="product-select">
-                        {% for name, id in products.items() %}
-                        <label class="selectable-button" data-value="{{ id }}">
-                            <input type="checkbox" 
-                                   name="selected_products" 
-                                   value="{{ id }}" 
-                                   class="checkbox-hidden">
-                            {{ name }}
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="selection-container">
-                    <label class="selection-label">Operations</label>
-                    <div class="flex justify-between items-center mb-2">
-                        <label class="selection-label">Operations</label>
-                        <div class="space-x-2">
-                            <button class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                                    onclick="AllCheckboxes(this, true)">
-                                Select All
-                            </button>
-                            <button class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                                    onclick="AllCheckboxes(this, false)">
-                                Clear All
-                            </button>
-                        </div>
-                    </div>
-                    <div class="flex flex-col gap-2 h-64 overflow-y-auto pr-2" id="operation-select">
-                        {% for name, id in operations.items() %}
-                        <label class="selectable-button" data-value="{{ id }}">
-                            <input type="checkbox" 
-                                   name="selected_operations" 
-                                   value="{{ id }}" 
-                                   class="checkbox-hidden">
-                            {{ name }}
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Example card spanning 8 columns -->
         <div class="col-span-12 md:col-span-8 dashboard-card">
             <h2 class="text-xl font-semibold mb-4">Card 2</h2>
