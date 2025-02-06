@@ -158,26 +158,10 @@
         connectWebSocket();
     }
 
-    // Wait for both DOM and date range to be ready
+    // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
         console.log('DOM loaded, initializing...');
-        // First initialize date range if not already initialized
-        if (!window.dateRangeInitialized) {
-            window.dateRangeInitialized = true;
-            window.initializeDateRange();
-        }
-        
-        // Initialize page components after date range is ready
-        if (window.dateRangeInitialized) {
-            console.log('Date range already initialized, starting components');
-            initializeComponents();
-        } else {
-            console.log('Waiting for date range initialization...');
-            document.addEventListener('dateRangeInitialized', () => {
-                console.log('Date range initialization event received, starting components');
-                initializeComponents();
-            });
-        }
+        initializeComponents();
     });
 
     // Cleanup on page unload
