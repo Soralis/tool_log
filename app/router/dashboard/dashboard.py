@@ -152,12 +152,10 @@ async def get_spend_summary(request: Request,
     values = list(spend_summary.values())
 
     chart_data = {
-        'name': 'Spend Summary',
+        'title': {'text': 'Spend Summary'},
         "labels": labels,
         "series": values
     }
-
-    print(chart_data)
 
     return JSONResponse(chart_data)
 
@@ -196,9 +194,11 @@ async def get_spend_summary_1(request: Request,
     tools = set([item[2] for item in db_data])
     tools.add('total')
     spend_summary = {workpiece: {machine: {tool: 0 for tool in tools} for machine in machines} for workpiece in workpieces}
+    total = 0
     for item in db_data:
         spend_summary[item[0]][item[1]][item[2]] += float(item[3])
         spend_summary[item[0]][item[1]]['total'] += float(item[3])
+        total += float(item[3])
     
     tools.discard('total')
     
@@ -210,8 +210,14 @@ async def get_spend_summary_1(request: Request,
                     del spend_summary[workpiece][machine][tool]
 
     data = [{'name':workpiece, 'data':[{'x':name,'y':int(spends['total'])} for name, spends in operations.items()]} for workpiece, operations in spend_summary.items()]
+    # sort alphabetically, first by workpiece, secondary by operation
+    data = sorted(data, key=lambda x: x['name'])
+    for item in data:
+        item['data'] = sorted(item['data'], key=lambda x: x['x'])
 
-    return {'series': data}
+
+    return {'series': data, 'title': {'text': f'Total:  $ {total:,.2f}'}}
+
 
 
 
