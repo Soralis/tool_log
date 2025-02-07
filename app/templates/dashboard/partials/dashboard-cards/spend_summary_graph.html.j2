@@ -1,57 +1,36 @@
-<canvas id="spendSummaryChart" style="width:600px; height:600px;"></canvas>
+<div id="spendSummaryChart"></div>
+<script type="module">
+    import { fetch_apex_data } from '/static/js/dashboard/apex.js';
 
-<script>
-  function renderSpendSummaryChart(chartData) {
-    const labels = chartData.labels;
-    const data = chartData.data;
+    var options = {
+          series: [],
+          chart: {
+            type: 'donut',
+          },
+          dataLabels: {
+            enabled: true
+          },
+          responsive: [{
+            breakpoint: 480,
+            options: {
+              chart: {
+                width: 200
+              },
+              legend: {
+                show: true
+              }
+            }
+          }],
+          noData: {
+            text: 'Loading...'
+          }
+        };
 
-    const ctx = document.getElementById('spendSummaryChart').getContext('2d');
+    let spendSummaryChart = new ApexCharts(document.querySelector("#spendSummaryChart"), options);
+    spendSummaryChart.render();
 
-    // Destroy existing chart if it exists
-    if (window.myChart instanceof Chart) {
-      window.myChart.destroy();
-    }
-
-    window.myChart = new Chart(ctx, {
-      type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Spend Summary',
-          data: data,
-          backgroundColor: [
-            'rgba(255, 99, 132, 0.2)',
-            'rgba(54, 162, 235, 0.2)',
-            'rgba(255, 206, 86, 0.2)',
-            'rgba(75, 192, 192, 0.2)',
-            'rgba(153, 102, 255, 0.2)',
-            'rgba(255, 159, 64, 0.2)'
-          ],
-          borderColor: [
-            'rgba(255, 99, 132, 1)',
-            'rgba(54, 162, 235, 1)',
-            'rgba(255, 206, 86, 1)',
-            'rgba(75, 192, 192, 1)',
-            'rgba(153, 102, 255, 1)',
-            'rgba(255, 159, 64, 1)'
-          ],
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        title: {
-          display: true,
-          text: 'Spend Summary'
-        }
-      }
+    // Listen for filter changes and update the chart
+    document.body.addEventListener('filterChanged', function() {
+        fetch_apex_data(spendSummaryChart, '/dashboard/api/spend-summary');
     });
-  }
-
-  // Initial render with empty data
-  renderSpendSummaryChart({ labels: [], data: [] });
-
-  // Render chart with data from server
-  renderSpendSummaryChart({{ chart_data|tojson }});
-</script>
+    </script>

@@ -165,7 +165,7 @@ function emitDateRangeChange() {
         max
     });
 
-    const dateRangeEvent = new CustomEvent('dateRangeChanged', {
+    const dateRangeEvent = new CustomEvent('filterChanged', {
         detail: {
             startDate: startDate.toISOString(),
             endDate: endDate ? endDate.toISOString() : null

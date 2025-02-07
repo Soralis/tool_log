@@ -15,38 +15,11 @@
 <div class="mx-auto px-4 py-8">   
     <!-- Main grid container -->
     <div class="grid grid-cols-12 gap-4">
-        {# <!-- Example card that updates with filters -->
-        <div class="col-span-12 md:col-span-6 dashboard-card">
-            <h2 class="text-xl font-semibold mb-4">Tool Consumption Overview</h2>
-            <div id="example-card-content"
-                 hx-get="/dashboard/api/example-card"
-                 hx-trigger="load, filterChanged from:body, dateRangeChanged from:body"
-                 hx-swap="innerHTML">
-                <!-- Content will be loaded via htmx -->
-            </div>
-        </div> #}
-
         <!-- Spend Summary Card -->
         <div class="col-span-12 md:col-span-6 dashboard-card">
             <h2 class="text-xl font-semibold mb-4">Spend Summary</h2>
-            <div id="spend-summary-card-content"
-                 hx-get="/dashboard/api/spend-summary"
-                 hx-trigger="load, filterChanged from:body, dateRangeChanged from:body"
-                 hx-swap="innerHTML">
-                <!-- Content will be loaded via htmx -->
-            </div>
+            {% include 'dashboard/partials/dashboard-cards/spend_summary_graph.html.j2' %}
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script type="module">
-import { configureHtmxRequest } from '/static/js/dashboard/htmxConfig.js';
-
-document.addEventListener('htmx:configRequest', function(evt) {
-    configureHtmxRequest(evt, '/dashboard/api/example-card');
-    configureHtmxRequest(evt, '/dashboard/api/spend-summary');
-});
-</script>
 {% endblock %}

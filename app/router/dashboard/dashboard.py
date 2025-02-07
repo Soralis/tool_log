@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, Depends, Query
+from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 from typing import List
 import socket
@@ -58,7 +59,7 @@ async def get_example_card(request: Request,
                           end_date: str = Query(None)):
     """Get example card data based on filters"""
     start_date = datetime.fromisoformat(start_date) if start_date else None
-    end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'Now' else None
+    end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else None
     # Example query using filters
     query = select(ToolConsumption)
     query = query.where(ToolConsumption.workpiece_id.in_(selected_products))
@@ -116,13 +117,16 @@ async def get_dashboard_filter(request: Request,
 @router.get("/api/spend-summary")
 async def get_spend_summary(request: Request,
                             db: Session = Depends(get_session),
-                            selected_products: List[int] = Query([]),
-                            selected_operations: List[int] = Query([]),
+                            selected_products: str = Query(),
+                            selected_operations: str = Query(),
                             start_date: str = Query(None),
                             end_date: str = Query(None)):
     """Get spend summary data based on filters"""
     start_date = datetime.fromisoformat(start_date) if start_date else None
-    end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'Now' else None
+    end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else None
+
+    selected_products = [int(x) for x in selected_products.split(",") if x] if selected_products else []
+    selected_operations = [int(x) for x in selected_operations.split(",") if x] if selected_operations else []
 
     query = select(Machine.name, ToolConsumption.value)
     query = query.join(Machine, Machine.id == ToolConsumption.machine_id)
@@ -147,10 +151,12 @@ async def get_spend_summary(request: Request,
     labels = list(spend_summary.keys())
     values = list(spend_summary.values())
 
-    return templates.TemplateResponse("dashboard/partials/dashboard-cards/spend_summary_graph.html.j2", {
-        "request": request,
-        "chart_data": {
-            "labels": labels,
-            "data": values
-        }
-    })
+    chart_data = {
+        'name': 'Spend Summary',
+        "labels": labels,
+        "series": values
+    }
+
+    print(chart_data)
+
+    return JSONResponse(chart_data)
