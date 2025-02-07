@@ -1,43 +1,34 @@
 <div id="spendSummaryChart"></div>
 <script type="module">
-    import { fetch_apex_data } from '/static/js/dashboard/apex.js';
+  import { fetch_apex_data } from '/static/js/dashboard/apex.js';
 
     var options = {
           series: [],
           chart: {
-            type: 'donut',
+            height: 450,
+            type: 'heatmap',
             background: 'transparent'
           },
           dataLabels: {
             enabled: true
           },
-          responsive: [{
-            breakpoint: 480,
-            options: {
-              chart: {
-                width: 200
-              },
-              legend: {
-                show: true
-              }
-            }
-          }],
-          title: {
-            text: 'test'
-          },
-          theme: {
-              mode: 'dark' // Can also switch to 'light'
+          stroke: {
+            width: 0
           },
           noData: {
             text: 'Loading...'
+          },
+          theme: {
+              mode: 'dark' // Can also switch to 'light'
           }
         };
 
     let spendSummaryChart = new ApexCharts(document.querySelector("#spendSummaryChart"), options);
     spendSummaryChart.render();
 
-    // Listen for filter changes and update the chart
+  // Listen for filter changes and update the chart
     document.body.addEventListener('filterChanged', function() {
+      console.log('wepk')
         fetch_apex_data(spendSummaryChart, '/dashboard/api/spend-summary');
     });
-    </script>
+</script>
