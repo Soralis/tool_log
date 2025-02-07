@@ -7,7 +7,7 @@ from datetime import datetime
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
-from app.models import Workpiece, Machine, ToolConsumption, Machine
+from app.models import Workpiece, Machine, ToolConsumption, Tool
 
 router = APIRouter()
 
@@ -139,7 +139,7 @@ async def get_spend_summary(request: Request,
 
     data = db.exec(query).all()
 
-    # Group data by date and calculate total spend
+    # Group data by machine name and calculate total spend
     spend_summary = {}
     for item in data:
         name = item.name
@@ -160,3 +160,65 @@ async def get_spend_summary(request: Request,
     print(chart_data)
 
     return JSONResponse(chart_data)
+
+
+@router.get("/api/spend-summary-1")
+async def get_spend_summary_1(request: Request,
+                            db: Session = Depends(get_session),
+                            selected_products: str = Query(),
+                            selected_operations: str = Query(),
+                            start_date: str = Query(None),
+                            end_date: str = Query(None)):
+    """Get spend summary data based on filters"""
+    print("SANKEY")
+    start_date = datetime.fromisoformat(start_date) if start_date else None
+    end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else None
+
+    selected_products = [int(x) for x in selected_products.split(",") if x] if selected_products else []
+    selected_operations = [int(x) for x in selected_operations.split(",") if x] if selected_operations else []
+
+    query = select(Workpiece.name, Machine.name, Tool.name, ToolConsumption.value)
+    query = query.join(Machine, Machine.id == ToolConsumption.machine_id)
+    query = query.join(Workpiece, Workpiece.id == ToolConsumption.workpiece_id)
+    query = query.join(Tool, Tool.id == ToolConsumption.tool_id)
+    query = query.where(ToolConsumption.workpiece_id.in_(selected_products))
+    query = query.where(ToolConsumption.machine_id.in_(selected_operations))
+    if start_date:
+        query = query.where(ToolConsumption.datetime >= start_date)
+    if end_date:
+        query = query.where(ToolConsumption.datetime <= end_date)
+
+    db_data = db.exec(query).all()
+
+    # Group data
+    workpieces = set([item[0] for item in db_data])
+    machines = set([item[1] for item in db_data])
+    tools = set([item[2] for item in db_data])
+    tools.add('total')
+    spend_summary = {workpiece: {machine: {tool: 0 for tool in tools} for machine in machines} for workpiece in workpieces}
+    for item in db_data:
+        spend_summary[item[0]][item[1]][item[2]] += float(item[3])
+        spend_summary[item[0]][item[1]]['total'] += float(item[3])
+    
+    tools.discard('total')
+    
+    # Drop all values where the sum is 0
+    for workpiece in workpieces:
+        for machine in machines:
+            for tool in tools:    
+                if spend_summary[workpiece][machine][tool] == 0:
+                    del spend_summary[workpiece][machine][tool]
+
+    data = [{'name':workpiece, 'data':[{'x':name,'y':int(spends['total'])} for name, spends in operations.items()]} for workpiece, operations in spend_summary.items()]
+
+    return {'series': data}
+
+
+
+
+
+
+
+
+
+

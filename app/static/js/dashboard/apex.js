@@ -11,6 +11,7 @@ export function fetch_apex_data(chart, api_url) {
         .then(response => response.json())
         .then(data => {
             // Update both the series data and labels
+            console.log(`update ${api_url} with data:`)
             console.log(data)
             chart.updateOptions(data);
         });

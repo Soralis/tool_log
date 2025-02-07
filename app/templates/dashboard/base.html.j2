@@ -10,6 +10,16 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+        Apex.chart = {
+            // Setting global theme options
+            themes: ['light', 'dark'],
+            defaultTheme: 'dark',
+            toolbar: {
+                show: true
+            }
+        };
+    </script>
     {% block head %}{% endblock %}
 
     <!-- Add dashboard.js as a module -->
