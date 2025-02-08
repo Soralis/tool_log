@@ -141,9 +141,16 @@ async def get_spend_summary(request: Request,
     return {'series': data, 'title': {'text': f'Total:  $ {total:,.2f}'}}
 
 
-
-
-
+@router.get("/api/mocky")
+async def get_spend_summary(request: Request,
+                            db: Session = Depends(get_session),
+                            selected_products: str = Query(),
+                            selected_operations: str = Query(),
+                            start_date: str = Query(None),
+                            end_date: str = Query(None)):
+    """Get spend summary data based on filters"""
+    print('mockey mockey')
+    return {'series': [{'name': 'Product 1', 'data': [{'x': 'Operation 1', 'y': 100}, {'x': 'Operation 2', 'y': 200}]}, {'name': 'Product 2', 'data': [{'x': 'Operation 1', 'y': 300}, {'x': 'Operation 2', 'y': 400}]}, {'name': 'Product 3', 'data': [{'x': 'Operation 1', 'y': 500}, {'x': 'Operation 2', 'y': 600}]}, {'name': 'Product 4', 'data': [{'x': 'Operation 1', 'y': 700}, {'x': 'Operation 2', 'y': 800}]}], 'title': {'text': 'Total:  $ 1000.00'}}
 
 
 

@@ -1,4 +1,4 @@
-export function fetch_apex_data(chart, api_url) {
+export function update_data(chart, option, api_url) {
     // Get selections from localStorage
     const selectedProducts = JSON.parse(localStorage.getItem('selectedProducts'));
     const selectedOperations = JSON.parse(localStorage.getItem('selectedOperations'));
@@ -11,8 +11,7 @@ export function fetch_apex_data(chart, api_url) {
         .then(response => response.json())
         .then(data => {
             // Update both the series data and labels
-            console.log(`update ${api_url} with data:`)
-            console.log(data)
-            chart.updateOptions(data);
+            option.dataset = data
+            chart.setOption(option);
         });
 }

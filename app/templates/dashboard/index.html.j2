@@ -9,6 +9,7 @@
         @apply bg-gray-800 rounded-lg shadow-lg p-4;
     }
 </style>
+
 {% endblock %}
 
 {% block content %}
@@ -17,8 +18,12 @@
     <div class="grid grid-cols-12 gap-4">
         <!-- Spend Summary Card Sankey -->
         <div class="col-span-6 dashboard-card">
-            <h2 class="text-xl font-semibold mb-4">Spend Summary</h2>
-            {% include 'dashboard/partials/dashboard-cards/spend_summary_graph.html.j2' %}
+            <h2 class="text-xl font-semibold mb-4">Spend Summary 1</h2>
+            {% include 'dashboard/partials/dashboard-cards/spend_summary_graph_1.html.j2' %}
+        </div>
+        <div class="col-span-6 dashboard-card">
+            <h2 class="text-xl font-semibold mb-4">Apache eChart</h2>
+            {% include 'dashboard/partials/dashboard-cards/echart_test.html.j2' %}
         </div>
     </div>
 </div>
