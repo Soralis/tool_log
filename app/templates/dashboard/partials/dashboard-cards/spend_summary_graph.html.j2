@@ -1,0 +1,63 @@
+<div id="spendSummaryChart1" style="width: 800px;height:500px;"></div>
+
+<script type="module">
+  const chartDom = document.getElementById('spendSummaryChart1');
+  const chart = echarts.init(chartDom);
+  let option;
+
+  option = {
+    tooltip: {
+      position: 'top'
+    },
+    grid: {
+      height: '50%',
+      top: '10%'
+    },
+    xAxis: {
+      type: 'category',
+      data: [],
+      splitArea: {
+        show: true
+      }
+    },
+    yAxis: {
+      type: 'category',
+      data: [],
+      splitArea: {
+        show: true
+      }
+    },
+    visualMap: {
+      min: 0,
+      max: 500000,
+      calculable: true,
+      orient: 'horizontal',
+      left: 'center',
+      bottom: '15%'
+    },
+    series: [
+      {
+        name: 'Punch Card',
+        type: 'heatmap',
+        data: [],
+        label: {
+          show: true
+        },
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }
+    ]
+  };
+
+  option && chart.setOption(option);
+
+  import { update_data } from '/static/js/dashboard/update_chart.js';
+  // Listen for filter changes and update the chart
+  document.body.addEventListener('filterChanged', function() {
+      update_data(chart, option, '/dashboard/api/spend_summary');
+  });
+</script>

@@ -1,0 +1,46 @@
+<div id="spendSummarySankey" style="width: 100%;height: 400px;"></div>
+
+<script type="module">
+  const chartDom = document.getElementById('spendSummarySankey');
+  const chart = echarts.init(chartDom);
+  let option;
+
+ option = {
+  series: {
+    type: 'sankey',
+    emphasis: {
+      focus: 'adjacency'
+    },
+    layout: 'none',
+    linestyle: {
+      color: '#fff',
+      opacity: 0.3
+    },
+    orient: 'vertical',
+    label: {
+      position: 'top',
+      color: '#fff'
+    },
+    data: [],
+    links: [],
+  },
+  tooltip: {
+    trigger: 'item',
+    triggerOn: 'mousemove'
+  },
+};
+
+
+  option && chart.setOption(option);
+
+  // Handle window resize
+  window.addEventListener('resize', function() {
+    chart.resize();
+  });
+
+  import { update_data } from '/static/js/dashboard/update_chart.js';
+  // Listen for filter changes and update the chart
+  document.body.addEventListener('filterChanged', function() {
+      update_data(chart, option, '/dashboard/api/spend_summary_sankey');
+  });
+</script>

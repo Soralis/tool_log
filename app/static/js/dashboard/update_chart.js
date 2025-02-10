@@ -26,4 +26,6 @@ export function update_data(chart, option, api_url) {
         option = data;
         chart.setOption(option);
     });
+
+    chart.resize();
 }
