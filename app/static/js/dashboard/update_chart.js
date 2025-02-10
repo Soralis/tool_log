@@ -7,11 +7,23 @@ export function update_data(chart, option, api_url) {
     let startDate = localStorage.getItem('startDate');
     let endDate = localStorage.getItem('endDate');
 
-    fetch(`${api_url}?selected_products=${selectedProducts}&selected_operations=${selectedOperations}&start_date=${startDate}&end_date=${endDate}`)
-        .then(response => response.json())
-        .then(data => {
-            // Update both the series data and labels
-            option.dataset = data
-            chart.setOption(option);
-        });
+    fetch(api_url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            selected_products: selectedProducts,
+            selected_operations: selectedOperations,
+            start_date: startDate,
+            end_date: endDate,
+            option: option
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update both the series data and labels
+        option = data;
+        chart.setOption(option);
+    });
 }

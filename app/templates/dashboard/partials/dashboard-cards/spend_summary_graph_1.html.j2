@@ -2,8 +2,8 @@
 
 <script type="module">
   var chartDom = document.getElementById('spendSummaryChart1');
-  var spendSummaryChart1 = echarts.init(chartDom);
-  var spendSummaryChart1_option;
+  var chart = echarts.init(chartDom);
+  var option;
 
   // prettier-ignore
   const yadda_hours = [
@@ -22,7 +22,7 @@
       .map(function (item) {
       return [item[1], item[0], item[2] || '-'];
   });
-  spendSummaryChart1_option = {
+  option = {
     tooltip: {
       position: 'top'
     },
@@ -70,11 +70,11 @@
     ]
   };
 
-    spendSummaryChart1_option && spendSummaryChart1.setOption(spendSummaryChart1_option);
+  option && chart.setOption(option);
 
   import { update_data } from '/static/js/dashboard/update_chart.js';
   // Listen for filter changes and update the chart
   document.body.addEventListener('filterChanged', function() {
-      update_data(spendSummaryChart1, spendSummaryChart1_option, '/dashboard/api/mocky');
+      update_data(chart, option, '/dashboard/api/mocky');
   });
 </script>

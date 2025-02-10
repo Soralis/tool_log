@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Depends, Query
+from fastapi import APIRouter, Request, Depends, Query, Body
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 from typing import List
@@ -82,20 +82,20 @@ async def get_dashboard_filter(request: Request,
         "selected_operations": selected_operations or []
     })
 
-@router.get("/api/spend-summary")
+@router.post("/api/mocky")
 async def get_spend_summary(request: Request,
                             db: Session = Depends(get_session),
-                            selected_products: str = Query(),
-                            selected_operations: str = Query(),
-                            start_date: str = Query(None),
-                            end_date: str = Query(None)):
+                            selected_products: List[str] = Body(),
+                            selected_operations: List[str] = Body(),
+                            start_date: str = Body(None),
+                            end_date: str = Body(None),
+                            option: dict = Body()):
     """Get spend summary data based on filters"""
-    print("SANKEY")
     start_date = datetime.fromisoformat(start_date) if start_date else None
     end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else None
 
-    selected_products = [int(x) for x in selected_products.split(",") if x] if selected_products else []
-    selected_operations = [int(x) for x in selected_operations.split(",") if x] if selected_operations else []
+    selected_products = [int(x) for x in selected_products]
+    selected_operations = [int(x) for x in selected_operations]
 
     query = select(Workpiece.name, Machine.name, Tool.name, ToolConsumption.value)
     query = query.join(Machine, Machine.id == ToolConsumption.machine_id)
@@ -137,23 +137,19 @@ async def get_spend_summary(request: Request,
     for item in data:
         item['data'] = sorted(item['data'], key=lambda x: x['x'])
 
-
-    return {'series': data, 'title': {'text': f'Total:  $ {total:,.2f}'}}
-
-
-@router.get("/api/mocky")
-async def get_spend_summary(request: Request,
-                            db: Session = Depends(get_session),
-                            selected_products: str = Query(),
-                            selected_operations: str = Query(),
-                            start_date: str = Query(None),
-                            end_date: str = Query(None)):
-    """Get spend summary data based on filters"""
-    print('mockey mockey')
-    return {'series': [{'name': 'Product 1', 'data': [{'x': 'Operation 1', 'y': 100}, {'x': 'Operation 2', 'y': 200}]}, {'name': 'Product 2', 'data': [{'x': 'Operation 1', 'y': 300}, {'x': 'Operation 2', 'y': 400}]}, {'name': 'Product 3', 'data': [{'x': 'Operation 1', 'y': 500}, {'x': 'Operation 2', 'y': 600}]}, {'name': 'Product 4', 'data': [{'x': 'Operation 1', 'y': 700}, {'x': 'Operation 2', 'y': 800}]}], 'title': {'text': 'Total:  $ 1000.00'}}
-
-
-
-
-
-
+    option['xAxis']['data'] = list(machines)
+    option['xAxis']['data'].sort()
+    option['yAxis']['data'] = list(workpieces)
+    option['yAxis']['data'].sort()
+    machines = {machine: index for index, machine in enumerate(option['xAxis']['data'])}
+    workpieces = {workpiece: index for index, workpiece in enumerate(option['yAxis']['data'])}
+    option['series'][0]['data'] = []
+    for data_dict in data:
+        for value in data_dict['data']:
+            option['series'][0]['data'].append([machines[value['x']], workpieces[data_dict['name']], value['y'] if value['y'] != 0 else '-'])
+    max = 0
+    for coords in option['series'][0]['data']:
+        if isinstance(coords[2], int) and coords[2] > max:
+            max = coords[2]
+    option['visualMap']['max'] = max
+    return option
