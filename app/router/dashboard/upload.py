@@ -305,3 +305,17 @@ async def upload_parts_produced(
             result = await write_to_db(records, OrderCompletion, OrderCompletionCreate, session, result)
 
     return {"filename": file.filename, "type": "parts_produced", 'result': result}
+
+
+@router.post("/upload/tool-orders")
+async def upload_tool_orders(
+    file: UploadFile = File(...)
+):
+    """Handle tool orders file upload"""
+    print(f'Processing tool orders file: {file.filename}')
+    df: pd.Dataframe = await pd.read_csv(file)
+    if df is None:
+        return {"filename": file.filename, "type": "tool_orders", "error": "Unsupported file type"}
+    print(df.head())
+    # TODO: Implement tool orders processing logic here
+    return {"filename": file.filename, "type": "tool_orders", "message": "Tool orders upload successful"}

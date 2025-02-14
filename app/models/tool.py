@@ -1,4 +1,5 @@
 from typing import Optional, List, Dict, TYPE_CHECKING
+from pydantic import field_validator
 from sqlmodel import Field, SQLModel, Relationship, Column, JSON
 from sqlalchemy import UniqueConstraint
 from datetime import datetime as dt
@@ -157,13 +158,21 @@ class ToolOrderBase(SQLModel):
     quantity: int
     remaining_quantity: int
     batch_number: Optional[str] = Field(default=None)
-    gross_price: Decimal = Field(max_digits=10, decimal_places=2)
+    gross_price: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=2)
+    tool_price: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=2)
+
+    @field_validator('tool_price')
+    @classmethod
+    def validate_prices(cls, v: Optional[Decimal], info):
+        if v is None and info.data.get('gross_price') is None:
+            raise ValueError('Either gross_price or tool_price must be provided')
+        return v
 
 
 class ToolOrder(ToolOrderBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tool: Tool = Relationship(back_populates='tool_orders')
-    tool_lifes: List['ToolLife'] = Relationship(back_populates='tool_order')
+    # tool_lifes: List['ToolLife'] = Relationship(back_populates='tool_order')
     fulfilled: bool = Field(default=False, nullable=False)
     order_date: dt = Field(default_factory=dt.now, nullable=False)
     delivery_date: Optional[dt] = Field(default=None)
@@ -199,7 +208,7 @@ class ToolLife(ToolLifeBase, table=True):
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
     additional_measurements: Dict = Field(default_factory=dict, sa_column=Column(JSON))
 
-    tool_order_id: Optional[int] = Field(foreign_key='toolorder.id')
+    # tool_order_id: Optional[int] = Field(foreign_key='toolorder.id')
     created_by: int = Field(foreign_key='user.id')
     machine_id: int = Field(foreign_key='machine.id')
     tool_id: int = Field(foreign_key='tool.id')
@@ -211,7 +220,7 @@ class ToolLife(ToolLifeBase, table=True):
     machine: 'Machine' = Relationship(back_populates='tool_lifes')
     tool: Tool = Relationship(back_populates='tool_lifes')
     recipe: 'Recipe' = Relationship(back_populates='tool_lifes')
-    tool_order: ToolOrder = Relationship(back_populates='tool_lifes')
+    # tool_order: ToolOrder = Relationship(back_populates='tool_lifes')
     change_reason: ChangeReason = Relationship(back_populates='tool_lifes')
     tool_position: 'ToolPosition' = Relationship(back_populates='tool_lifes')
     notes: List['Note'] = Relationship(back_populates='tool_life')

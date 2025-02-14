@@ -57,6 +57,32 @@
         Upload Parts Production
       </button>
     </div>
+
+    <!-- Tool Orders Upload Button -->
+    <div class="p-6 bg-slate-800 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-3">Tool Orders</h2>
+      <p class="text-gray-200 mb-4">Upload csv file containing Tool Orders.</p>
+      <button
+        onclick="toggleInstructions('order')"
+        class="text-gray-200 hover:text-teal-500 mb-2 flex items-center"
+      >
+        <span id="orderArrow" class="mr-2">▶</span>
+        Where do I get the data?
+      </button>
+      <ul id="orderInstructions" class="list-disc list-inside text-gray-200 mb-4 hidden">
+        <li>Get Access to the IXP Tooling Orders and Inventory List from Vallen</li>
+        <li>https://vallenna-my.sharepoint.com/personal/tom_schott_vallen_com/Lists/IXP%20Tooling%20Orders%20and%20Inventory/AllItems.aspx?env=WebViewList</li>
+        <li>Click 'Export'</li>
+        <li>Click 'Export to CSV'</li>
+        <li>And then ...</li>
+      </ul>
+      <button 
+        onclick="openUploadModal('tool-orders', 'Tool Orders Data')"
+        class="bg-teal-700 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+      >
+        Upload Tool Orders
+      </button>
+    </div>
   </div>
 
   <!-- Upload Modal -->
@@ -164,59 +190,70 @@
     
     const formData = new FormData();
     formData.append('file', file);
-    
+
+    const isCSV = file.type === 'text/csv';
+    const isXLSX = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    const isXLS = file.type === 'application/vnd.ms-excel';
+    console.log('gayayaya',isCSV, isXLSX)
+
     try {
-      const response = await fetch('/dashboard/upload/preview-sheets', {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (response.ok) {
-        const sheets = await response.json();
-        const sheetList = document.getElementById('sheetList');
-        sheetList.innerHTML = '';
-        
-        sheets.forEach(sheet => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.value = sheet;
-          button.id = `sheet-${sheet}`;
-          button.className = 'w-full mb-2 py-2 px-4 rounded text-left text-gray-200 bg-slate-700 hover:bg-slate-600 focus:outline-none';
-          button.textContent = sheet;
-          button.dataset.selected = 'false';
-          
-          button.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const wasSelected = button.dataset.selected === 'true';
-            
-            if (!wasSelected) {
-              // Deselect all other buttons
-              sheetList.querySelectorAll('button').forEach(btn => {
-                btn.dataset.selected = 'false';
-                btn.className = 'w-full mb-2 py-2 px-4 rounded text-left text-gray-200 bg-slate-700 hover:bg-slate-600 focus:outline-none';
-              });
-              
-              // Select this button
-              button.dataset.selected = 'true';
-              button.className = 'w-full mb-2 py-2 px-4 rounded text-left text-white bg-teal-700 hover:bg-teal-600 focus:outline-none';
-              
-              // Show preview
-              await previewSheet(file, sheet);
-            } else {
-              // Deselect this button
-              button.dataset.selected = 'false';
-              button.className = 'w-full mb-2 py-2 px-4 rounded text-left text-gray-200 bg-slate-700 hover:bg-slate-600 focus:outline-none';
-              
-              // Hide preview
-              document.getElementById('sheetPreview').classList.add('hidden');
-            }
-          });
-          
-          sheetList.appendChild(button);
+      if (isCSV) {
+        document.getElementById('sheetSelection').classList.add('hidden');
+        document.getElementById('sheetPreview').classList.add('hidden');
+        document.getElementById('uploadButton').textContent = 'Upload';
+      } else {
+        const response = await fetch('/dashboard/upload/preview-sheets', {
+          method: 'POST',
+          body: formData
         });
-        
-        document.getElementById('sheetSelection').classList.remove('hidden');
-        document.getElementById('uploadButton').textContent = 'Next';
+
+        if (response.ok) {
+          const sheets = await response.json();
+          const sheetList = document.getElementById('sheetList');
+          sheetList.innerHTML = '';
+
+          sheets.forEach(sheet => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.value = sheet;
+            button.id = `sheet-${sheet}`;
+            button.className = 'w-full mb-2 py-2 px-4 rounded text-left text-gray-200 bg-slate-700 hover:bg-slate-600 focus:outline-none';
+            button.textContent = sheet;
+            button.dataset.selected = 'false';
+
+            button.addEventListener('click', async (e) => {
+              e.preventDefault();
+              const wasSelected = button.dataset.selected === 'true';
+
+              if (!wasSelected) {
+                // Deselect all other buttons
+                sheetList.querySelectorAll('button').forEach(btn => {
+                  btn.dataset.selected = 'false';
+                  btn.className = 'w-full mb-2 py-2 px-4 rounded text-left text-gray-200 bg-slate-700 hover:bg-slate-600 focus:outline-none';
+                });
+
+                // Select this button
+                button.dataset.selected = 'true';
+                button.className = 'w-full mb-2 py-2 px-4 rounded text-left text-white bg-teal-700 hover:bg-teal-600 focus:outline-none';
+
+                // Show preview
+                await previewSheet(file, sheet);
+              } else {
+                // Deselect this button
+                button.dataset.selected = 'false';
+                button.className = 'w-full mb-2 py-2 px-4 rounded text-left text-gray-200 bg-slate-700 hover:bg-slate-600 focus:outline-none';
+
+                // Hide preview
+                document.getElementById('sheetPreview').classList.add('hidden');
+              }
+            });
+
+            sheetList.appendChild(button);
+          });
+
+          document.getElementById('sheetSelection').classList.remove('hidden');
+          document.getElementById('uploadButton').textContent = 'Next';
+        }
       }
     } catch (error) {
       console.error('Error getting sheets:', error);
@@ -319,38 +356,39 @@
     if (fileInput.files.length > 0) {
       const formData = new FormData();
       formData.append('file', fileInput.files[0]);
-      
+      const isCSV = file.type === 'text/csv';
+      console.log('maininini', file.type, isCSV)
       // If sheet selection is visible, get selected sheets
-      if (!sheetSelection.classList.contains('hidden')) {
+      if (!isCSV && !sheetSelection.classList.contains('hidden')) {
         const selectedSheets = Array.from(
           document.querySelectorAll('button[data-selected="true"]')
         ).map(button => button.value);
-        
-      if (selectedSheets.length === 0) {
-        messageDiv.textContent = 'Please select at least one sheet to process';
-        messageDiv.classList.remove('hidden', 'bg-green-100', 'bg-yellow-100');
-        messageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
-        return;
-      }
 
-      const selectedRadio = document.querySelector('input[name="headerRow"]:checked');
-      if (!selectedRadio) {
-        messageDiv.textContent = 'Please select a header row';
-        messageDiv.classList.remove('hidden', 'bg-green-100', 'bg-yellow-100');
-        messageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
-        return;
-      }
-      
-      formData.append('sheet_names', selectedSheets.join(','));
-      formData.append('header_row', selectedRadio.value);
-      messageDiv.textContent = 'Processing selected sheets...';
+        if (selectedSheets.length === 0) {
+          messageDiv.textContent = 'Please select at least one sheet to process';
+          messageDiv.classList.remove('hidden', 'bg-green-100', 'bg-yellow-100');
+          messageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+          return;
+        }
+
+        const selectedRadio = document.querySelector('input[name="headerRow"]:checked');
+        if (!selectedRadio) {
+          messageDiv.textContent = 'Please select a header row';
+          messageDiv.classList.remove('hidden', 'bg-green-100', 'bg-yellow-100');
+          messageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+          return;
+        }
+
+        formData.append('sheet_names', selectedSheets.join(','));
+        formData.append('header_row', selectedRadio.value);
+        messageDiv.textContent = 'Processing selected sheets...';
       } else if (fileInput.files[0]) {
         // First step - get sheets
         document.getElementById('sheetPreview').classList.add('hidden');  // Hide any existing preview
         await getSheetsAndPreview(fileInput.files[0]);
         return;
       }
-      
+
       messageDiv.classList.remove('hidden', 'bg-green-100', 'bg-red-100');
       messageDiv.classList.add('bg-yellow-100', 'border-yellow-400', 'text-yellow-700');
       

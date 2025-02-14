@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends, Query, Body
-from collections import defaultdict
-from fastapi.responses import JSONResponse
+# from collections import defaultdict
+# from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 from typing import List
 import socket
@@ -59,14 +59,6 @@ async def get_dashboard_filter(request: Request,
                               start_date: str = Query(None),
                               end_date: str = Query(None)):
     """Get filtered dashboard content"""
-
-    print('hier kommt ne anfrage')
-    print(selected_products)
-    print(selected_operations)
-    print(start_date)
-    print(end_date)
-    
-    
     # Construct query with filters
     query = select(ToolConsumption)
     if start_date:
@@ -214,74 +206,74 @@ async def get_spend_summary_sankey(request: Request,
     return option
 
 
-@router.get("/api/cleanup_data")
-async def cleanup_data(db: Session = Depends(get_session)):
-    tool_consumptions = db.exec(select(ToolConsumption)).all()
-    tool_usage = {}
-    allowed_pairs = {
-        '3700 INNER': {'OP30-IR', 'OP35-IR', 'OP60-IR', 'OP75-IR', 'OP45-Broach'},
-        '4700 INNER': {'OP30-IR', 'OP35-IR', 'OP60-IR', 'OP75-IR', 'OP45-Broach'},
-        '3700 DISK': {'OP70', 'OP60-OR', 'OP75-Chamfering', 'OP50', 'OP35-OR', 'OP75-OR', 'OP30-OR', 'OP40-OR'},
-        '3700 MONO': {'OP70', 'OP60-OR', 'OP75-Chamfering', 'OP50', 'OP35-OR', 'OP75-OR', 'OP30-OR', 'OP40-OR'},
-        '4700 DISK': {'OP70', 'OP60-OR', 'OP75-Chamfering', 'OP50', 'OP35-OR', 'OP75-OR', 'OP30-OR', 'OP40-OR'}
-    }
-    tool_name_id_pairing = {}
+# @router.get("/api/cleanup_data")
+# async def cleanup_data(db: Session = Depends(get_session)):
+#     tool_consumptions = db.exec(select(ToolConsumption)).all()
+#     tool_usage = {}
+#     allowed_pairs = {
+#         '3700 INNER': {'OP30-IR', 'OP35-IR', 'OP60-IR', 'OP75-IR', 'OP45-Broach'},
+#         '4700 INNER': {'OP30-IR', 'OP35-IR', 'OP60-IR', 'OP75-IR', 'OP45-Broach'},
+#         '3700 DISK': {'OP70', 'OP60-OR', 'OP75-Chamfering', 'OP50', 'OP35-OR', 'OP75-OR', 'OP30-OR', 'OP40-OR'},
+#         '3700 MONO': {'OP70', 'OP60-OR', 'OP75-Chamfering', 'OP50', 'OP35-OR', 'OP75-OR', 'OP30-OR', 'OP40-OR'},
+#         '4700 DISK': {'OP70', 'OP60-OR', 'OP75-Chamfering', 'OP50', 'OP35-OR', 'OP75-OR', 'OP30-OR', 'OP40-OR'}
+#     }
+#     tool_name_id_pairing = {}
 
-    for tc in tool_consumptions:
-        if (tc.value == 0
-            or (tc.workpiece and tc.machine 
-                and (tc.machine.name not in allowed_pairs[tc.workpiece.name]))
-            ):
-            tc.machine_id = None
-            tc.workpiece_id = None
+#     for tc in tool_consumptions:
+#         if (tc.value == 0
+#             or (tc.workpiece and tc.machine 
+#                 and (tc.machine.name not in allowed_pairs[tc.workpiece.name]))
+#             ):
+#             tc.machine_id = None
+#             tc.workpiece_id = None
 
-        tool_name_id_pairing[tc.tool_id] = tc.tool.name
+#         tool_name_id_pairing[tc.tool_id] = tc.tool.name
             
-        if tc.tool_id not in tool_usage:
-            tool_usage[tc.tool_id] = {'machines': {}, 'workpieces': {}}
-        if tc.machine_id not in tool_usage[tc.tool_id]['machines']:
-            tool_usage[tc.tool_id]['machines'][tc.machine_id] = 0
-        if tc.workpiece_id not in tool_usage[tc.tool_id]['workpieces']:
-            tool_usage[tc.tool_id]['workpieces'][tc.workpiece_id] = 0
-        tool_usage[tc.tool_id]['machines'][tc.machine_id] += tc.quantity
-        tool_usage[tc.tool_id]['workpieces'][tc.workpiece_id] += tc.quantity
+#         if tc.tool_id not in tool_usage:
+#             tool_usage[tc.tool_id] = {'machines': {}, 'workpieces': {}}
+#         if tc.machine_id not in tool_usage[tc.tool_id]['machines']:
+#             tool_usage[tc.tool_id]['machines'][tc.machine_id] = 0
+#         if tc.workpiece_id not in tool_usage[tc.tool_id]['workpieces']:
+#             tool_usage[tc.tool_id]['workpieces'][tc.workpiece_id] = 0
+#         tool_usage[tc.tool_id]['machines'][tc.machine_id] += tc.quantity
+#         tool_usage[tc.tool_id]['workpieces'][tc.workpiece_id] += tc.quantity
 
-    no_compares = defaultdict(int)
-    for consumption in tool_consumptions:
-        try:
-            changed = False
-            if not consumption.machine_id:
-                max_machine_id = 0
-                max_machine = 0
-                for machine in tool_usage[consumption.tool_id]['machines']:
-                    if tool_usage[consumption.tool_id]['machines'][machine] > max_machine:
-                        max_machine = tool_usage[consumption.tool_id]['machines'][machine]
-                        max_machine_id = machine
-                if max_machine_id != 0:
-                    consumption.machine_id = max_machine_id
-                    changed = True
+#     no_compares = defaultdict(int)
+#     for consumption in tool_consumptions:
+#         try:
+#             changed = False
+#             if not consumption.machine_id:
+#                 max_machine_id = 0
+#                 max_machine = 0
+#                 for machine in tool_usage[consumption.tool_id]['machines']:
+#                     if tool_usage[consumption.tool_id]['machines'][machine] > max_machine:
+#                         max_machine = tool_usage[consumption.tool_id]['machines'][machine]
+#                         max_machine_id = machine
+#                 if max_machine_id != 0:
+#                     consumption.machine_id = max_machine_id
+#                     changed = True
 
-            if not consumption.workpiece_id:
-                # find workpiece with max amount
-                max_workpiece_id = 0
-                max_workpiece = 0
-                for workpiece in tool_usage[consumption.tool_id]['workpieces']:
-                    if tool_usage[consumption.tool_id]['workpieces'][workpiece] > max_workpiece:
-                        max_workpiece = tool_usage[consumption.tool_id]['workpieces'][workpiece]
-                        max_workpiece_id = workpiece
-                if max_workpiece_id != 0:
-                    consumption.workpiece_id = max_workpiece_id
-                    changed = True
-            if changed:
-                print(consumption.machine_id, consumption.workpiece_id)
-                db.add(consumption)
-        except:
-            no_compares[consumption.tool_id] += consumption.quantity
-            db.add(consumption)
-            continue
+#             if not consumption.workpiece_id:
+#                 # find workpiece with max amount
+#                 max_workpiece_id = 0
+#                 max_workpiece = 0
+#                 for workpiece in tool_usage[consumption.tool_id]['workpieces']:
+#                     if tool_usage[consumption.tool_id]['workpieces'][workpiece] > max_workpiece:
+#                         max_workpiece = tool_usage[consumption.tool_id]['workpieces'][workpiece]
+#                         max_workpiece_id = workpiece
+#                 if max_workpiece_id != 0:
+#                     consumption.workpiece_id = max_workpiece_id
+#                     changed = True
+#             if changed:
+#                 print(consumption.machine_id, consumption.workpiece_id)
+#                 db.add(consumption)
+#         except:
+#             no_compares[consumption.tool_id] += consumption.quantity
+#             db.add(consumption)
+#             continue
 
-    db.commit()
-    return
+#     db.commit()
+#     return
 
 
 
