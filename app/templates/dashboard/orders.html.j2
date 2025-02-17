@@ -19,52 +19,59 @@
 
 
 {% block scripts %}
-<script>
-    async function openOrderModal(orderId) {
-        const modal = document.getElementById('orderDetailsModal');
-        if (!modal) {
-            console.error('Modal element not found in openOrderModal');
-            return;
+    <script>
+        async function openOrderModal(orderId) {
+            const modal = document.getElementById('orderDetailsModal');
+            let order = {}
+            if (!modal) {
+                console.error('Modal element not found in openOrderModal');
+                return;
+            }
+
+            if (orderId) {
+                const response = await fetch(`/dashboard/orders/order_details/${orderId}`);
+                order = await response.json(); 
+            }
+
+            console.log(order)
+
+            document.getElementById('modalTitle').innerText = `Order Details - ${order.order_number}`;
+            document.getElementById('order-number').value = order.order_number || '';
+            document.getElementById('erp-number').value = order.erp_number || '';
+            document.getElementById('cpn-number').value = order.cpn_number || '';
+            document.getElementById('description').value = order.description || '';
+            document.getElementById('quantity').value = order.quantity || '';
+            document.getElementById('gross-price').value = order.gross_price || '';
+            document.getElementById('tool-price').value = order.tool_price || '';
+            document.getElementById('order-date').value = order.order_date || null;
+            document.getElementById('estimated-delivery-date').value = order.estimated_delivery_date || null;
+
+            document.getElementById('fulfilled').innerHTML = `<span class="${order.fulfilled ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}">${order.fulfilled ? 'Order Fulfilled' : 'Delivery Pending...'}</span>`;
+
+            modal.style.removeProperty('display');
+            modal.classList.remove('hidden');
+            toggleBodyScroll(true);
         }
 
-        const response = await fetch(`/orders/order_details/${orderId}`);
-        const order = await response.json();
-
-        document.getElementById('modalTitle').innerText = `Order Details - ${order.order_number}`;
-        document.getElementById('order-number').innerText = order.order_number || '';
-        document.getElementById('erp-number').innerText = order.erp_number || '';
-        document.getElementById('cpn-number').innerText = order.cpn_number || '';
-        document.getElementById('description').innerText = order.description || '';
-        document.getElementById('customer').innerText = order.customer || '';
-        document.getElementById('quantity').innerText = order.quantity || '';
-        document.getElementById('fulfilled').innerText = order.fulfilled || '';
-        document.getElementById('gross-price').innerText = order.gross_price || '';
-        document.getElementById('estimated-delivery-date').innerText = order.estimated_delivery_date || '';
-
-        modal.style.removeProperty('display');
-        modal.classList.remove('hidden');
-        toggleBodyScroll(true);
-    }
-
-    function closeOrderModal() {
-        const modal = document.getElementById('orderDetailsModal');
-        if (modal) {
-            modal.classList.add('hidden');
-            toggleBodyScroll(false);
-        } else {
-            console.error('Modal element not found in closeOrderModal');
+        function closeOrderModal() {
+            const modal = document.getElementById('orderDetailsModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                toggleBodyScroll(false);
+            } else {
+                console.error('Modal element not found in closeOrderModal');
+            }
         }
-    }
 
-    // Function to toggle body scroll
-    function toggleBodyScroll(lock) {
-        if (lock) {
-            document.body.classList.add('modal-open');
-        } else {
-            document.body.classList.remove('modal-open');
+        // Function to toggle body scroll
+        function toggleBodyScroll(lock) {
+            if (lock) {
+                document.body.classList.add('modal-open');
+            } else {
+                document.body.classList.remove('modal-open');
+            }
         }
-    }
-</script>
+    </script>
 {% endblock %}
 
 {% block content %}
@@ -74,5 +81,5 @@
         {% endfor %}
     </div>
 
-    {% include "dashboard/partials/order_details_modal.html.j2" %}
+    {% include "dashboard/partials/order_modal.html.j2" %}
 {% endblock %}

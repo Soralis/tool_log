@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from app.templates.jinja_functions import templates
 from sqlmodel import Session, select
 from app.database_config import get_session
@@ -37,10 +38,13 @@ async def delete_order(order_id: int, session: Session = Depends(get_session)):
 @router.get("/order_details/{order_id}")
 async def order_details(request: Request, order_id: int, session: Session = Depends(get_session)):
     # Fetch order details from the database
-    order = session.exec(ToolOrder).filter(ToolOrder.id == order_id).first()
+    query = select(ToolOrder).where(ToolOrder.id == order_id)
+    order = session.exec(query).first()
+    order.order_date = order.order_date.date()
+    order.estimated_delivery_date = order.estimated_delivery_date.date() if order.estimated_delivery_date else None
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found")
-    return {"request": request, "order": order}
+    return order
 
 @router.post("/{order_id}/createDelivery")
 async def create_delivery(order_id: int, request: Request, session: Session = Depends(get_session)):

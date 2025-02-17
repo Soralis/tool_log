@@ -1,0 +1,70 @@
+<!-- Order Details Modal -->
+<div id="orderDetailsModal" class="fixed inset-0 bg-gray-900/95 hidden z-[9999] overflow-y-auto">
+    <div class="min-h-screen p-4" id="modalBackdrop">
+        <div class="flex items-center justify-center">
+            <div class="relative w-full max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-xl max-h-[90vh] flex flex-col" id="modalContent">
+                <!-- Modal header -->
+                <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                    <h2 class="text-2xl font-bold" id="modalTitle">Order Details</h2>
+                    <span id="fulfilled"></span>
+                    <button onclick="closeOrderModal()" class="text-gray-400 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Modal content -->
+                <div class="p-4 overflow-y-auto flex-grow">
+                    <div id="modalGrid" class="grid grid-cols-2 gap-4">
+                        <div class="mb-4">
+                            <label for="order-number" class="block text-gray-300 text-sm font-bold mb-2">Order Number:</label>
+                            <input type="text" id="order-number" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white">
+                        </div>
+                        <div class="mb-4">
+                            <label for="erp-number" class="block text-gray-300 text-sm font-bold mb-2">ERP Number:</label>
+                            <input type="text" id="erp-number" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white">
+                        </div>
+                        <div class="mb-4">
+                            <label for="cpn-number" class="block text-gray-300 text-sm font-bold mb-2">CPN Number:</label>
+                            <input type="text" id="cpn-number" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white">
+                        </div>
+                        <div class="mb-4">
+                            <label for="description" class="block text-gray-300 text-sm font-bold mb-2">Description:</label>
+                            <input type="text" id="description" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white">
+                        </div>
+                        <div class="mb-4">
+                            <label for="quantity" class="block text-gray-300 text-sm font-bold mb-2">Quantity:</label>
+                            <input type="number" id="quantity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white">
+                        </div>
+                        <div class="mb-4">
+                            <label for="gross-price" class="block text-gray-300 text-sm font-bold mb-2">Total:</label>
+                            <input type="number" id="gross-price" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white">
+                        </div>
+                        <div class="mb-4">
+                            <label for="estimated-delivery-date" class="block text-gray-300 text-sm font-bold mb-2">Estimated Delivery:</label>
+                            <input type="date" id="estimated-delivery-date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white">
+                        </div>
+                        <div class="mb-4">
+                            <label for="tool-price" class="block text-gray-300 text-sm font-bold mb-2">Tool Price:</label>
+                            <input type="number" id="tool-price" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white">
+                        </div>
+                        <div class="mb-4">
+                            <label for="order-date" class="block text-gray-300 text-sm font-bold mb-2">Order Date:</label>
+                            <input type="date" id="order-date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white">
+                        </div>
+                    </div>
+                </div>
+                <!-- Modal footer -->
+                <div class="flex justify-end items-center p-4 border-t border-gray-700">
+                    <button onclick="closeOrderModal()" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">
+                        Cancel
+                    </button>
+                    <button onclick="saveOrder()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
