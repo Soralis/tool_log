@@ -12,7 +12,10 @@ from app.models import OrderCompletion, OrderCompletionCreate, User, Workpiece, 
 from app.database_config import engine
 from app.templates.jinja_functions import templates
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/upload",
+    tags=["upload"]
+)
 
 
 async def get_excel_sheets(file: UploadFile):
@@ -115,7 +118,7 @@ async def write_to_db(records: list, model, create_model, session: Session, resu
 
     return result
 
-@router.get("/upload", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse)
 async def upload_page(request: Request):
     """Render the file upload page"""
     return templates.TemplateResponse(
@@ -123,7 +126,7 @@ async def upload_page(request: Request):
         {"request": request}
     )
 
-@router.post("/upload/preview-sheets")
+@router.post("/preview-sheets")
 async def preview_sheets(file: UploadFile = File(...)):
     """Get list of sheets in Excel file"""
     sheets = await get_excel_sheets(file)
@@ -132,7 +135,7 @@ async def preview_sheets(file: UploadFile = File(...)):
     return sheets
 
 
-@router.post("/upload/preview-sheet")
+@router.post("/preview-sheet")
 async def preview_sheet(
     file: UploadFile = File(...),
     sheet_name: str = Form(None),
@@ -149,7 +152,7 @@ async def preview_sheet(
     except Exception as e:
         return {"error": str(e)}
 
-@router.post("/upload/tool-consumption")
+@router.post("/tool-consumption")
 async def upload_tool_consumption(
     file: UploadFile = File(...),
     sheet_names: str = Form(None),
@@ -257,7 +260,7 @@ async def upload_tool_consumption(
     return {"filename": file.filename, "type": "tool_consumption", 'result': result}
 
 
-@router.post("/upload/parts-produced")
+@router.post("/parts-produced")
 async def upload_parts_produced(
     file: UploadFile = File(...),
     sheet_names: str = Form(None),
@@ -307,7 +310,7 @@ async def upload_parts_produced(
     return {"filename": file.filename, "type": "parts_produced", 'result': result}
 
 
-@router.post("/upload/tool-orders")
+@router.post("/tool-orders")
 async def upload_tool_orders(
     file: UploadFile = File(...)
 ):

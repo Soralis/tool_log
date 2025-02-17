@@ -1,0 +1,78 @@
+{% extends "dashboard/base.html.j2" %}
+
+{% block title %}Tool Orders Summary{% endblock %}
+
+{% block head %}
+{% endblock %}
+
+{% block subinfo %}
+    <div class="flex items-center space-x-8 text-sm font-mono">
+        <div class="flex justify-between">
+            <div class="flex items-center">
+                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Create new Order
+                </button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    async function openOrderModal(orderId) {
+        const modal = document.getElementById('orderDetailsModal');
+        if (!modal) {
+            console.error('Modal element not found in openOrderModal');
+            return;
+        }
+
+        const response = await fetch(`/orders/order_details/${orderId}`);
+        const order = await response.json();
+
+        document.getElementById('modalTitle').innerText = `Order Details - ${order.order_number}`;
+        document.getElementById('order-number').innerText = order.order_number || '';
+        document.getElementById('erp-number').innerText = order.erp_number || '';
+        document.getElementById('cpn-number').innerText = order.cpn_number || '';
+        document.getElementById('description').innerText = order.description || '';
+        document.getElementById('customer').innerText = order.customer || '';
+        document.getElementById('quantity').innerText = order.quantity || '';
+        document.getElementById('fulfilled').innerText = order.fulfilled || '';
+        document.getElementById('gross-price').innerText = order.gross_price || '';
+        document.getElementById('estimated-delivery-date').innerText = order.estimated_delivery_date || '';
+
+        modal.style.removeProperty('display');
+        modal.classList.remove('hidden');
+        toggleBodyScroll(true);
+    }
+
+    function closeOrderModal() {
+        const modal = document.getElementById('orderDetailsModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            toggleBodyScroll(false);
+        } else {
+            console.error('Modal element not found in closeOrderModal');
+        }
+    }
+
+    // Function to toggle body scroll
+    function toggleBodyScroll(lock) {
+        if (lock) {
+            document.body.classList.add('modal-open');
+        } else {
+            document.body.classList.remove('modal-open');
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for order in orders %}
+            {% include "dashboard/partials/order_card.html.j2" %}
+        {% endfor %}
+    </div>
+
+    {% include "dashboard/partials/order_details_modal.html.j2" %}
+{% endblock %}

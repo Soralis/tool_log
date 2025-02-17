@@ -157,26 +157,17 @@ class ToolOrderBase(SQLModel):
     tool_id: int = Field(foreign_key='tool.id', ondelete='CASCADE')
     quantity: int
     order_number: str = Field(unique=True, index=True)
-    remaining_quantity: int
-    batch_number: Optional[str] = Field(default=None)
+    order_date: dt = Field(default_factory=dt.now, nullable=False)
+    estimated_delivery_date: Optional[dt] = Field(default=None)
     gross_price: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=2)
     tool_price: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=2)
-
-    @field_validator('tool_price')
-    @classmethod
-    def validate_prices(cls, v: Optional[Decimal], info):
-        if v is None and info.data.get('gross_price') is None:
-            raise ValueError('Either gross_price or tool_price must be provided')
-        return v
 
 
 class ToolOrder(ToolOrderBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tool: Tool = Relationship(back_populates='tool_orders')
-    # tool_lifes: List['ToolLife'] = Relationship(back_populates='tool_order')
+    batch_number: Optional[str] = Field(default=None)
     fulfilled: bool = Field(default=False, nullable=False)
-    order_date: dt = Field(default_factory=dt.now, nullable=False)
-    estimated_delivery_date: Optional[dt] = Field(default=None)
     deliveries: List['OrderDelivery'] = Relationship(back_populates='order')
     user_id: Optional[int] = Field(foreign_key='user.id')
     user: 'User' = Relationship(back_populates='tool_orders')
@@ -189,15 +180,12 @@ class ToolOrderCreate(ToolOrderBase):
 
 class ToolOrderUpdate(ToolOrderCreate):
     id: int
-    delivery_date: Optional[dt] = Field(default=None)
     fulfilled: bool = Field(default=False, nullable=False)
+    batch_number: Optional[str] = Field(default=None)
 
 
-class ToolOrderRead(SQLModel):
-    id: int
-    name: str
-    fulfilled: bool
-    tool: Tool
+class ToolOrderRead(ToolOrderUpdate):
+    pass
 
 class OrderDeliveryBase(SQLModel):
     order_id: int = Field(foreign_key='toolorder.id')

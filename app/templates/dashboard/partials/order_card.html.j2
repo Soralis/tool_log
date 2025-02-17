@@ -1,0 +1,8 @@
+<a href="#" onclick="openOrderModal('{{ order.id }}')" class="dark bg-gray-800 shadow-md rounded-md p-4 text-white block">
+    <h2 class="text-lg font-semibold">{{ order.order_number }}</h2>
+    <p>Quantity: {{ order.quantity }}</p>
+    <p>Open: {{ order.fulfilled }}</p>
+    <p>Total: ${{ order.gross_price }}</p>
+    <p>Estimated Delivery: {{ order.estimated_delivery_date }}</p>
+
+</a>

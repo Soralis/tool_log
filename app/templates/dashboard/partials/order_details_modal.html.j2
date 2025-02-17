@@ -1,0 +1,83 @@
+<!-- Order Details Modal -->
+<div id="orderDetailsModal" class="fixed inset-0 bg-gray-900/95 hidden z-[9999] overflow-y-auto">
+    <div class="min-h-screen p-4" id="modalBackdrop">
+        <div class="flex items-center justify-center">
+            <div class="relative w-full max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-xl max-h-[90vh] flex flex-col" id="modalContent">
+                <!-- Modal header -->
+                <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                    <h2 class="text-2xl font-bold" id="modalTitle">Order Details</h2>
+                    <button onclick="closeOrderModal()" class="text-gray-400 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Modal content -->
+                <div class="p-4 overflow-y-auto flex-grow">
+                    <div id="modalGrid" class="grid grid-cols-12 auto-rows-[minmax(200px,auto)]">
+                        <!-- Content will be dynamically populated -->
+                        <div class="col-span-12">
+                            <p>Order Number: <span id="order-number"></span></p>
+                            <p>ERP Number: <span id="erp-number"></span></p>
+                            <p>CPN Number: <span id="cpn-number"></span></p>
+                            <p>Description: <span id="description"></span></p>
+                            <p>Customer: <span id="customer"></span></p>
+                            <p>Quantity: <span id="quantity"></span></p>
+                            <p>Open: <span id="fulfilled"></span></p>
+                            <p>Total: <span id="gross-price"></span></p>
+                            <p>Estimated Delivery: <span id="estimated-delivery-date"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Chart canvas sizing */
+    canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    /* Modal visibility control */
+    #orderDetailsModal {
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease-out, visibility 0.15s ease-out;
+        backdrop-filter: blur(4px);
+    }
+    
+    #orderDetailsModal:not(.hidden) {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    #orderDetailsModal > div {
+        transition: transform 0.15s ease-out;
+        transform: scale(0.95);
+    }
+
+    #orderDetailsModal:not(.hidden) > div {
+        transform: scale(1);
+    }
+
+    /* Ensure modal content is always on top */
+    #orderDetailsModal .relative {
+        z-index: 9999;
+    }
+
+    /* Modal content scrolling */
+    #orderDetailsModal .overflow-y-auto {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Prevent body scrolling when modal is open */
+    body.modal-open {
+        overflow: hidden;
+    }
+</style>
