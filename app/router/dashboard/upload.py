@@ -313,9 +313,10 @@ async def upload_tool_orders(
 ):
     """Handle tool orders file upload"""
     print(f'Processing tool orders file: {file.filename}')
-    df: pd.Dataframe = await pd.read_csv(file)
+    df: pd.DataFrame = pd.read_csv(file.file)
     if df is None:
         return {"filename": file.filename, "type": "tool_orders", "error": "Unsupported file type"}
     print(df.head())
+    result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
     # TODO: Implement tool orders processing logic here
-    return {"filename": file.filename, "type": "tool_orders", "message": "Tool orders upload successful"}
+    return {"filename": file.filename, "type": "tool_orders", "result": result}

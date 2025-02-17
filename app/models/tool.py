@@ -156,6 +156,7 @@ class ToolRead(SQLModel):
 class ToolOrderBase(SQLModel):
     tool_id: int = Field(foreign_key='tool.id', ondelete='CASCADE')
     quantity: int
+    order_number: str = Field(unique=True, index=True)
     remaining_quantity: int
     batch_number: Optional[str] = Field(default=None)
     gross_price: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=2)
@@ -175,9 +176,11 @@ class ToolOrder(ToolOrderBase, table=True):
     # tool_lifes: List['ToolLife'] = Relationship(back_populates='tool_order')
     fulfilled: bool = Field(default=False, nullable=False)
     order_date: dt = Field(default_factory=dt.now, nullable=False)
-    delivery_date: Optional[dt] = Field(default=None)
+    estimated_delivery_date: Optional[dt] = Field(default=None)
+    deliveries: List['OrderDelivery'] = Relationship(back_populates='order')
     user_id: Optional[int] = Field(foreign_key='user.id')
     user: 'User' = Relationship(back_populates='tool_orders')
+    notes: List['Note'] = Relationship(back_populates='tool_order')
 
 
 class ToolOrderCreate(ToolOrderBase):
@@ -195,6 +198,29 @@ class ToolOrderRead(SQLModel):
     name: str
     fulfilled: bool
     tool: Tool
+
+class OrderDeliveryBase(SQLModel):
+    order_id: int = Field(foreign_key='toolorder.id')
+    delivery_date: dt = Field(default_factory=dt.now)
+    quantity: int
+    
+class OrderDelivery(OrderDeliveryBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    order: ToolOrder = Relationship(back_populates='deliveries')
+    notes: List['Note'] = Relationship(back_populates='order_delivery')
+
+class OrderDeliveryCreate(OrderDeliveryBase):
+    pass
+
+class OrderDeliveryUpdate(OrderDeliveryCreate):
+    id: int
+    delivery_date: Optional[dt] = Field(default=None)
+
+class OrderDeliveryRead(SQLModel):
+    id: int
+    order_id: int
+    delivery_date: dt
+    quantity: int
 
 
 class ToolLifeBase(SQLModel):
@@ -244,25 +270,42 @@ class NoteBase(SQLModel):
     user_id: int = Field(foreign_key='user.id')
     sentiment: Sentiment = Field(default=Sentiment.NEUTRAL)
 
+    tool_life_id: Optional[int] = Field(foreign_key='toollife.id', ondelete='CASCADE', index=True)
+    tool_order_id: Optional[int] = Field(foreign_key='toolorder.id', ondelete='CASCADE', index=True)
+    order_delivery_id: Optional[int] = Field(foreign_key='orderdelivery.id', ondelete='CASCADE', index=True)
+
 class Note(NoteBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 
     created_at: dt = Field(default_factory=dt.now)
     updated_at: dt = Field(default_factory=dt.now)
 
-    tool_life_id: int = Field(foreign_key='toollife.id', ondelete='CASCADE', index=True)
-
-    tool_life: ToolLife = Relationship(back_populates='notes')
+    tool_life: Optional[ToolLife] = Relationship(back_populates='notes')
+    tool_order: Optional[ToolOrder] = Relationship(back_populates='notes')
+    order_delivery: Optional[OrderDelivery] = Relationship(back_populates='notes')
     user: 'User' = Relationship(back_populates='notes')
 
 class NoteRead(SQLModel):
     id: int
     note: str
 
-class NoteCreate(NoteBase):
-    pass
+def check_at_least_one_relationship_id(values, field_names):
+    if not any(values.get(field) is not None for field in field_names):
+        raise ValueError(
+            f'At least one of {", ".join(field_names)} must be provided'
+        )
+    return values
 
-class NoteUpdate(NoteBase):
+
+class NoteCreate(NoteBase):
+    @field_validator('tool_life_id', 'tool_order_id', 'order_delivery_id')
+    @classmethod
+    def validate_at_least_one(cls, v, values):
+        field_names = ['tool_life_id', 'tool_order_id', 'order_delivery_id']
+        return check_at_least_one_relationship_id(values, field_names)
+
+
+class NoteUpdate(NoteCreate):
     id: int
 
 class ToolConsumption(SQLModel, table=True):

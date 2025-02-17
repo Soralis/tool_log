@@ -20,14 +20,15 @@ async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: da
     tools = db.exec(statement).all()
     
     graphs = []
+    
+    # Fetch ToolLife records for each tool and find the latest timestamp
+    tool_life_data = []
     for tool in tools:
-        # Check if tool has any life records in the date range
         statement = select(ToolLife).where(ToolLife.tool_id == tool.id)
         if start_date:
             statement = statement.where(ToolLife.timestamp >= start_date)
         if end_date:
             statement = statement.where(ToolLife.timestamp <= end_date)
-
         statement = statement.where(ToolLife.machine_id.in_(selected_operations))
         statement = (
             statement
@@ -35,12 +36,21 @@ async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: da
             .where(Recipe.workpiece_id.in_(selected_products))
         )
         
-        if db.exec(statement).first():
-            graphs.append({
-                "id": f"tool_{tool.id}",
-                "type": "line",
-                "title": f"{tool.name} (#{tool.number})"
-            })
+        tool_lifes = db.exec(statement).all()
+        if tool_lifes:
+            latest_timestamp = max(tool_life.timestamp for tool_life in tool_lifes)
+            tool_life_data.append((tool, latest_timestamp))
+    
+    # Sort tools by the latest ToolLife timestamp (newest first)
+    tool_life_data.sort(key=lambda x: x[1], reverse=True)
+    
+    # Create graph dictionaries in the sorted order
+    for tool, _ in tool_life_data:
+        graphs.append({
+            "id": f"tool_{tool.id}",
+            "type": "line",
+            "title": f"{tool.name} (#{tool.number})"
+        })
     
     return graphs
 
