@@ -3,7 +3,7 @@
         <div class="font-bold">{{ order.tool.name }}</div>
     </td>
     <td class="px-6 py-4 whitespace-nowrap {% if order.fulfilled %}text-emerald-400 {% else %}text-amber-400{% endif %}">{{ order.tool.tool_type.name }}</td>
-    <td class="px-6 py-4 whitespace-nowrap {% if order.fulfilled %}text-emerald-400 {% else %}text-amber-400{% endif %}">{{ order.tool.manufacturer_name }}</td>
+    <td class="px-6 py-4 whitespace-nowrap {% if order.fulfilled %}text-emerald-400 {% else %}text-amber-400{% endif %}">{{ order.tool.manufacturer.name }}</td>
     <td class="px-6 py-4 whitespace-nowrap {% if order.fulfilled %}text-emerald-400 {% else %}text-amber-400{% endif %}">{{ order.order_number }}</td>
     <td class="px-6 py-4 whitespace-nowrap {% if order.fulfilled %}text-emerald-400 {% else %}text-amber-400{% endif %}">{{ order.order_date }}</td>
     <td class="px-6 py-4 whitespace-nowrap {% if order.fulfilled %}text-emerald-400 {% else %}text-amber-400{% endif %}">{{ order.quantity }}</td>
