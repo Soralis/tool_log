@@ -172,6 +172,7 @@ class ToolOrder(ToolOrderBase, table=True):
     batch_number: Optional[str] = Field(default=None)
     fulfilled: bool = Field(default=False, nullable=False)
     deliveries: List['OrderDelivery'] = Relationship(back_populates='order')
+    delivered: int = Field(default=0)
     user_id: Optional[int] = Field(foreign_key='user.id')
     user: 'User' = Relationship(back_populates='tool_orders')
     notes: List['Note'] = Relationship(back_populates='tool_order')

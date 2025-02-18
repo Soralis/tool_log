@@ -82,6 +82,27 @@ function closeOrderModal() {
 function openDeliveryModal() {
     const deliveryModal = document.getElementById('deliveryModal');
     if (deliveryModal) {
+        const delivered = window.order.delivery_notes ? window.order.delivery_notes.reduce((sum, delivery) => sum + delivery.quantity, 0) : 0;
+        const quantity = window.order.quantity;
+
+        deliveryModal.dataset.delivered = delivered;
+        deliveryModal.dataset.quantity = quantity;
+
+        const deliveredQuantityInput = document.getElementById('delivered_quantity');
+        deliveredQuantityInput.min = -delivered;
+        deliveredQuantityInput.max = quantity - delivered;
+
+        deliveredQuantityInput.addEventListener('blur', function() {
+            let value = parseInt(deliveredQuantityInput.value);
+            if (isNaN(value)) {
+                deliveredQuantityInput.value = 0;
+            } else if (value < parseInt(deliveredQuantityInput.min)) {
+                deliveredQuantityInput.value = deliveredQuantityInput.min;
+            } else if (value > parseInt(deliveredQuantityInput.max)) {
+                deliveredQuantityInput.value = deliveredQuantityInput.max;
+            }
+        });
+
         deliveryModal.style.removeProperty('display');
         deliveryModal.classList.remove('hidden');
         toggleBodyScroll(true);
@@ -262,7 +283,9 @@ async function saveOrder() {
     const estimatedDeliveryDate = document.getElementById('estimated-delivery-date').value;
 
     // Get the selected tool ID from the data attribute
-    const toolId = document.getElementById('orderDetailsModal').dataset.toolId;
+    // const toolId = document.getElementById('orderDetailsModal').dataset.toolId;
+    const toolId = document.getElementById('current-tool-id').innerText
+    
 
     const orderData = {
         tool_id: toolId,

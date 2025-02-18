@@ -86,7 +86,7 @@ def prepare_toolOrder(form_data:dict, tool_order:ToolOrder = ToolOrder()):
     tool_order.quantity= quantity
     tool_order.gross_price= gross_price
     tool_order.tool_price= tool_price
-    tool_order.order_date= datetime.strptime(form_data.get("order_date"), '%Y-%m-%d').date() if form_data.get("order_date") else None
+    tool_order.order_date= datetime.strptime(form_data.get("order_date"), '%Y-%m-%d').date() if form_data.get("order_date") else datetime.now()
     tool_order.estimated_delivery_date= datetime.strptime(form_data.get("estimated_delivery_date"), '%Y-%m-%d').date() if form_data.get("estimated_delivery_date") else None
 
     return tool_order
@@ -164,6 +164,7 @@ async def order_details(request: Request, order_id: int, session: Session = Depe
         "tool_price": order.tool_price,
         "order_date": order.order_date.date(),
         "estimated_delivery_date": order.estimated_delivery_date.isoformat() if order.estimated_delivery_date else None,
+        'fulfilled': order.fulfilled,
         "tool": {
             "id": order.tool.id,
             "name": order.tool.name,
@@ -191,6 +192,10 @@ async def create_delivery(order_id: int, request: Request, session: Session = De
         quantity = form_data.get('quantity')
         delivery_notes = form_data.get("delivery_notes")
 
+        toolorder: ToolOrder = session.exec(select(ToolOrder).where(ToolOrder.id==order_id)).first()
+        if toolorder is None:
+            raise HTTPException(status_code=404, detail="ToolOrder not found")
+
         delivery = OrderDelivery(
             delivery_date=datetime.fromisoformat(delivery_date),
             quantity=int(quantity),
@@ -203,8 +208,16 @@ async def create_delivery(order_id: int, request: Request, session: Session = De
                 user_id=rando_user.id,
             )
             delivery.notes.append(note)
+        
+        toolorder.deliveries.append(delivery)
+        toolorder.delivered += delivery.quantity
 
-        session.add(delivery)
+        if toolorder.quantity == toolorder.delivered:
+            toolorder.fulfilled = True
+        else:
+            toolorder.fulfilled = False
+
+        session.add(toolorder)
         session.commit()
         # session.refresh(delivery)
 
