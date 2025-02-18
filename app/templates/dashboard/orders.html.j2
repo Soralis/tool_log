@@ -3,13 +3,14 @@
 {% block title %}Tool Orders Summary{% endblock %}
 
 {% block head %}
+<script src="/static/js/dashboard/order_modal.js"></script>
 {% endblock %}
 
 {% block subinfo %}
     <div class="flex items-center space-x-8 text-sm font-mono">
         <div class="flex justify-between">
             <div class="flex items-center">
-                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                <button onclick="openOrderModal()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                     Create new Order
                 </button>
             </div>
@@ -17,69 +18,32 @@
     </div>
 {% endblock %}
 
-
-{% block scripts %}
-    <script>
-        async function openOrderModal(orderId) {
-            const modal = document.getElementById('orderDetailsModal');
-            let order = {}
-            if (!modal) {
-                console.error('Modal element not found in openOrderModal');
-                return;
-            }
-
-            if (orderId) {
-                const response = await fetch(`/dashboard/orders/order_details/${orderId}`);
-                order = await response.json(); 
-            }
-
-            console.log(order)
-
-            document.getElementById('modalTitle').innerText = `Order Details - ${order.order_number}`;
-            document.getElementById('order-number').value = order.order_number || '';
-            document.getElementById('erp-number').value = order.erp_number || '';
-            document.getElementById('cpn-number').value = order.cpn_number || '';
-            document.getElementById('description').value = order.description || '';
-            document.getElementById('quantity').value = order.quantity || '';
-            document.getElementById('gross-price').value = order.gross_price || '';
-            document.getElementById('tool-price').value = order.tool_price || '';
-            document.getElementById('order-date').value = order.order_date || null;
-            document.getElementById('estimated-delivery-date').value = order.estimated_delivery_date || null;
-
-            document.getElementById('fulfilled').innerHTML = `<span class="${order.fulfilled ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}">${order.fulfilled ? 'Order Fulfilled' : 'Delivery Pending...'}</span>`;
-
-            modal.style.removeProperty('display');
-            modal.classList.remove('hidden');
-            toggleBodyScroll(true);
-        }
-
-        function closeOrderModal() {
-            const modal = document.getElementById('orderDetailsModal');
-            if (modal) {
-                modal.classList.add('hidden');
-                toggleBodyScroll(false);
-            } else {
-                console.error('Modal element not found in closeOrderModal');
-            }
-        }
-
-        // Function to toggle body scroll
-        function toggleBodyScroll(lock) {
-            if (lock) {
-                document.body.classList.add('modal-open');
-            } else {
-                document.body.classList.remove('modal-open');
-            }
-        }
-    </script>
-{% endblock %}
-
 {% block content %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {% for order in orders %}
-            {% include "dashboard/partials/order_card.html.j2" %}
-        {% endfor %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="dark:bg-gray-800">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tool Name</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tool Type</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manufacturer</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Number</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Date</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estimated Delivery</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                {% for order in orders %}
+                    {% include "dashboard/partials/order_card.html.j2" %}
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     {% include "dashboard/partials/order_modal.html.j2" %}
+{% endblock %}
+
+
+{% block scripts %}
 {% endblock %}

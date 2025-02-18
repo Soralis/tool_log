@@ -127,6 +127,7 @@ class ToolBase(SQLModel):
 class Tool(ToolBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     manufacturer: 'Manufacturer' = Relationship(back_populates='tools')
+    inventory: Optional[int] = Field(default=0)
     tool_type: ToolType = Relationship(back_populates='tools')
     active: bool = Field(default=True, nullable=False)
     recipes: List['Recipe'] = Relationship(back_populates='tools', link_model=RecipeTool)
@@ -143,11 +144,13 @@ class ToolCreate(ToolBase):
 class ToolUpdate(ToolCreate):
     id: int
     active: bool
+    inventory: Optional[int] = Field(default=None)
 
 
 class ToolRead(SQLModel):
     id: int
     name: str
+    inventory: int
     manufacturer: 'Manufacturer'
     tool_type: ToolType
     active: bool
