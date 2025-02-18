@@ -26,20 +26,17 @@
                                 <div class="hidden" id="current-tool-type-id"></div>
                                 <div class="hidden" id="current-tool-id"></div>
                             </a>
-                            <a href='#' id="tool-card" onclick="openToolSelectModal()" class="hidden block p-4 bg-gray-700 rounded-lg shadow-md text-white hover:bg-gray-600">
-                                <div class="hidden" id="current-tool-type-id"></div>
-                                <div class="hidden" id="current-tool-id"></div>
-                            </a>
+                            <a href='#' id="tool-card" onclick="openToolSelectModal()" class="hidden block p-4 bg-gray-700 rounded-lg shadow-md text-white hover:bg-gray-600"></a>
                         </div>
                         <div class="mb-4">
                             <label for="order-number" class="block text-gray-300 text-sm font-bold mb-2">Order Number:</label>
                             <span id="order-number-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
-                            <input type="text" id="order-number" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden">
+                            <input type="text" id="order-number" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden" required>
                         </div>
                         <div class="mb-4">
                             <label for="quantity" class="block text-gray-300 text-sm font-bold mb-2">Quantity:</label>
                             <span id="quantity-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
-                            <input type="number" id="quantity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden">
+                            <input type="number" id="quantity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden" required>
                         </div>
                         <div class="mb-4">
                             <label for="gross-price" class="block text-gray-300 text-sm font-bold mb-2">Total:</label>
@@ -56,11 +53,25 @@
                             <span id="estimated-delivery-date-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
                             <input type="date" id="estimated-delivery-date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden">
                         </div>
-                        <div class="mb-4">
+                        <div class="row-span-4 mb-4">
                             <label for="deliveries" class="block text-gray-300 text-sm font-bold mb-2">Deliveries:</label>
-                            <span id="deliveries" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"> - </span>
+                            <table id="deliveries-list" class="min-w-full divide-y divide-gray-700">
+                                <thead class="bg-gray-800">
+                                    <tr>
+                                        <th class="text-left">Date</th>
+                                        <th class="text-left">Quantity</th>
+                                        <th class="text-left">Notes</th>
+                                        <th class="text-right hidden">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                            <button id="add-delivery-button" onclick="openDeliveryModal()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded hidden">
+                                Add Delivery
+                            </button>
                         </div>
-                        <div class="mb-4 col-span-2">
+                        <div class="mb-4">
                             <label for="description" class="block text-gray-300 text-sm font-bold mb-2">Notes:</label>
                             <span id="description-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
                             <input type="text" id="description" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden">
@@ -86,6 +97,8 @@
         </div>
     </div>
 </div>
+
+{% include "dashboard/partials/delivery_modal.html.j2" %}
 
 <!-- Tool Select Modal -->
 <div id="toolSelectModal" class="fixed inset-0 bg-gray-900/95 hidden z-[9999] overflow-y-auto">
@@ -124,4 +137,3 @@
         </div>
     </div>
 </div>
-

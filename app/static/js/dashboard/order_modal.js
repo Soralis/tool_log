@@ -30,15 +30,39 @@ async function openOrderModal(orderId) {
     document.getElementById('estimated-delivery-date-display').innerText = order.estimated_delivery_date || 'None given';
     document.getElementById('tool-price-display').innerText = order.tool_price || '';
 
+    const deliveriesList = document.getElementById('deliveries-list').getElementsByTagName('tbody')[0];
+    deliveriesList.innerHTML = ''; // Clear existing table rows
+
+    if (orderId && order.delivery_notes) {
+        order.delivery_notes.forEach(delivery => {
+            const row = deliveriesList.insertRow();
+            const dateCell = row.insertCell();
+            const quantityCell = row.insertCell();
+            const notesCell = row.insertCell();
+
+            const deliveryDate = new Date(delivery.delivery_date).toLocaleDateString();
+            dateCell.textContent = deliveryDate;
+            quantityCell.textContent = delivery.quantity;
+            notesCell.textContent = delivery.notes;
+        });
+    } else {
+        const row = deliveriesList.insertRow();
+        const noDeliveriesCell = row.insertCell();
+        noDeliveriesCell.colSpan = 3;
+        noDeliveriesCell.textContent = 'No deliveries yet.';
+    }
+
     if (orderId) {
         document.getElementById('fulfilled').innerHTML = `<span class="${order.fulfilled ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}">${order.fulfilled ? 'Order Fulfilled' : 'Delivery Pending...'}</span>`;
-        setToolCard(order.tool)
+        document.getElementById('add-delivery-button').classList.remove('hidden');
+        setToolCard(order.tool);
     } else {
         document.getElementById('fulfilled').innerHTML = `<span></span>`;
         document.getElementById('tool-card').innerHTML = '<h2 class="text-lg font-semibold">Select Tool</h2> <p class="text-sm">(click here)</p>';
-        enableEdit()
+        document.getElementById('add-delivery-button').classList.add('hidden');
+        enableEdit();
     }
-    
+
     modal.style.removeProperty('display');
     modal.classList.remove('hidden');
     toggleBodyScroll(true);
@@ -52,6 +76,61 @@ function closeOrderModal() {
         disableEdit();
     } else {
         console.error('Modal element not found in closeOrderModal');
+    }
+}
+
+function openDeliveryModal() {
+    const deliveryModal = document.getElementById('deliveryModal');
+    if (deliveryModal) {
+        deliveryModal.style.removeProperty('display');
+        deliveryModal.classList.remove('hidden');
+        toggleBodyScroll(true);
+    } else {
+        console.error('Delivery modal element not found');
+    }
+}
+
+function closeDeliveryModal() {
+    const deliveryModal = document.getElementById('deliveryModal');
+    if (deliveryModal) {
+        deliveryModal.classList.add('hidden');
+        toggleBodyScroll(false);
+    } else {
+        console.error('Delivery modal element not found in closeDeliveryModal');
+    }
+}
+
+async function createDelivery() {
+    const deliveryDate = document.getElementById('delivery-date').value;
+    const quantity = document.getElementById('delivered_quantity').value;
+    const deliveryNotes = document.getElementById('delivery-notes').value;
+    const orderId = document.getElementById('orderId').innerText;
+
+    const deliveryData = {
+        delivery_date: deliveryDate,
+        quantity: quantity,
+        delivery_notes: deliveryNotes
+    };
+
+    try {
+        const response = await fetch(`/dashboard/orders/${orderId}/createDelivery`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams(deliveryData)
+        });
+
+        if (response.ok) {
+            closeDeliveryModal();
+            window.location.reload();
+        } else {
+            console.error('Error creating delivery:', response.status);
+            alert('Error creating delivery. Please check the console for details.');
+        }
+    } catch (error) {
+        console.error('Error creating delivery:', error);
+        alert('Error creating delivery. Please check the console for details.');
     }
 }
 

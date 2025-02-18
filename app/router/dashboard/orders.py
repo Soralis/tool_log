@@ -4,7 +4,7 @@ from app.templates.jinja_functions import templates
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from app.database_config import get_session
-from app.models import ToolOrder, ToolType, Tool
+from app.models import ToolOrder, ToolType, Tool, OrderDelivery, Note, User
 from datetime import datetime
 import json
 
@@ -176,17 +176,41 @@ async def order_details(request: Request, order_id: int, session: Session = Depe
             "manufacturer": order.tool.manufacturer.name,
             "description": order.tool.description,
             'inventory': order.tool.inventory,
-        }
+        },
+        'delivery_notes': [{'delivery_date': delivery.delivery_date, 'quantity': delivery.quantity, 'notes': "\n".join([note.note for note in delivery.notes]) } 
+                           for delivery in order.deliveries]
     }
     return order_data
 
 
 @router.post("/{order_id}/createDelivery")
 async def create_delivery(order_id: int, request: Request, session: Session = Depends(get_session)):
-    form_data = await request.form()
-    # Process form data to create a new delivery for the order
-    # TODO: ... (Implementation to handle delivery creation) ...
-    return {"message": f"Delivery for order {order_id} created successfully"}
+    try:
+        form_data = await request.form()
+        delivery_date = form_data.get("delivery_date")
+        quantity = form_data.get('quantity')
+        delivery_notes = form_data.get("delivery_notes")
+
+        delivery = OrderDelivery(
+            delivery_date=datetime.fromisoformat(delivery_date),
+            quantity=int(quantity),
+            order_id=int(order_id),
+        )
+        rando_user = session.exec(select(User)).first()
+        if delivery_notes:
+            note = Note(
+                note=delivery_notes,
+                user_id=rando_user.id,
+            )
+            delivery.notes.append(note)
+
+        session.add(delivery)
+        session.commit()
+        # session.refresh(delivery)
+
+        return {"message": f"Delivery for order {order_id} created successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.put("/{order_id}/updateDelivery/{delivery_id}")

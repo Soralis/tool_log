@@ -5,6 +5,7 @@ from .tool import (
     ToolType, ToolTypeBase, ToolTypeCreate, ToolTypeUpdate, ToolTypeRead, Sentiment,
     ToolAttribute, ToolAttributeCreate, ToolAttributeUpdate, ToolAttributeRead,
     ToolOrder, ToolOrderBase, ToolOrderCreate, ToolOrderUpdate, ToolOrderRead,
+    OrderDelivery, OrderDeliveryCreate, OrderDeliveryUpdate, OrderDeliveryRead,
     ToolLife, ToolLifeBase, ToolLifeCreate, ToolLifeUpdate, ToolLifeRead, Note, NoteCreate, NoteUpdate, NoteRead,
     ChangeReason, ChangeReasonBase, ChangeReasonCreate, ChangeReasonUpdate, ChangeReasonRead,
     ToolConsumption, ToolConsumptionCreate
@@ -35,6 +36,7 @@ __all__ = [
     "ToolType", "ToolTypeBase", "ToolTypeCreate", "ToolTypeUpdate", "ToolTypeRead", 'Sentiment',
     "ToolAttribute", "ToolAttributeCreate", "ToolAttributeUpdate", "ToolAttributeRead",
     "ToolOrder", "ToolOrderBase", "ToolOrderCreate", "ToolOrderUpdate", "ToolOrderRead",
+    "OrderDelivery", "OrderDeliveryCreate", "OrderDeliveryUpdate", "OrderDeliveryRead",
     "ToolLife", "ToolLifeBase", "ToolLifeCreate", "ToolLifeUpdate", "ToolLifeRead",
     "ChangeReason", "ChangeReasonBase", "ChangeReasonCreate", "ChangeReasonUpdate", "ChangeReasonRead",
     "Note", "NoteCreate", "NoteUpdate", "NoteRead",
