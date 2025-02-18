@@ -61,7 +61,7 @@ async def orders_dashboard(request: Request, session: Session = Depends(get_sess
     return templates.TemplateResponse("dashboard/orders.html.j2", {"request": request, "orders": orders})
 
 
-def prepare_toolOrder(form_data:dict, tool_order:ToolOrder = ToolOrder()):
+def prepare_toolOrder(form_data:dict, tool_order:ToolOrder):
     gross_price = round(float(form_data.get("gross_price")), 2) if form_data.get("gross_price") else None
     tool_price = round(float(form_data.get("tool_price")), 2) if form_data.get("tool_price") else None
     quantity = int(form_data.get("quantity"))
@@ -98,7 +98,8 @@ async def create_order(request: Request, session: Session = Depends(get_session)
         body = await request.body()
         form_data = json.loads(body.decode('utf-8'))
         
-        toolorder_db = prepare_toolOrder(form_data)
+        new_toolorder = ToolOrder()
+        toolorder_db = prepare_toolOrder(form_data, new_toolorder)
 
         session.add(toolorder_db)
         session.commit()

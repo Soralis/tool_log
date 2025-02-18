@@ -10,6 +10,8 @@ async function openOrderModal(orderId) {
         const response = await fetch(`/dashboard/orders/order_details/${orderId}`);
         order = await response.json(); 
         window.order = order;
+    } else {
+
     }
 
     document.getElementById('orderId').innerText = order.id ? order.id : null;
@@ -60,6 +62,7 @@ async function openOrderModal(orderId) {
         document.getElementById('fulfilled').innerHTML = `<span></span>`;
         document.getElementById('tool-card').innerHTML = '<h2 class="text-lg font-semibold">Select Tool</h2> <p class="text-sm">(click here)</p>';
         document.getElementById('add-delivery-button').classList.add('hidden');
+        document.getElementById('orderId').innerText = null
         enableEdit();
     }
 
