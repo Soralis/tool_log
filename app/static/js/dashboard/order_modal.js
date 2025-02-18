@@ -10,7 +10,6 @@ async function openOrderModal(orderId) {
         const response = await fetch(`/dashboard/orders/order_details/${orderId}`);
         order = await response.json(); 
         window.order = order;
-        console.log(window.order)
     }
 
     document.getElementById('orderId').innerText = order.id ? order.id : null;
@@ -22,6 +21,7 @@ async function openOrderModal(orderId) {
     document.getElementById('tool-price').value = order.tool_price || '';
     document.getElementById('order-date').innerText = `Order Date: ${order.order_date}` || null;
     document.getElementById('estimated-delivery-date').value = order.estimated_delivery_date || null;
+    document.getElementById('order-date').value = order.order_date
 
     document.getElementById('order-number-display').innerText = order.order_number || '';
     document.getElementById('description-display').innerText = order.description || ' - ';
@@ -32,7 +32,6 @@ async function openOrderModal(orderId) {
 
     if (orderId) {
         document.getElementById('fulfilled').innerHTML = `<span class="${order.fulfilled ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}">${order.fulfilled ? 'Order Fulfilled' : 'Delivery Pending...'}</span>`;
-        console.log(`edit order`, order);
         setToolCard(order.tool)
     } else {
         document.getElementById('fulfilled').innerHTML = `<span></span>`;
@@ -66,7 +65,7 @@ function toggleBodyScroll(lock) {
 }
 
 
-async function loadToolTypes(tool) {
+async function loadToolTypes(tool_type_id, tool_id) {
     const toolTypeSelect = document.getElementById('tool-type-select');
     toolTypeSelect.innerHTML = '<option>Loading...</option>';
 
@@ -82,14 +81,6 @@ async function loadToolTypes(tool) {
             toolTypeSelect.appendChild(option);
         });
 
-        if (tool) {
-            tool_id = tool.id;
-            tool_type_id = tool.tool_type_id
-        } else {
-            tool_type_id = null;
-            tool_id = null;
-        }
-
         if (tool_type_id) {
             toolTypeSelect.value = tool_type_id;
         }
@@ -103,7 +94,6 @@ async function loadToolTypes(tool) {
 }
 
 async function loadTools(toolTypeId, selectedToolId) {
-    console.log("loadTools toolTypeId:", toolTypeId, tool_id);
     const toolSelect = document.getElementById('tool-select');
     toolSelect.innerHTML = '<option>Loading...</option>';
 
@@ -153,9 +143,9 @@ async function selectTool() {
 
 
 function setToolCard(tool) {
-    window.order.tool = tool;
-    console.log(window.order)
     document.getElementById('tool-card').innerHTML = `
+        <div class="hidden" id="current-tool-type-id">${tool.tool_type_id}</div>
+        <div class="hidden" id="current-tool-id">${tool.id}</div>
         <div class="grid grid-cols-2 gap-2">
             <h2 class="text-lg font-semibold col-span-2">${tool.name} <span class="text-sm">(${tool.tool_type}) - ${tool.number} ${tool.regrind ? ' - Regrind' : ''}</span></h2>
             <hr class="col-span-2 bg-slate-300" />
@@ -168,6 +158,8 @@ function setToolCard(tool) {
         </div>
     `;
     document.getElementById('tool-card-display').innerHTML = `
+        <div class="hidden" id="current-tool-type-id">${tool.tool_type_id}</div>
+        <div class="hidden" id="current-tool-id">${tool.id}</div>
         <div class="grid grid-cols-2 gap-2">
             <h2 class="text-lg font-semibold col-span-2">${tool.name} <span class="text-sm">(${tool.tool_type}) - ${tool.number} ${tool.regrind ? ' - Regrind' : ''}</span></h2>
             <hr class="col-span-2 bg-slate-300" />
@@ -234,18 +226,13 @@ function openToolSelectModal() {
     const toolSelectModal = document.getElementById('toolSelectModal');
     toolSelectModal.classList.remove('hidden');
 
-    const orderId = document.getElementById('orderId').innerText;
+    const current_tool_type_id = document.getElementById('current-tool-type-id').innerText
+    const current_tool_id = document.getElementById('current-tool-id').innerText
 
-    if (orderId) {
-        order = window.order;
-        if (order) {
-            loadToolTypes(order.tool);
-        } else {
-            console.error('Order not found in window.order');
-            loadToolTypes(null);
-        }
+    if (current_tool_type_id && current_tool_id) {
+        loadToolTypes(current_tool_type_id, current_tool_id);
     } else {
-        loadToolTypes(null);
+        loadToolTypes(null, null);
     }
 
     document.getElementById('tool-type-select').addEventListener('change', function() {
@@ -262,9 +249,32 @@ function closeToolSelectModal() {
     toolSelectModal.classList.add('hidden');
 }
 
+async function deleteOrder() {
+    const orderId = window.order.id;
+
+    try {
+        const response = await fetch(`/dashboard/orders/deleteOrder/${orderId}`, {
+            method: 'DELETE',
+        });
+
+        if (response.ok) {
+            alert('Order deleted successfully!');
+            closeOrderModal();
+            window.location.reload();
+        } else {
+            console.error('Error deleting order:', response.status);
+            alert('Error deleting order. Please check the console for details.');
+        }
+    } catch (error) {
+        console.error('Error deleting order:', error);
+        alert('Error deleting order. Please check the console for details.');
+    }
+}
+
 function enableEdit() {
     document.getElementById('editButton').classList.add('hidden');
     document.getElementById('saveButton').classList.remove('hidden');
+    document.getElementById('deleteOrderButton').classList.remove('hidden');
 
     document.getElementById('order-number-display').classList.add('hidden');
     document.getElementById('order-number').classList.remove('hidden');
@@ -291,6 +301,7 @@ function enableEdit() {
 function disableEdit() {
     document.getElementById('editButton').classList.remove('hidden');
     document.getElementById('saveButton').classList.add('hidden');
+    document.getElementById('deleteOrderButton').classList.add('hidden');
 
     document.getElementById('order-number-display').classList.remove('hidden');
     document.getElementById('order-number').classList.add('hidden');

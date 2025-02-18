@@ -61,26 +61,50 @@ async def orders_dashboard(request: Request, session: Session = Depends(get_sess
     return templates.TemplateResponse("dashboard/orders.html.j2", {"request": request, "orders": orders})
 
 
+def prepare_toolOrder(form_data:dict, tool_order:ToolOrder = ToolOrder()):
+    gross_price = round(float(form_data.get("gross_price")), 2) if form_data.get("gross_price") else None
+    tool_price = round(float(form_data.get("tool_price")), 2) if form_data.get("tool_price") else None
+    quantity = int(form_data.get("quantity"))
+
+    tool_id = int(form_data.get("tool_id")) if form_data.get("tool_id") else None
+    if not tool_id:
+        raise HTTPException(status_code=400, detail="Tool is required")
+
+    if not gross_price and not tool_price:
+        raise HTTPException(status_code=400, detail="Gross price or tool price are required")
+    
+    if gross_price and not tool_price:
+        tool_price = round(gross_price / quantity, 3)
+    elif tool_price and not gross_price:
+        gross_price = round(tool_price * quantity, 2)
+    if gross_price and tool_price:
+        if int(gross_price / quantity) != int(tool_price):
+            raise HTTPException(status_code=400, detail="If both gross price AND tool price are given, gross price must be equal to tool price * quantity")
+
+    tool_order.tool_id= tool_id
+    tool_order.order_number= form_data.get("order_number")
+    tool_order.quantity= quantity
+    tool_order.gross_price= gross_price
+    tool_order.tool_price= tool_price
+    tool_order.order_date= datetime.strptime(form_data.get("order_date"), '%Y-%m-%d').date() if form_data.get("order_date") else None
+    tool_order.estimated_delivery_date= datetime.strptime(form_data.get("estimated_delivery_date"), '%Y-%m-%d').date() if form_data.get("estimated_delivery_date") else None
+
+    return tool_order
+
+
 @router.post("/createOrder")
 async def create_order(request: Request, session: Session = Depends(get_session)):
     try:
         body = await request.body()
         form_data = json.loads(body.decode('utf-8'))
+        
+        toolorder_db = prepare_toolOrder(form_data)
 
-        tool_order = ToolOrder(
-            tool_id=form_data.get("tool_id"),
-            order_number=form_data.get("order_number"),
-            quantity=form_data.get("quantity"),
-            gross_price=form_data.get("gross_price"),
-            tool_price=form_data.get("tool_price"),
-            order_date=datetime.strptime(form_data.get("order_date"), '%Y-%m-%d').date() if form_data.get("order_date") else None,
-            estimated_delivery_date=datetime.strptime(form_data.get("estimated_delivery_date"), '%Y-%m-%d').date() if form_data.get("estimated_delivery_date") else None,
-        )
-
-        session.add(tool_order)
+        session.add(toolorder_db)
         session.commit()
-        session.refresh(tool_order)
-        return JSONResponse(content={"message": "Order created successfully", "id": tool_order.id})
+        session.refresh(toolorder_db)
+
+        return JSONResponse(content={"message": f"Order {toolorder_db.id} created successfully"})
 
     except Exception as e:
         print(e)
@@ -97,36 +121,10 @@ async def update_order(order_id: int, request: Request, session: Session = Depen
         if not tool_order:
             raise HTTPException(status_code=404, detail="Order not found")
         
-        gross_price = round(float(form_data.get("gross_price")), 2) if form_data.get("gross_price") else None
-        tool_price = round(float(form_data.get("tool_price")), 2) if form_data.get("tool_price") else None
-        quantity = int(form_data.get("quantity"))
+        toolorder_db = prepare_toolOrder(form_data, tool_order)
 
-        tool_id = int(form_data.get("tool_id")) if form_data.get("tool_id") else None
-        if not tool_id:
-            raise HTTPException(status_code=400, detail="Tool is required")
-
-        if not gross_price and not tool_price:
-            raise HTTPException(status_code=400, detail="Gross price or tool price are required")
-        
-        if gross_price and not tool_price:
-            tool_price = round(gross_price / quantity, 3)
-        elif tool_price and not gross_price:
-            gross_price = round(tool_price * quantity, 2)
-        if gross_price and tool_price:
-            if int(gross_price / quantity) != int(tool_price):
-                raise HTTPException(status_code=400, detail="If both gross price AND tool price are given, gross price must be equal to tool price * quantity")
-
-        tool_order.tool_id = tool_id
-        tool_order.order_number = form_data.get("order_number")
-        tool_order.quantity = quantity
-        tool_order.gross_price = gross_price
-        tool_order.tool_price = tool_price
-        tool_order.order_date = datetime.strptime(form_data.get("order_date"), '%Y-%m-%d').date() if form_data.get("order_date") else None
-        tool_order.estimated_delivery_date = datetime.strptime(form_data.get("estimated_delivery_date"), '%Y-%m-%d').date() if form_data.get("estimated_delivery_date") else None
-
-        session.add(tool_order)
+        session.add(toolorder_db)
         session.commit()
-        session.refresh(tool_order)
         return JSONResponse(content={"message": f"Order {order_id} updated successfully"})
 
     except Exception as e:
@@ -136,8 +134,16 @@ async def update_order(order_id: int, request: Request, session: Session = Depen
 
 @router.delete("/deleteOrder/{order_id}")
 async def delete_order(order_id: int, session: Session = Depends(get_session)):
-    # Delete an order from the database
-    # TODO: ... (Implementation to handle order deletion) ...
+    # Fetch the order from the database
+    order = session.get(ToolOrder, order_id)
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Delete the order
+    session.delete(order)
+    session.commit()
+
     return {"message": f"Order {order_id} deleted successfully"}
 
 

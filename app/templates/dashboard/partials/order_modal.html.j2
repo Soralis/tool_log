@@ -18,11 +18,18 @@
                 <!-- Modal content -->
                 <div class="p-4 overflow-y-auto flex-grow">
                     <p id="orderId" class="hidden"></p>
-                    <div id="modalGrid" class="grid grid-cols-2 gap-4">
+                    <input type="date" id="order-date" class="hidden">
+                    <div id="modalGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="row-span-2 hover:shadow-lg">
                             <label for="tool-card" class="block text-gray-300 text-sm font-bold mb-2">Tool Info:</label>
-                            <a href='#' id="tool-card-display" class="block p-4 bg-gray-700 rounded-lg shadow-md text-white"></a>
-                            <a href='#' id="tool-card" onclick="openToolSelectModal()" class="hidden block p-4 bg-gray-700 rounded-lg shadow-md text-white hover:bg-gray-600"></a>
+                            <a href='#' id="tool-card-display" class="block p-4 bg-gray-700 rounded-lg shadow-md text-white">
+                                <div class="hidden" id="current-tool-type-id"></div>
+                                <div class="hidden" id="current-tool-id"></div>
+                            </a>
+                            <a href='#' id="tool-card" onclick="openToolSelectModal()" class="hidden block p-4 bg-gray-700 rounded-lg shadow-md text-white hover:bg-gray-600">
+                                <div class="hidden" id="current-tool-type-id"></div>
+                                <div class="hidden" id="current-tool-id"></div>
+                            </a>
                         </div>
                         <div class="mb-4">
                             <label for="order-number" class="block text-gray-300 text-sm font-bold mb-2">Order Number:</label>
@@ -64,6 +71,9 @@
                 <div class="flex justify-between items-center p-4 border-t border-gray-700">
                     <button onclick="saveOrder()" class="bg-green-900 hover:bg-green-800 text-white font-bold py-2 px-4 rounded hidden" id="saveButton">
                         Save
+                    </button>
+                    <button onclick="deleteOrder()" class="bg-red-900 hover:bg-red-700 text-white font-bold py-2 px-4 rounded hidden" id="deleteOrderButton">
+                        Delete
                     </button>
                     <button onclick="enableEdit()" class="bg-teal-900 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded" id="editButton">
                         Edit
