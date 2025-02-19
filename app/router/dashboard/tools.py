@@ -457,21 +457,31 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
     try:
         while True:
             try:
-                # Receive date range from client
-                message = await websocket.receive_text()
-                filters = json.loads(message)
-                
-                # Convert ISO strings to datetime objects
-                start_date = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
-                end_date = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
-                selected_operations = [int(op) for op in filters.get('selectedOperations', [])]
-                selected_products = [int(prod) for prod in filters.get('selectedProducts', [])]
+                try:
+                    # Receive date range from client with a timeout of 2 seconds
+                    message = await asyncio.wait_for(websocket.receive_text(), timeout=0.5)
+                    filters = json.loads(message)
+
+                    # Convert ISO strings to datetime objects
+                    start_date = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
+                    end_date = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
+                    selected_operations = [int(op) for op in filters.get('selectedOperations', [])]
+                    selected_products = [int(prod) for prod in filters.get('selectedProducts', [])]
+                except asyncio.TimeoutError:
+                    # No message received within the timeout period, use the previous filters
+                    # start_date = None
+                    # end_date = None
+                    # selected_operations = []
+                    # selected_products = []
+                    # pass, since all the variables should stay the same then (it only fails in the second run)
+                    pass
 
                 # Get filtered graphs and data
                 graphs = await get_tool_graphs(db, start_date, end_date, selected_operations, selected_products)
                 data = await get_tool_life_data(db, start_date, end_date, selected_operations, selected_products)
                 
                 # Send both graphs and data
+                print('responding...')
                 response = {
                     "graphs": graphs,
                     "data": data

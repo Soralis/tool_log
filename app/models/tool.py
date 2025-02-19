@@ -256,6 +256,13 @@ class ToolLifeRead(SQLModel):
     name: str
     tool: Tool
 
+class ToolLifeFilter(SQLModel):
+    machine: 'Machine'
+    tool: 'Tool'
+    tool_type: 'ToolType'
+    timestamp: dt
+    creator: 'User'
+
 class NoteBase(SQLModel):
     note: str
     user_id: int = Field(foreign_key='user.id')
