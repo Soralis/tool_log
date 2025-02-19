@@ -8,13 +8,22 @@ from collections import defaultdict
 from sqlmodel import Session, select
 from app.database_config import get_session
 from app.models import Tool, ToolLife, Recipe
-from typing import Dict, List
+from typing import Dict, List, Optional
 from scipy.stats import linregress
 from .utils import get_condensed_data
 router = APIRouter()
 
-async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: datetime = None,
-                          selected_operations: list = [], selected_products: list = []) -> List[Dict]:
+# Global queue to hold the latest filter settings
+filter_queue: asyncio.Queue[Optional[Dict]] = asyncio.Queue()
+
+# Global variables to store the latest filter settings
+latest_start_date: Optional[datetime] = None
+latest_end_date: Optional[datetime] = None
+latest_selected_operations: Optional[list] = None
+latest_selected_products: Optional[list] = None
+
+async def get_tool_graphs(db: Session, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None,
+                          selected_operations: Optional[list] = None, selected_products: Optional[list] = None) -> List[Dict]:
     # Get all active tools
     statement = select(Tool).where(Tool.active == True)
     tools = db.exec(statement).all()
@@ -29,11 +38,11 @@ async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: da
             statement = statement.where(ToolLife.timestamp >= start_date)
         if end_date:
             statement = statement.where(ToolLife.timestamp <= end_date)
-        statement = statement.where(ToolLife.machine_id.in_(selected_operations))
+        statement = statement.where(ToolLife.machine_id.in_(selected_operations or []))
         statement = (
             statement
             .join(Recipe, ToolLife.recipe_id == Recipe.id)
-            .where(Recipe.workpiece_id.in_(selected_products))
+            .where(Recipe.workpiece_id.in_(selected_products or []))
         )
         
         tool_lifes = db.exec(statement).all()
@@ -54,8 +63,8 @@ async def get_tool_graphs(db: Session, start_date: datetime = None, end_date: da
     
     return graphs
 
-async def get_tool_life_data(db: Session, start_date: datetime = None, end_date: datetime = None,
-                          selected_operations: list = [], selected_products: list = []) -> Dict:
+async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None,
+                          selected_operations: Optional[list] = None, selected_products: Optional[list] = None) -> Dict:
     # Get active tools with life records
     statement = select(Tool).where(Tool.active == True)
     tools = db.exec(statement).all()
@@ -123,6 +132,48 @@ async def get_tool_life_data(db: Session, start_date: datetime = None, end_date:
             }
     
     return data
+
+async def send_tool_data(websocket: WebSocket, db: Session):
+    global latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products
+    try:
+        # Get filtered graphs and data
+        graphs = await get_tool_graphs(db, latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products)
+        data = await get_tool_life_data(db, latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products)
+
+        # Send both graphs and data
+        print('responding...')
+        response = {
+            "graphs": graphs,
+            "data": data
+        }
+        await websocket.send_text(json.dumps(response))
+    except RuntimeError as e:
+        if "close message has been sent" in str(e):
+            return  # Exit if the websocket is closed
+        raise
+    except Exception as e:
+        print(f"Error in send_tool_data: {e}")
+
+async def process_filters(websocket: WebSocket, db: Session):
+    global latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products
+    while True:
+        try:
+            filters = await filter_queue.get()
+            if filters is None:
+                break  # Exit if None is received (e.g., on shutdown)
+
+            print('got filters.', filters)
+
+            # Convert ISO strings to datetime objects
+            latest_start_date = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
+            latest_end_date = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
+            latest_selected_operations = [int(op) for op in filters.get('selectedOperations', [])]
+            latest_selected_products = [int(product) for product in filters.get('selectedProducts', [])]
+
+            await send_tool_data(websocket, db)
+
+        except Exception as e:
+            print(f"Error processing filters: {e}")
 
 @router.get("/tools")
 async def tools(request: Request, db: Session = Depends(get_session)):
@@ -351,19 +402,26 @@ async def get_tool_details(
                                 "day": "MMM D"
                             }
                         }
-                    }
-                },
-                "datasets": datasets,
-                "interaction": {
-                    "intersect": True,
-                    "mode": "point"
-                },
-                "plugins": {
-                    "tooltip": {
-                        "callbacks": {
-                            "afterLabel": "function(context) { return 'Change Reason: ' + context.raw.change_reason.name; }"
+                    },
+                    "datasets": [
+                        {
+                            "label": "Tool Life",
+                            "data": values,
+                            "borderColor": "rgb(75, 192, 192)",
+                            "backgroundColor": "rgba(75, 192, 192, 0.5)",
+                            "tension": 0.1,
+                            "fill": True
+                        },
+                        {
+                            "label": "Trendline",
+                            "data": [slope * i + intercept for i in x],
+                            "borderColor": "rgba(255, 99, 132, 1)",
+                            "borderWidth": 2,
+                            "borderDash": [5, 5],
+                            "fill": False,
+                            "pointRadius": 0
                         }
-                    }
+                    ]
                 }
             }
         })
@@ -450,52 +508,47 @@ async def get_tool_details(
 
     return details
 
+async def periodic_data_sender(websocket: WebSocket, db: Session):
+    while True:
+        await send_tool_data(websocket, db)
+        await asyncio.sleep(5)
+
 @router.websocket("/ws/tools")
 async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_session)):
     await websocket.accept()
-    
+
+    # Start the filter processing task
+    filter_task = asyncio.create_task(process_filters(websocket, db))
+    # Start the periodic data sending task
+    data_sender_task = asyncio.create_task(periodic_data_sender(websocket, db))
+
     try:
         while True:
             try:
-                try:
-                    # Receive date range from client with a timeout of 2 seconds
-                    message = await asyncio.wait_for(websocket.receive_text(), timeout=0.5)
-                    filters = json.loads(message)
+                # Receive date range from client with a timeout of 0.5 seconds
+                message = await asyncio.wait_for(websocket.receive_text(), timeout=0.5)
+                filters = json.loads(message)
 
-                    # Convert ISO strings to datetime objects
-                    start_date = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
-                    end_date = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
-                    selected_operations = [int(op) for op in filters.get('selectedOperations', [])]
-                    selected_products = [int(prod) for prod in filters.get('selectedProducts', [])]
-                except asyncio.TimeoutError:
-                    # No message received within the timeout period, use the previous filters
-                    # start_date = None
-                    # end_date = None
-                    # selected_operations = []
-                    # selected_products = []
-                    # pass, since all the variables should stay the same then (it only fails in the second run)
-                    pass
+                # Add the filters to the queue, clearing it first
+                while not filter_queue.empty():
+                    filter_queue.get_nowait()
+                await filter_queue.put(filters)
 
-                # Get filtered graphs and data
-                graphs = await get_tool_graphs(db, start_date, end_date, selected_operations, selected_products)
-                data = await get_tool_life_data(db, start_date, end_date, selected_operations, selected_products)
-                
-                # Send both graphs and data
-                print('responding...')
-                response = {
-                    "graphs": graphs,
-                    "data": data
-                }
-                await websocket.send_text(json.dumps(response))
-                await asyncio.sleep(5)  # Update every 5 seconds
+            except asyncio.TimeoutError:
+                # No message received within the timeout period
+                pass
             except RuntimeError as e:
                 if "close message has been sent" in str(e):
                     break
                 raise
-            
+
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:
+        # Signal the filter processing task to exit
+        await filter_queue.put(None)
+        filter_task.cancel()
+        data_sender_task.cancel()
         try:
             await websocket.close()
         except:
