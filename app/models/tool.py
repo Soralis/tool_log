@@ -109,7 +109,6 @@ class ChangeReasonRead(ChangeReasonBase):
 
 class ToolBase(SQLModel):
     name: str = Field(index=True)
-    manufacturer_name: str = Field(unique=True)
     number: str = Field(index=True, unique=True)
     erp_number: Optional[str] = Field(default=None, index=True, unique=True)
     cpn_number: Optional[str] = Field(default=None, index=True, unique=True)

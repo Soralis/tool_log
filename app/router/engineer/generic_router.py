@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import ValidationError
 from sqlmodel import Session, select, inspect, SQLModel, func
 from sqlalchemy import Integer, String, Boolean, Float, DateTime
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, RelationshipProperty
 from sqlalchemy.sql import sqltypes
 from sqlmodel.sql.sqltypes import AutoString
 from app.database_config import engine
@@ -166,9 +166,10 @@ def create_generic_router(
             """
             joinedload_options = []
             for name, field in read_model.__fields__.items():
-                print(f"Field: {name}, Type: {field.__getattribute__('annotation')}, isinstance: {isinstance(field.__getattribute__('annotation'), ForwardRef)}")
-                if isinstance(field.__getattribute__('annotation'), ForwardRef):
-                    joinedload_options.append(joinedload(getattr(model, name)))
+                # Eagerly load all relationships to prevent detached instance errors
+                if hasattr(model, name) and getattr(getattr(model, name), 'property', None):
+                    if isinstance(getattr(model, name).property, RelationshipProperty):
+                        joinedload_options.append(joinedload(getattr(model, name)))
             return joinedload_options
         
         filters = request.query_params
