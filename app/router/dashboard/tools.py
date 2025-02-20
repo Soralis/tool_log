@@ -141,7 +141,6 @@ async def send_tool_data(websocket: WebSocket, db: Session):
         data = await get_tool_life_data(db, latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products)
 
         # Send both graphs and data
-        print('responding...')
         response = {
             "graphs": graphs,
             "data": data
@@ -161,8 +160,6 @@ async def process_filters(websocket: WebSocket, db: Session):
             filters = await filter_queue.get()
             if filters is None:
                 break  # Exit if None is received (e.g., on shutdown)
-
-            print('got filters.', filters)
 
             # Convert ISO strings to datetime objects
             latest_start_date = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None

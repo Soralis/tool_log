@@ -61,7 +61,7 @@ async def orders_dashboard(request: Request, session: Session = Depends(get_sess
     return templates.TemplateResponse("dashboard/orders.html.j2", {"request": request, "orders": orders})
 
 
-def prepare_toolOrder(form_data:dict, tool_order:ToolOrder):
+def prepare_toolOrder(form_data:dict, tool_order:ToolOrder, session: Session):
     gross_price = round(float(form_data.get("gross_price")), 2) if form_data.get("gross_price") else None
     tool_price = round(float(form_data.get("tool_price")), 2) if form_data.get("tool_price") else None
     quantity = int(form_data.get("quantity"))
@@ -86,8 +86,18 @@ def prepare_toolOrder(form_data:dict, tool_order:ToolOrder):
     tool_order.quantity= quantity
     tool_order.gross_price= gross_price
     tool_order.tool_price= tool_price
+    tool_order.shipping_company= form_data.get('shipping_company')
+    tool_order.tracking_number= form_data.get('tracking_number')
     tool_order.order_date= datetime.strptime(form_data.get("order_date"), '%Y-%m-%d').date() if form_data.get("order_date") else datetime.now()
     tool_order.estimated_delivery_date= datetime.strptime(form_data.get("estimated_delivery_date"), '%Y-%m-%d').date() if form_data.get("estimated_delivery_date") else None
+
+    if form_data.get('note'):
+        rando_user = session.exec(select(User)).first()
+        note = Note(
+            note=form_data.get('note'),
+            user=rando_user
+        )
+        tool_order.notes.append(note)
 
     return tool_order
 
@@ -99,7 +109,7 @@ async def create_order(request: Request, session: Session = Depends(get_session)
         form_data = json.loads(body.decode('utf-8'))
         
         new_toolorder = ToolOrder()
-        toolorder_db = prepare_toolOrder(form_data, new_toolorder)
+        toolorder_db = prepare_toolOrder(form_data, new_toolorder, session)
 
         session.add(toolorder_db)
         session.commit()
@@ -122,7 +132,7 @@ async def update_order(order_id: int, request: Request, session: Session = Depen
         if not tool_order:
             raise HTTPException(status_code=404, detail="Order not found")
         
-        toolorder_db = prepare_toolOrder(form_data, tool_order)
+        toolorder_db = prepare_toolOrder(form_data, tool_order, session)
 
         session.add(toolorder_db)
         session.commit()
@@ -166,6 +176,8 @@ async def order_details(request: Request, order_id: int, session: Session = Depe
         "order_date": order.order_date.date(),
         "estimated_delivery_date": order.estimated_delivery_date.isoformat() if order.estimated_delivery_date else None,
         'fulfilled': order.fulfilled,
+        'shipping_company': order.shipping_company,
+        'tracking_number': order.tracking_number,
         "tool": {
             "id": order.tool.id,
             "name": order.tool.name,
@@ -180,9 +192,42 @@ async def order_details(request: Request, order_id: int, session: Session = Depe
             'inventory': order.tool.inventory,
         },
         'delivery_notes': [{'delivery_date': delivery.delivery_date, 'quantity': delivery.quantity, 'notes': "\n".join([note.note for note in delivery.notes]) } 
-                           for delivery in order.deliveries]
+                           for delivery in order.deliveries],
+        'notes': [{'created_at': note.created_at, 'sentiment':note.sentiment, 'note': note.note } 
+                           for note in order.notes]
     }
     return order_data
+
+
+@router.post("/{order_id}/addNote")
+async def add_note(order_id: int, request: Request, session: Session = Depends(get_session)):
+    try:
+        form_data = await request.form()
+        note_text = form_data.get("note")
+        sentiment = form_data.get("sentiment")
+        if not note_text:
+            raise HTTPException(status_code=400, detail="Note text is required")
+        if not sentiment:
+            sentiment=3
+        order = session.exec(select(ToolOrder).where(ToolOrder.id == order_id)).first()
+        if order is None:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        rando_user = session.exec(select(User)).first()
+        note = Note(
+            note=note_text,
+            sentiment=sentiment,
+            order_id=order.id,
+            user_id=rando_user.id,
+        )
+        session.add(note)
+        session.commit()
+        return {"detail": "Note added successfully"}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
 
 @router.post("/{order_id}/createDelivery")

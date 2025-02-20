@@ -21,7 +21,7 @@
                     <input type="date" id="order-date" class="hidden">
                     <div id="modalGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="row-span-2 hover:shadow-lg">
-                            <label for="tool-card" class="block text-gray-300 text-sm font-bold mb-2">Tool Info:</label>
+                            <label for="tool-card" class="block text-gray-300 text-sm font-bold mb-2">Tool Info</label>
                             <a href='#' id="tool-card-display" class="block p-4 bg-gray-700 rounded-lg shadow-md text-white">
                                 <div class="hidden" id="current-tool-type-id"></div>
                                 <div class="hidden" id="current-tool-id"></div>
@@ -29,32 +29,42 @@
                             <a href='#' id="tool-card" onclick="openToolSelectModal()" class="hidden block p-4 bg-gray-700 rounded-lg shadow-md text-white hover:bg-gray-600"></a>
                         </div>
                         <div class="mb-4">
-                            <label for="order-number" class="block text-gray-300 text-sm font-bold mb-2">Order Number:</label>
+                            <label for="order-number" class="block text-gray-300 text-sm font-bold mb-2">Order Number</label>
                             <span id="order-number-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
                             <input type="text" id="order-number" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden" required>
                         </div>
                         <div class="mb-4">
-                            <label for="quantity" class="block text-gray-300 text-sm font-bold mb-2">Quantity:</label>
+                            <label for="quantity" class="block text-gray-300 text-sm font-bold mb-2">Quantity</label>
                             <span id="quantity-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
                             <input type="number" id="quantity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden" required>
                         </div>
                         <div class="mb-4">
-                            <label for="gross-price" class="block text-gray-300 text-sm font-bold mb-2">Total:</label>
+                            <label for="gross-price" class="block text-gray-300 text-sm font-bold mb-2">Total</label>
                             <span id="gross-price-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
                             <input type="number" id="gross-price" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden">
                         </div>
                         <div class="mb-4">
-                            <label for="tool-price" class="block text-gray-300 text-sm font-bold mb-2">Tool Price:</label>
+                            <label for="tool-price" class="block text-gray-300 text-sm font-bold mb-2">Tool Price</label>
                             <span id="tool-price-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
                             <input type="number" id="tool-price" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden">
                         </div>
                         <div class="mb-4">
-                            <label for="estimated-delivery-date" class="block text-gray-300 text-sm font-bold mb-2">Estimated Delivery:</label>
+                            <label for="shipping-company" class="block text-gray-300 text-sm font-bold mb-2">Shipping Company</label>
+                            <span id="shipping-company-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
+                            <input type="text" id="shipping-company" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden">
+                        </div>
+                        <div class="mb-4">
+                            <label for="tracking-number" class="block text-gray-300 text-sm font-bold mb-2">Tracking Number</label>
+                            <span id="tracking-number-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
+                            <input type="text" id="tracking-number" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden">
+                        </div>
+                        <div class="mb-4">
+                            <label for="estimated-delivery-date" class="block text-gray-300 text-sm font-bold mb-2">Estimated Delivery</label>
                             <span id="estimated-delivery-date-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
                             <input type="date" id="estimated-delivery-date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden">
                         </div>
                         <div class="row-span-4 mb-4">
-                            <label for="deliveries" class="block text-gray-300 text-sm font-bold mb-2">Deliveries:</label>
+                            <label for="deliveries" class="block text-gray-300 text-sm font-bold mb-2">Deliveries</label>
                             <table id="deliveries-list" class="min-w-full divide-y divide-gray-700">
                                 <thead class="bg-gray-800">
                                     <tr>
@@ -67,14 +77,26 @@
                                 <tbody>
                                 </tbody>
                             </table>
-                            <button id="add-delivery-button" onclick="openDeliveryModal()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded hidden">
+                            <button id="add-delivery-button" onclick="openDeliveryModal()" class="bg-teal-700 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded">
                                 Add Delivery
                             </button>
                         </div>
-                        <div class="mb-4">
-                            <label for="description" class="block text-gray-300 text-sm font-bold mb-2">Notes:</label>
-                            <span id="description-display" class="block shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white"></span>
-                            <input type="text" id="description" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white hidden">
+                        <div class="row-span-4 mb-4">
+                            <label for="notes-list" class="block text-gray-300 text-sm font-bold mb-2">Notes</label>
+                            <table id="notes-list" class="min-w-full divide-y divide-gray-700">
+                                <thead class="bg-gray-800">
+                                    <tr>
+                                        <th class="text-left">Date</th>
+                                        <th class="text-left">Notes</th>
+                                        <th class="text-right hidden">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                            <button id="add-note-button" onclick="openNoteModal()" class="bg-teal-700 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded">
+                                Add Note
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -97,6 +119,8 @@
         </div>
     </div>
 </div>
+
+
 
 {% include "dashboard/partials/delivery_modal.html.j2" %}
 
@@ -130,8 +154,45 @@
                 <button onclick="closeToolSelectModal()" class="bg-gray-900 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">
                     Cancel
                 </button>
-                <button onclick="selectTool()" class="bg-blue-900 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                <button onclick="selectTool()" class="bg-blue-900 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded">
                     Select
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="openNoteModal" class="fixed inset-0 bg-gray-900/95 hidden z-[9999] overflow-y-auto">
+<div class="min-h-screen p-4 flex items-center justify-center"></div>
+        <div class="relative max-w-l mx-auto bg-gray-800 rounded-lg shadow-xl">
+            <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                <h2 class="text-2xl font-bold">Select Tool</h2>
+                <button onclick="closeNoteModal()" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-4">
+                <div class="mb-4">
+                    <label for="tool-type-select" class="block text-gray-300 text-sm font-bold mb-2">Tool Type:</label>
+                    <select id="tool-type-select" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white">
+                        <option>Loading...</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="tool-select" class="block text-gray-300 text-sm font-bold mb-2">Tool:</label>
+                    <select id="tool-select" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 text-white">
+                        <option>Loading...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end items-center p-4 border-t border-gray-700">
+                <button onclick="closeNoteModal()" class="bg-gray-900 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">
+                    Cancel
+                </button>
+                <button onclick="saveNote()" class="bg-blue-900 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded">
+                    Save
                 </button>
             </div>
         </div>

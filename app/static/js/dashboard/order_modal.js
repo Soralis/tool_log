@@ -16,24 +16,36 @@ async function openOrderModal(orderId) {
 
     document.getElementById('orderId').innerText = order.id ? order.id : null;
     document.getElementById('modalTitle').innerText = order.order_number ? `Order Details - ${order.tool.name}` : 'Create New (World) Order';
+
     document.getElementById('order-number').value = order.order_number || '';
+    document.getElementById('order-number-display').innerText = order.order_number || '';
 
     document.getElementById('quantity').value = order.quantity || '';
+    document.getElementById('quantity-display').innerText = order.quantity || '';
+
     document.getElementById('gross-price').value = order.gross_price || '';
+    document.getElementById('gross-price-display').innerText = order.gross_price || '';
+    
     document.getElementById('tool-price').value = order.tool_price || '';
+    document.getElementById('tool-price-display').innerText = order.tool_price || '';
+
     document.getElementById('order-date').innerText = `Order Date: ${order.order_date}` || null;
-    document.getElementById('estimated-delivery-date').value = order.estimated_delivery_date || null;
     document.getElementById('order-date').value = order.order_date
 
-    document.getElementById('order-number-display').innerText = order.order_number || '';
-    document.getElementById('description-display').innerText = order.description || ' - ';
-    document.getElementById('quantity-display').innerText = order.quantity || '';
-    document.getElementById('gross-price-display').innerText = order.gross_price || '';
+    document.getElementById('estimated-delivery-date').value = order.estimated_delivery_date || null;
     document.getElementById('estimated-delivery-date-display').innerText = order.estimated_delivery_date || 'None given';
-    document.getElementById('tool-price-display').innerText = order.tool_price || '';
+
+    document.getElementById('tracking-number').value = order.tracking_number || '';
+    document.getElementById('tracking-number-display').innerText = order.tracking_number || ' - ';
+
+    document.getElementById('shipping-company').value = order.shipping_company || '';
+    document.getElementById('shipping-company-display').innerText = order.shipping_company || ' - ';
 
     const deliveriesList = document.getElementById('deliveries-list').getElementsByTagName('tbody')[0];
     deliveriesList.innerHTML = ''; // Clear existing table rows
+
+    const notesList = document.getElementById('notes-list').getElementsByTagName('tbody')[0];
+    notesList.innerHTML = ''; // Clear existing table rows
 
     if (orderId && order.delivery_notes) {
         order.delivery_notes.forEach(delivery => {
@@ -52,6 +64,23 @@ async function openOrderModal(orderId) {
         const noDeliveriesCell = row.insertCell();
         noDeliveriesCell.colSpan = 3;
         noDeliveriesCell.textContent = 'No deliveries yet.';
+    }
+
+    if (orderId && order.notes) {
+        order.notes.forEach(note => {
+            const row = notesList.insertRow();
+            const dateCell = row.insertCell();
+            const notesCell = row.insertCell();
+
+            const noteDate = new Date(note.createt_at).toLocaleDateString();
+            dateCell.textContent = noteDate;
+            notesCell.textContent = note.note;
+        });
+    } else {
+        const row = notesList.insertRow();
+        const nonotesCell = row.insertCell();
+        nonotesCell.colSpan = 3;
+        nonotesCell.textContent = 'No notes.';
     }
 
     if (orderId) {
@@ -123,6 +152,54 @@ function closeDeliveryModal() {
         console.error('Delivery modal element not found in closeDeliveryModal');
     }
 }
+
+function openNoteModal() {
+    const noteModal = document.getElementById('noteModal');
+    if (noteModal) {
+        noteModal.style.removeProperty('display');
+        noteModal.classList.remove('hidden');
+        toggleBodyScroll(true);
+    } else {
+        console.error('Note modal element not found');
+    }
+}
+
+function closeNoteModal() {
+    const noteModal = document.getElementById('noteModal');
+    if (noteModal) {
+        noteModal.classList.add('hidden');
+        toggleBodyScroll(false);
+    } else {
+        console.error('Note modal element not found in closeNoteModal');
+    }
+}
+
+async function saveNote() {
+    const note = document.getElementById('note').value;
+    const orderId = document.getElementById('orderId').innerText;
+
+    // Send note to server
+    try {
+        const response = await fetch(`/dashboard/orders/${orderId}/addNote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ note })
+        });
+        if (response.ok) {
+            closeNoteModal();
+            // window.location.reload();
+        } else {
+            console.error('Error saving note:', response.status);
+            alert('Error saving note. Please check the console for details.');
+        }
+    } catch (error) {
+        console.error('Error saving note:', error);
+        alert('Error saving note. Please check the console for details.');
+    }
+}
+
 
 async function createDelivery() {
     const deliveryDate = document.getElementById('delivery-date').value;
@@ -284,6 +361,8 @@ async function saveOrder() {
     const toolPrice = document.getElementById('tool-price').value;
     const orderDate = document.getElementById('order-date').value;
     const estimatedDeliveryDate = document.getElementById('estimated-delivery-date').value;
+    const shipping_company = document.getElementById('shipping-company').value;
+    const tracking_number = document.getElementById('tracking-number').value;
 
     // Get the selected tool ID from the data attribute
     // const toolId = document.getElementById('orderDetailsModal').dataset.toolId;
@@ -297,7 +376,9 @@ async function saveOrder() {
         gross_price: grossPrice,
         tool_price: toolPrice,
         order_date: orderDate,
-        estimated_delivery_date: estimatedDeliveryDate
+        estimated_delivery_date: estimatedDeliveryDate,
+        shipping_company: shipping_company,
+        tracking_number: tracking_number
     };
 
     const url = orderId ? `/dashboard/orders/updateOrder/${orderId}` : '/dashboard/orders/createOrder';
@@ -384,9 +465,6 @@ function enableEdit() {
     document.getElementById('order-number-display').classList.add('hidden');
     document.getElementById('order-number').classList.remove('hidden');
 
-    document.getElementById('description-display').classList.add('hidden');
-    document.getElementById('description').classList.remove('hidden');
-
     document.getElementById('quantity-display').classList.add('hidden');
     document.getElementById('quantity').classList.remove('hidden');
 
@@ -401,6 +479,12 @@ function enableEdit() {
 
     document.getElementById('tool-card-display').classList.add('hidden');
     document.getElementById('tool-card').classList.remove('hidden');
+
+    document.getElementById('shipping-company-display').classList.add('hidden');
+    document.getElementById('shipping-company').classList.remove('hidden');
+
+    document.getElementById('tracking-number-display').classList.add('hidden');
+    document.getElementById('tracking-number').classList.remove('hidden');
 }
 
 function disableEdit() {
@@ -410,9 +494,6 @@ function disableEdit() {
 
     document.getElementById('order-number-display').classList.remove('hidden');
     document.getElementById('order-number').classList.add('hidden');
-
-    document.getElementById('description-display').classList.remove('hidden');
-    document.getElementById('description').classList.add('hidden');
 
     document.getElementById('quantity-display').classList.remove('hidden');
     document.getElementById('quantity').classList.add('hidden');
@@ -428,4 +509,10 @@ function disableEdit() {
 
     document.getElementById('tool-card').classList.add('hidden');
     document.getElementById('tool-card-display').classList.remove('hidden');
+
+    document.getElementById('shipping-company-display').classList.remove('hidden');
+    document.getElementById('shipping-company').classList.add('hidden');
+
+    document.getElementById('tracking-number-display').classList.remove('hidden');
+    document.getElementById('tracking-number').classList.add('hidden');
 }

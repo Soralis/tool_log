@@ -12,4 +12,3 @@ wheels/
 .venv
 app/database_config.py
 data
-alembic.ini
