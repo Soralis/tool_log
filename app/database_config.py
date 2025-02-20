@@ -1,19 +1,14 @@
 from sqlmodel import SQLModel, Session, create_engine
+from dotenv import dotenv_values
 
-# Database configuration
-# PostgreSQL connection URL for psycopg (v3)
-# DEV DB
-SQLALCHEMY_DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost/tool_log_db"
-
-# LIVE DB:
-# SQLALCHEMY_DATABASE_URL = "postgresql+psycopg://postgres:postgres@10.0.36.192/tool_log_db"
+env = dotenv_values('.env')
 
 # SQLAlchemy settings
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Create engine
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
+    env['DATABASE_URL'],
     future=True
 )
 
