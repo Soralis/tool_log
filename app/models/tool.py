@@ -163,6 +163,8 @@ class ToolOrderBase(SQLModel):
     estimated_delivery_date: Optional[dt] = Field(default=None)
     gross_price: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=2)
     tool_price: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=2)
+    tracking_number: Optional[str] = Field(default=None)
+    shipping_company: Optional[str] = Field(default=None)
 
 
 class ToolOrder(ToolOrderBase, table=True):
