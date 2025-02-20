@@ -58,9 +58,11 @@ async def get_tool_graphs(db: Session, start_date: Optional[datetime] = None, en
         graphs.append({
             "id": f"tool_{tool.id}",
             "type": "line",
-            "title": f"{tool.name} (#{tool.number})"
+            "title": f"{tool.name} (#{tool.number})",
+            "width": 6,
+            "height": 2
         })
-    
+
     return graphs
 
 async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None,
@@ -216,27 +218,28 @@ async def get_tool_details(
         "title": f"{tool.name} (#{tool.number})",
         "cards": []
     }
-    
+
     if not records:
-        details['cards'].append({"id": "no_data", "title": f"No Data Available for the timeframe from {start} to {end}.",
-                "width": 12,
-                "height": 2,
-            }
-        )
+        details['cards'].append({
+            "id": "no_data",
+            "title": f"No Data Available for the timeframe from {start} to {end}.",
+            "width": 12,
+            "height": 2,
+        })
         return details
-    
+
     # Get condensed data points
     condensed_data = get_condensed_data(records)
     timestamps, values = zip(*condensed_data) if condensed_data else ([], [])
-    
+
     # Calculate statistics
     mean = np.mean(values)
     std = np.std(values)
-    
+
     # Calculate trendline
     x = np.arange(len(values))
     slope, intercept, _, _, _ = linregress(x, values)
-        
+
     # Calculate daily averages (last 7 days)
     daily_data = {}
     for record in records:
@@ -244,112 +247,120 @@ async def get_tool_details(
         if date_key not in daily_data:
             daily_data[date_key] = []
         daily_data[date_key].append(record.reached_life)
-    
+
     daily_averages = []
     daily_dates = []
     for date in sorted(daily_data.keys())[-7:]:
         daily_averages.append(np.mean(daily_data[date]))
         daily_dates.append(datetime.strptime(date, "%Y-%m-%d").strftime("%m/%d"))
-    
+
     # Calculate wear rate
     wear_rates = []
     wear_dates = []
     for i in range(1, min(8, len(values))):
-        wear_rate = abs(values[i] - values[i-1])
+        wear_rate = abs(values[i] - values[i - 1])
         wear_rates.append(wear_rate)
         wear_dates.append(timestamps[i].strftime("%m/%d"))
 
-    # ROW 1
-    details['cards'].append({"id": "main_graph", "title": "Tool Life Trend",
-                "width": 6,  # Full width
-                "height": 2,  # 2 units tall
-                "type": "graph",
-                "data": {
-                    "type": "line",
-                    "labels": [timestamp.isoformat() for timestamp in timestamps],
-                    "scales": {
-                        "x": {
-                            "type": "time",
-                            "time": {
-                                "unit": "day",
-                                "displayFormats": {
-                                    "day": "MMM D"
-                                }
-                            }
-                        }
-                    },
-                    "datasets": [
-                        {
-                            "label": "Tool Life",
-                            "data": values,
-                            "borderColor": "rgb(75, 192, 192)",
-                            "backgroundColor": "rgba(75, 192, 192, 0.5)",
-                            "tension": 0.1,
-                            "fill": True
-                        },
-                        {
-                            "label": "Trendline",
-                            "data": [slope * i + intercept for i in x],
-                            "borderColor": "rgba(255, 99, 132, 1)",
-                            "borderWidth": 2,
-                            "borderDash": [5, 5],
-                            "fill": False,
-                            "pointRadius": 0
-                        }
-                    ]
+    # Define scales
+    scales = {
+        "x": {
+            "type": "time",
+            "time": {
+                "unit": "day",
+                "displayFormats": {
+                    "day": "MMM D"
                 }
             }
-        )
-    details['cards'].append({"id": "current_stats", "title": "Current Statistics",
-            "width": 3,  # One third width
-            "height": 2,
-            "type": "stats",
-            "data": [
-                {"label": "Current Life", "value": f"{values[-1]:.2f}"},
-                {"label": "Average Life", "value": f"{mean:.2f} ± {std:.2f} ({std/mean:.0%})"},
-                {"label": "Trend Slope", "value": f"{slope:.2f}"},
-                {"label": "Last Replacement", "value": timestamps[-1].strftime("%Y/%m/%d %H:%M")},
+        }
+    }
+
+    # ROW 1
+    details['cards'].append({
+        "id": "main_graph",
+        "title": "Tool Life Trend",
+        "width": 6,  # Full width
+        "height": 2,  # 2 units tall
+        "type": "graph",
+        "data": {
+            "type": "line",
+            "labels": [timestamp.isoformat() for timestamp in timestamps],
+            "scales": scales,
+            "datasets": [
+                {
+                    "label": "Tool Life",
+                    "data": values,
+                    "borderColor": "rgb(75, 192, 192)",
+                    "backgroundColor": "rgba(75, 192, 192, 0.5)",
+                    "tension": 0.1,
+                    "fill": True
+                },
+                {
+                    "label": "Trendline",
+                    "data": [slope * i + intercept for i in x],
+                    "borderColor": "rgba(255, 99, 132, 1)",
+                    "borderWidth": 2,
+                    "borderDash": [5, 5],
+                    "fill": False,
+                    "pointRadius": 0
+                }
             ]
         }
-    )
-    details['cards'].append({"id": "tool_info", "title": "Tool Information",
-            "width": 3,  # One third width
-            "height": 2,
-            "type": "stats",
-            "data": [
-                {"label": "Tool Number", "value": str(tool.number)},
-                {'label': 'Tool Type', 'value': tool.tool_type.name + ' (perishable)' if tool.tool_type.perishable else ' (durable)'},
-                {'label': 'Description', 'value': tool.description},
-                {"label": "Manufacturer", "value": tool.manufacturer.name},
-                {"label": "Total Uses", "value": str(len(records))},
-                {'label': 'Cost', 'value': '1000'}
-            ]
-        }
-    )
+    })
+    details['cards'].append({
+        "id": "current_stats",
+        "title": "Current Statistics",
+        "width": 3,  # One third width
+        "height": 2,
+        "type": "stats",
+        "data": [
+            {"label": "Current Life", "value": f"{values[-1]:.2f}"},
+            {"label": "Average Life", "value": f"{mean:.2f} ± {std:.2f} ({std / mean:.0%})"},
+            {"label": "Trend Slope", "value": f"{slope:.2f}"},
+            {"label": "Last Replacement", "value": timestamps[-1].strftime("%Y/%m/%d %H:%M")},
+        ]
+    })
+    details['cards'].append({
+        "id": "tool_info",
+        "title": "Tool Information",
+        "width": 3,  # One third width
+        "height": 2,
+        "type": "stats",
+        "data": [
+            {"label": "Tool Number", "value": str(tool.number)},
+            {'label': 'Tool Type', 'value': tool.tool_type.name + ' (perishable)' if tool.tool_type.perishable else ' (durable)'},
+            {'label': 'Description', 'value': tool.description},
+            {"label": "Manufacturer", "value": tool.manufacturer.name},
+            {"label": "Total Uses", "value": str(len(records))},
+            {'label': 'Cost', 'value': '1000'}
+        ]
+    })
 
     # ROW 3+
     machines = defaultdict(lambda: defaultdict(list))
     for record in records:
-        machines[record.machine.name][record.machine_channel].append({'tool_life': record.reached_life,
-                                                                       'timestamp': record.timestamp,
-                                                                       'settings': record.tool_settings,
-                                                                       'additional_measurements': record.additional_measurements,
-                                                                       'change_reason': {
-                                                                           'name': record.change_reason.name,
-                                                                           'sentiment': record.change_reason.sentiment},
-                                                                        })
-        
+        machines[record.machine.name][record.machine_channel].append({
+            'tool_life': record.reached_life,
+            'timestamp': record.timestamp,
+            'settings': record.tool_settings,
+            'additional_measurements': record.additional_measurements,
+            'change_reason': {
+                'name': record.change_reason.name,
+                'sentiment': record.change_reason.sentiment
+            },
+        })
+
     # Add a card for each machine with all its channels
     for machine_name, channels in machines.items():
         # Get all unique timestamps across all channels
         all_timestamps = set()
         for channel_records in channels.values():
             all_timestamps.update(record['timestamp'] for record in channel_records)
-        
+
         # Sort timestamps chronologically
         sorted_timestamps = sorted(all_timestamps)
         timestamp_labels = [ts.isoformat() for ts in sorted_timestamps]
-        
+
         # Create datasets for each channel
         datasets = []
         colors = [
@@ -359,11 +370,11 @@ async def get_tool_details(
             ["rgb(255, 99, 132)", "rgba(255, 99, 132, 0.5)"],  # Pink
             ["rgb(54, 162, 235)", "rgba(54, 162, 235, 0.5)"],  # Blue
         ]
-        
+
         for i, (channel, records) in enumerate(channels.items()):
             color_idx = i % len(colors)
             sorted_records = sorted(records, key=lambda x: x['timestamp'])
-            
+
             datasets.append({
                 "label": f"Channel {channel}",
                 "data": sorted_records,
@@ -380,7 +391,7 @@ async def get_tool_details(
                 "pointBackgroundColor": "white",
                 "pointBorderColor": colors[color_idx][0]
             })
-        
+
         details['cards'].append({
             "id": f"machine_{machine_name}",
             "title": f"{machine_name} Tool Life by Channel",
@@ -390,45 +401,17 @@ async def get_tool_details(
             "data": {
                 "type": "line",
                 "labels": timestamp_labels,
-                "scales": {
-                    "x": {
-                        "type": "time",
-                        "time": {
-                            "unit": "day",
-                            "displayFormats": {
-                                "day": "MMM D"
-                            }
-                        }
-                    },
-                    "datasets": [
-                        {
-                            "label": "Tool Life",
-                            "data": values,
-                            "borderColor": "rgb(75, 192, 192)",
-                            "backgroundColor": "rgba(75, 192, 192, 0.5)",
-                            "tension": 0.1,
-                            "fill": True
-                        },
-                        {
-                            "label": "Trendline",
-                            "data": [slope * i + intercept for i in x],
-                            "borderColor": "rgba(255, 99, 132, 1)",
-                            "borderWidth": 2,
-                            "borderDash": [5, 5],
-                            "fill": False,
-                            "pointRadius": 0
-                        }
-                    ]
-                }
+                "scales": scales,
+                "datasets": datasets
             }
         })
-        
+
         # Calculate change reason statistics
         all_reasons = set()
         channel_reasons = {}
         machine_reasons = defaultdict(int)
         total_machine_records = 0
-        
+
         # Collect all unique reasons and count occurrences
         for channel, records in channels.items():
             channel_reasons[channel] = defaultdict(int)
@@ -438,23 +421,23 @@ async def get_tool_details(
                 channel_reasons[channel][reason] += 1
                 machine_reasons[reason] += 1
                 total_machine_records += 1
-        
+
         # Convert counts to percentages
         reason_datasets = []
-        
+
         # Add machine total dataset
         machine_percentages = []
         for reason in sorted(all_reasons):
             percentage = (machine_reasons[reason] / total_machine_records) * 100
             machine_percentages.append(percentage)
-        
+
         reason_datasets.append({
             "label": f"{machine_name} Total",
             "data": machine_percentages,
             "backgroundColor": "rgb(128, 128, 128)",  # Gray for total
             "borderWidth": 1
         })
-        
+
         # Add channel datasets
         for i, (channel, reasons) in enumerate(sorted(channel_reasons.items())):
             channel_total = sum(reasons.values())
@@ -462,7 +445,7 @@ async def get_tool_details(
             for reason in sorted(all_reasons):
                 percentage = (reasons[reason] / channel_total) * 100
                 percentages.append(percentage)
-            
+
             color_idx = i % len(colors)
             reason_datasets.append({
                 "label": f"Channel {channel}",
@@ -470,7 +453,7 @@ async def get_tool_details(
                 "backgroundColor": colors[color_idx][0],
                 "borderWidth": 1
             })
-        
+
         # Add change reasons chart
         details['cards'].append({
             "id": f"machine_{machine_name}_reasons",
@@ -523,7 +506,7 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
         while True:
             try:
                 # Receive date range from client with a timeout of 0.5 seconds
-                message = await asyncio.wait_for(websocket.receive_text(), timeout=0.5)
+                message = await websocket.receive_text()
                 filters = json.loads(message)
 
                 # Add the filters to the queue, clearing it first
