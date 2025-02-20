@@ -28,14 +28,17 @@ def field_types(thing):
         dict: "select",
         datetime.date: "date",  # For date input
         datetime.datetime: "date",  # For datetime input
+        datetime.time: "time",  # For time input
         # Add more types as needed
     }
 
     return type_mapping.get(thing, "text")  # Default to "text" if the type is not found
 
 def getattr_filter(obj, attr):
+    print(obj, attr)
     result = getattr(obj, attr,'')
-    while not isinstance(result, str):
+    print(result)
+    if not isinstance(result, str):
         result = getattr(result, 'name','')
     return result
 

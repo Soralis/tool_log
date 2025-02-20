@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request
 from app.templates.jinja_functions import templates
-from app.models import User, UserCreate, UserUpdate, UserRole, UserRead
+from app.models import User, UserCreate, UserUpdate, UserRead, UserRole, PaymentType
+from app.models import Shift, ShiftCreate, ShiftUpdate, ShiftRead
 from app.models import Machine, MachineCreate, MachineUpdate, MachineRead
 from app.models import Manufacturer, ManufacturerCreate, ManufacturerUpdate, ManufacturerRead
 from app.models import Tool, ToolCreate, ToolUpdate, ToolRead
@@ -21,7 +22,8 @@ from .recipes import router as recipes_router
 router = APIRouter()
 
 # Create generic routers
-users_router = create_generic_router(User, UserRead, UserCreate, UserUpdate, "User", {"enum_fields": {"role": UserRole}})
+users_router = create_generic_router(User, UserRead, UserCreate, UserUpdate, "User", {"enum_fields": {"role": UserRole, 'payment_type': PaymentType}})
+shift_router = create_generic_router(Shift, ShiftRead, ShiftCreate, ShiftUpdate, "Shift")
 machines_router = create_generic_router(Machine, MachineRead, MachineCreate, MachineUpdate, "Machine")
 manufacturers_router = create_generic_router(Manufacturer, ManufacturerRead, ManufacturerCreate, ManufacturerUpdate, "Manufacturer")
 tools_router = create_generic_router(Tool, ToolRead, ToolCreate, ToolUpdate, "Tool")
@@ -40,6 +42,7 @@ workpiece_router = create_generic_router(Workpiece, WorkPieceRead, WorkpieceCrea
 
 # Include the generic routers
 router.include_router(users_router, prefix="/users", tags=["users"])
+router.include_router(shift_router, prefix="/shifts", tags=["shifts"])
 router.include_router(machines_router, prefix="/machines", tags=["machines"])
 router.include_router(manufacturers_router, prefix="/manufacturers", tags=["manufacturers"])
 router.include_router(tools_router, prefix="/tools", tags=["tools"])

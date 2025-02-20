@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, time
 from fastapi import APIRouter, Request, HTTPException, status, Header, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import ValidationError
@@ -14,6 +14,7 @@ from app.models import Manufacturer, ManufacturerCreate, ManufacturerRead
 from app.models import Measureable,MeasureableCreate, MeasureableRead
 from app.models import Machine, MachineCreate, MachineRead
 from app.models import User, UserCreate, UserRead
+from app.models import Shift, ShiftCreate, ShiftRead
 from app.models import Tool, ToolCreate, ToolRead, ToolAttribute, ToolAttributeCreate, ToolAttributeRead
 from app.models import ToolLife, ToolLifeCreate, ToolLifeRead
 from app.models import Note, NoteCreate, NoteRead
@@ -36,6 +37,7 @@ model_mapping = {
     'toolattribute': {"model": ToolAttribute, "create": ToolAttributeCreate, "read": ToolAttributeRead},
     'tooltype': {"model": ToolType, "create": ToolTypeCreate, "read": ToolTypeRead},
     'recipe': {"model": Recipe, "create": RecipeCreate, "read": RecipeRead},
+    'shift': {"model": Shift, "create": ShiftCreate, "read": ShiftRead},
 }
 
 def create_generic_router(
@@ -309,6 +311,11 @@ def create_generic_router(
             item = model(**validated_data.model_dump())
         except ValidationError as e:
             raise HTTPException(status_code=422, detail=str(e))
+
+        # Convert datetime.time to datetime.datetime
+        for key, value in item.__dict__.items():
+            if isinstance(value, time):
+                item.__dict__[key] = datetime.combine(datetime.today(), value)
         
         with Session(engine) as session:
             session.add(item)

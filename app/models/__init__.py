@@ -15,7 +15,8 @@ from .recipe import (
     ToolPosition, ToolPositionCreate, ToolPositionUpdate, ToolPositionRead
 )
 from .model_connections import RecipeTool
-from .user import User, UserBase, UserCreate, UserUpdate, UserRead, UserRole, Token
+from .user import (User, UserBase, UserCreate, UserUpdate, UserRead, UserRole, Token, PaymentType,
+                   Shift, ShiftCreate, ShiftUpdate, ShiftRead, ShiftFilter)
 from .change_over import ChangeOver, ChangeOverBase, ChangeOverCreate, ChangeOverUpdate, ChangeOverRead
 from .workpiece import (Workpiece, WorkpieceBase, WorkpieceCreate, WorkpieceUpdate, WorkPieceRead,
                         OrderCompletion, OrderCompletionCreate, OrderCompletionUpdate, OrderCompletionRead
@@ -50,7 +51,8 @@ __all__ = [
     "RecipeTool",
     
     # User
-    "User", "UserBase", "UserCreate", "UserUpdate", "UserRead", "UserRole", "Token",
+    "User", "UserBase", "UserCreate", "UserUpdate", "UserRead", "UserRole", "Token", "PaymentType",
+    "Shift", "ShiftCreate", "ShiftUpdate", "ShiftRead", "ShiftFilter",
     
     # Change Over
     "ChangeOver", "ChangeOverBase", "ChangeOverCreate", "ChangeOverUpdate", "ChangeOverRead",
@@ -63,5 +65,5 @@ __all__ = [
     "Manufacturer", "ManufacturerBase", "ManufacturerCreate", "ManufacturerUpdate", "ManufacturerRead",
     
     # Log Device
-    "LogDevice", "LogDeviceSetMachine"
+    "LogDevice", "LogDeviceSetMachine"    
 ]
