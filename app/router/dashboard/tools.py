@@ -13,14 +13,11 @@ from scipy.stats import linregress
 from .utils import get_condensed_data
 router = APIRouter()
 
-# Global queue to hold the latest filter settings
-filter_queue: asyncio.Queue[Optional[Dict]] = asyncio.Queue()
-
 # Global variables to store the latest filter settings
-latest_start_date: Optional[datetime] = None
-latest_end_date: Optional[datetime] = None
-latest_selected_operations: Optional[list] = None
-latest_selected_products: Optional[list] = None
+latest_start_date: Optional[datetime] = datetime.strptime("2020-01-01", "%Y-%m-%d")
+latest_end_date: Optional[datetime] = datetime.today()
+latest_selected_operations: Optional[list] = []
+latest_selected_products: Optional[list] = []
 
 async def get_tool_graphs(db: Session, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None,
                           selected_operations: Optional[list] = None, selected_products: Optional[list] = None) -> List[Dict]:
@@ -155,24 +152,6 @@ async def send_tool_data(websocket: WebSocket, db: Session):
     except Exception as e:
         print(f"Error in send_tool_data: {e}")
 
-async def process_filters(websocket: WebSocket, db: Session):
-    global latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products
-    while True:
-        try:
-            filters = await filter_queue.get()
-            if filters is None:
-                break  # Exit if None is received (e.g., on shutdown)
-
-            # Convert ISO strings to datetime objects
-            latest_start_date = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
-            latest_end_date = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
-            latest_selected_operations = [int(op) for op in filters.get('selectedOperations', [])]
-            latest_selected_products = [int(product) for product in filters.get('selectedProducts', [])]
-
-            await send_tool_data(websocket, db)
-
-        except Exception as e:
-            print(f"Error processing filters: {e}")
 
 @router.get("/tools")
 async def tools(request: Request, db: Session = Depends(get_session)):
@@ -495,10 +474,9 @@ async def periodic_data_sender(websocket: WebSocket, db: Session):
 
 @router.websocket("/ws/tools")
 async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_session)):
+    global latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products
     await websocket.accept()
 
-    # Start the filter processing task
-    filter_task = asyncio.create_task(process_filters(websocket, db))
     # Start the periodic data sending task
     data_sender_task = asyncio.create_task(periodic_data_sender(websocket, db))
 
@@ -509,10 +487,10 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
                 message = await websocket.receive_text()
                 filters = json.loads(message)
 
-                # Add the filters to the queue, clearing it first
-                while not filter_queue.empty():
-                    filter_queue.get_nowait()
-                await filter_queue.put(filters)
+                latest_start_date = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
+                latest_end_date = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
+                latest_selected_operations = [int(op) for op in filters.get('selectedOperations', [])]
+                latest_selected_products = [int(product) for product in filters.get('selectedProducts', [])]
 
             except asyncio.TimeoutError:
                 # No message received within the timeout period
@@ -526,8 +504,8 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
         print(f"WebSocket error: {e}")
     finally:
         # Signal the filter processing task to exit
-        await filter_queue.put(None)
-        filter_task.cancel()
+        # await filter_queue.put(None)
+        # filter_task.cancel()
         data_sender_task.cancel()
         try:
             await websocket.close()

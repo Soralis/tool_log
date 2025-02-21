@@ -141,7 +141,6 @@
         fetch('/unprotected/usersByShift')
             .then(response => response.json())
             .then(data => {
-                console.log('Data from /unprotected/usersByShift:', data);
                 const tabDiv = document.querySelector('.tab');
                 const tabContentDiv = document.getElementById('tab-content');
 
@@ -152,7 +151,6 @@
                 // Create tabs and content for each shift
                 for (const shift in data.users_by_shift) {
                     const shiftNumber = shift;
-                    console.log('shift number 1', shiftNumber)
                     const users = data.users_by_shift[shift];
 
                     // Create tab button
@@ -225,8 +223,6 @@
                  const modal = document.getElementById('accounts-modal');
                 modal.classList.remove('hidden');
                 modal.style.display = 'block';
-                console.log('Modal display:', modal.style.display);
-                console.log('Modal classList:', modal.classList);
             });
     }
 
@@ -242,7 +238,6 @@
                 tablinks[i].className = tablinks[i].className.replace(" active", "");
             }
         }
-        console.log('shift number 2', shiftNumber)
         document.getElementById(`shift-${shiftNumber}`).style.display = "block";
 
         // Add 'active' class to the clicked tab button
