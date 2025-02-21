@@ -5,20 +5,91 @@
 {% block body %}
 <div class="login-container">
     <h2>Operator Login</h2>
-    <form id="login-form" hx-post="/authenticateOperator" hx-swap="outerHTML">
+    <button type="button" class="text-teal-500 font-semibold py-2 px-4 mb-4 border border-teal-500 rounded" onclick="showAccountsModal()">Show available accounts</button>
+    <form id="login-form" hx-post="/authenticateOperator" hx-ext="json-enc">
         <div class="form-group">
-            <label for="initials">Initials:</label>
+            <label for="initials">Initials</label>
             <input type="text" id="initials" name="initials" required>
         </div>
         <div class="form-group">
-            <label for="pin">PIN:</label>
+            <label for="pin">PIN</label>
             <input type="password" id="pin" name="pin" pattern="[0-9]*" inputmode="numeric" required>
         </div>
-        <button type="submit" class="btn-submit">Login</button>
+        <button type="submit" class="btn-submit bg-teal-500">Login</button>
     </form>
     <div id="login-error" class="error-message" style="display: none;"></div>
 </div>
 
+<div id="accounts-modal" class="hidden fixed z-50 inset-0 overflow-auto bg-gray-800 bg-opacity-50">
+    <div class="modal-content bg-gray-900 text-white m-12 p-6 border border-gray-700 rounded-md w-4/5 md:w-3/5 lg:w-2/5">
+        <span class="close text-gray-500 hover:text-white float-right text-4xl font-bold cursor-pointer" onclick="closeAccountsModal()">X</span>
+        <h2 class="text-2xl font-bold mb-4">Accounts (Tap for Selection)</h2>
+            
+        <div class="tab flex border-b border-gray-700">
+            </div>
+        <div id="tab-content">
+        </div>
+    </div>
+</div>
+
+<style>
+/* Style the tab */
+.tab {
+  overflow: hidden;
+  background-color: #2D3748;
+  display: flex;
+  justify-content: space-around;
+}
+
+/* Style the buttons inside the tab */
+.tab button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+  font-size: 32px;
+  color: white;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+  background-color: #4A5568;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+  background-color: #718096;
+}
+
+/* Style the tab content */
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-top: none;
+}
+
+/* Style for clickable table rows */
+.table tbody tr {
+    transition: background-color 0.2s ease, font-size 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: #4A5568; /* Slightly darker background on hover */
+    font-size: 1.1em; /* Slightly larger font on hover */
+}
+
+.table tbody tr {
+    cursor: pointer; /* Change cursor to pointer */
+    padding: 0.75rem; /* Increase padding for touch target */
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
 <script>
     // Load saved initials from cookie when page loads
     window.addEventListener('load', function() {
@@ -64,5 +135,129 @@
             }
         }
     });
+
+    // Accounts modal functionality
+    function showAccountsModal() {
+        fetch('/unprotected/usersByShift')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Data from /unprotected/usersByShift:', data);
+                const tabDiv = document.querySelector('.tab');
+                const tabContentDiv = document.getElementById('tab-content');
+
+                // Clear existing tabs and content
+                tabDiv.innerHTML = '';
+                tabContentDiv.innerHTML = '';
+
+                // Create tabs and content for each shift
+                for (const shift in data.users_by_shift) {
+                    const shiftNumber = shift;
+                    console.log('shift number 1', shiftNumber)
+                    const users = data.users_by_shift[shift];
+
+                    // Create tab button
+                    const tabButton = document.createElement('button');
+                    tabButton.textContent = `Shift ${shiftNumber}`;
+                    tabButton.classList.add('tablinks');
+                    tabButton.dataset.shift = shiftNumber; // Add data-shift attribute
+                    tabButton.addEventListener('click', function() {
+                        openTab(shiftNumber);
+                    });
+                    tabDiv.appendChild(tabButton);
+
+                    // Create tab content
+                    const tabContent = document.createElement('div');
+                    tabContent.id = `shift-${shiftNumber}`;
+                    tabContent.classList.add('tabcontent');
+                    tabContent.style.padding = '10px';
+
+                    // Create table
+                    const table = document.createElement('table');
+                    table.classList.add('table-auto', 'w-full');
+                    const thead = document.createElement('thead');
+                    thead.classList.add('text-left');
+                    const headerRow = document.createElement('tr');
+                    const nameHeader = document.createElement('th');
+                    nameHeader.textContent = 'Name';
+                    nameHeader.classList.add('px-4', 'py-2');
+                    const initialsHeader = document.createElement('th');
+                    initialsHeader.textContent = 'Initials';
+                    initialsHeader.classList.add('px-4', 'py-2');
+                    headerRow.appendChild(nameHeader);
+                    headerRow.appendChild(initialsHeader);
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+
+                    const tbody = document.createElement('tbody');
+                    for (const user of users) {
+                        const row = document.createElement('tr');
+                        const nameCell = document.createElement('td');
+                        nameCell.textContent = user.name;
+                        nameCell.classList.add('border', 'p-6', 'font-bold');
+                        const initialsCell = document.createElement('td');
+                        initialsCell.textContent = user.initials;
+                        initialsCell.classList.add('border', 'p-6', 'font-bold');
+                        row.appendChild(nameCell);
+                        row.appendChild(initialsCell);
+                        row.addEventListener('click', function() {
+                            document.getElementById('initials').value = user.initials;
+                            closeAccountsModal();
+                        });
+                        row.classList.add('cursor-pointer', 'hover:bg-gray-700');
+                        tbody.appendChild(row);
+                    }
+                    table.appendChild(tbody);
+                    tabContent.appendChild(table);
+                    tabContentDiv.appendChild(tabContent);
+                }
+
+                // Show the first tab by default or the active shift tab
+                if (data.users_by_shift) {
+                    const activeShift = data.active_shift;
+                    if (activeShift) {
+                        openTab(activeShift, true);
+                    } else {
+                        openTab(Object.keys(data.users_by_shift)[0], true);
+                    }
+                }
+
+                 // Show the modal
+                 const modal = document.getElementById('accounts-modal');
+                modal.classList.remove('hidden');
+                modal.style.display = 'block';
+                console.log('Modal display:', modal.style.display);
+                console.log('Modal classList:', modal.classList);
+            });
+    }
+
+   // Function to open a specific tab
+    function openTab(shiftNumber, isProgrammatic = false) {
+        const tabcontent = document.getElementsByClassName("tabcontent");
+        for (let i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        const tablinks = document.getElementsByClassName("tablinks");
+        for (let i = 0; i < tablinks.length; i++) {
+            if (!isProgrammatic) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+        }
+        console.log('shift number 2', shiftNumber)
+        document.getElementById(`shift-${shiftNumber}`).style.display = "block";
+
+        // Add 'active' class to the clicked tab button
+        const tabButton = document.querySelector(`.tab button[data-shift="${shiftNumber}"]`);
+        if (tabButton) {
+            tabButton.classList.add('active');
+        }
+    }
+
+    function closeAccountsModal() {
+        const modal = document.getElementById('accounts-modal');
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+
+    
 </script>
 {% endblock %}

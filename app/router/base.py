@@ -59,3 +59,4 @@ async def create_operator(request: Request,
     session.commit()
     session.refresh(new_operator)
     return {"message": f"Operator {new_operator.name} created successfully"}
+
