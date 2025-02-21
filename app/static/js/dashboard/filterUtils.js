@@ -148,7 +148,8 @@ export async function loadFilterOptions() {
         
         // Populate products
         const productSelect = document.getElementById('product-select');
-        productSelect.innerHTML = Object.entries(data.products)
+        const sortedProducts = Object.entries(data.products).sort((a, b) => a[0].localeCompare(b[0]));
+        productSelect.innerHTML = sortedProducts
             .map(([name, id]) => `
                 <label class="px-4 py-2 text-left rounded-md bg-gray-700 text-gray-100 hover:bg-gray-600 transition-colors cursor-pointer ${selectedProducts.includes(id.toString()) ? 'bg-indigo-600 hover:bg-indigo-700' : ''}" data-value="${id}">
                     <input type="checkbox" 
@@ -162,7 +163,8 @@ export async function loadFilterOptions() {
         
         // Populate operations
         const operationSelect = document.getElementById('operation-select');
-        operationSelect.innerHTML = Object.entries(data.operations)
+        const sortedOperations = Object.entries(data.operations).sort((a, b) => a[0].localeCompare(b[0]));
+        operationSelect.innerHTML = sortedOperations
             .map(([name, id]) => `
                 <label class="px-4 py-2 text-left rounded-md bg-gray-700 text-gray-100 hover:bg-gray-600 transition-colors cursor-pointer ${selectedOperations.includes(id.toString()) ? 'bg-indigo-600 hover:bg-indigo-700' : ''}" data-value="${id}">
                     <input type="checkbox" 

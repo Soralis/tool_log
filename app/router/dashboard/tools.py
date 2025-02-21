@@ -14,10 +14,7 @@ from .utils import get_condensed_data
 router = APIRouter()
 
 # Global variables to store the latest filter settings
-latest_start_date: Optional[datetime] = datetime.strptime("2020-01-01", "%Y-%m-%d")
-latest_end_date: Optional[datetime] = datetime.today()
-latest_selected_operations: Optional[list] = []
-latest_selected_products: Optional[list] = []
+websocket_filters = {}
 
 async def get_tool_graphs(db: Session, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None,
                           selected_operations: Optional[list] = None, selected_products: Optional[list] = None) -> List[Dict]:
@@ -133,7 +130,12 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
     return data
 
 async def send_tool_data(websocket: WebSocket, db: Session):
-    global latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products
+    global websocket_filters
+    latest_start_date = websocket_filters[websocket].get("latest_start_date")
+    latest_end_date = websocket_filters[websocket].get("latest_end_date")
+    latest_selected_operations = websocket_filters[websocket].get("latest_selected_operations")
+    latest_selected_products = websocket_filters[websocket].get("latest_selected_products")
+
     try:
         # Get filtered graphs and data
         graphs = await get_tool_graphs(db, latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products)
@@ -477,6 +479,13 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
     global latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products
     await websocket.accept()
 
+    websocket_filters[websocket] = {
+        'latest_start_date': datetime.strptime("2020-01-01", "%Y-%m-%d"),
+        'latest_end_date': datetime.today(),
+        'latest_selected_operations': [],
+        'latest_selected_products': []
+    }
+
     # Start the periodic data sending task
     data_sender_task = asyncio.create_task(periodic_data_sender(websocket, db))
 
@@ -487,10 +496,10 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
                 message = await websocket.receive_text()
                 filters = json.loads(message)
 
-                latest_start_date = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
-                latest_end_date = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
-                latest_selected_operations = [int(op) for op in filters.get('selectedOperations', [])]
-                latest_selected_products = [int(product) for product in filters.get('selectedProducts', [])]
+                websocket_filters[websocket]['latest_start_date'] = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
+                websocket_filters[websocket]['latest_end_date'] = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
+                websocket_filters[websocket]['latest_selected_operations'] = [int(op) for op in filters.get('selectedOperations', [])]
+                websocket_filters[websocket]['latest_selected_products'] = [int(product) for product in filters.get('selectedProducts', [])]
 
             except asyncio.TimeoutError:
                 # No message received within the timeout period
@@ -507,6 +516,7 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
         # await filter_queue.put(None)
         # filter_task.cancel()
         data_sender_task.cancel()
+        del websocket_filters[websocket]
         try:
             await websocket.close()
         except:
