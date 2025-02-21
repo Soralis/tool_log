@@ -299,6 +299,9 @@ async def get_tool_details(
             {"label": "Average Life", "value": f"{mean:.2f} ± {std:.2f} ({std / mean:.0%})"},
             {"label": "Trend Slope", "value": f"{slope:.2f}"},
             {"label": "Last Replacement", "value": timestamps[-1].strftime("%Y/%m/%d %H:%M")},
+            {"label": "Total Records", "value": str(len(records))},
+            {"label": "On Inventory", 'value': tool.inventory},
+            # {'label':'Weekly Usage', 'value': tool.weekly_usage}
         ]
     })
     details['cards'].append({
@@ -308,12 +311,12 @@ async def get_tool_details(
         "height": 2,
         "type": "stats",
         "data": [
-            {"label": "Tool Number", "value": str(tool.number)},
             {'label': 'Tool Type', 'value': tool.tool_type.name + ' (perishable)' if tool.tool_type.perishable else ' (durable)'},
             {'label': 'Description', 'value': tool.description},
             {"label": "Manufacturer", "value": tool.manufacturer.name},
-            {"label": "Total Uses", "value": str(len(records))},
-            {'label': 'Cost', 'value': '1000'}
+            {'label': 'CPN Number', 'value': tool.cpn_number},
+            {'label': 'ERP Number', 'value': tool.erp_number},
+            {'label': 'Price', 'value': '1000'}
         ]
     })
 
