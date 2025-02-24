@@ -65,8 +65,8 @@ SERVER_START_TIME = datetime.now()
 async def initialize_metrics():
     db = next(get_session())
     try:
-        schedule_tasks()
-        scheduler.start()
+        # schedule_tasks()
+        # scheduler.start()
 
         # Delete any existing metrics to ensure a fresh start
         statement = select(ServiceMetrics)

@@ -188,12 +188,13 @@
             if (reloadButton) {
                 reloadButton.addEventListener('click', hardReload);
             }
+            sendHeartbeat();
         });
 
         function hardReload() {
             location.reload(true);
         }
-        
+
         async function sendHeartbeat() {
             let deviceToken = null;
             const cookies = document.cookie.split('; ');

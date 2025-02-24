@@ -3,6 +3,10 @@
 {% block title %}Dashboard Overview{% endblock %}
 {% block subinfo %}<h3>Server Address: {{ server_address }}</h3>{% endblock %}
 
-{% block head %}{% endblock %}
-
-{% block content %}{% endblock %}
+{% block content %}
+    <div class="grid sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-12 gap-4">
+        <div class="col-span-3 md:col-span-3 lg:col-span-6">
+            {% include 'dashboard/partials/heartbeat_table.html.j2' %}
+        </div>
+    </div>
+{% endblock %}

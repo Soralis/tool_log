@@ -25,6 +25,7 @@ class LogDevice(SQLModel, table=True):
     active: bool = Field(default=True, nullable=False)
     token: Optional[str] = Field(default=None, max_length=255)
     token_expiry: Optional[datetime] = Field(default=None)
+    track_health: bool = Field(default=True, nullable=False)
 
     machines: List['Machine'] = Relationship(back_populates='log_device')
     heartbeats: List[Heartbeat] = Relationship(back_populates="log_device")

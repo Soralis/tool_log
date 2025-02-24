@@ -1043,7 +1043,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.13.3" },
-    { name = "apscheduler" },
+    { name = "apscheduler", specifier = ">=3.11.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.2" },
     { name = "numpy", specifier = ">=2.2.1" },
     { name = "openpyxl", specifier = ">=3.1.5" },

@@ -1,0 +1,69 @@
+<table class="table table-striped w-full">
+    <thead class="bg-gray-900">
+        <tr>
+            <th class="px-4 py-2 text-left">Device</th>
+            <th class="px-4 py-2 text-left">Healthy</th>
+            <th class="px-4 py-2 text-left">Stability 24h</th>
+            <th class="px-4 py-2 text-left">Stability 7d</th>
+            <th class="px-4 py-2 text-left">Stability month</th>
+            <th class="px-4 py-2 text-left">Last Seen</th>
+        </tr>
+    </thead>
+    <tbody id="heartbeat-table-body">
+    </tbody>
+</table>
+
+<script>
+    // Function to update the heartbeat table
+    function updateHeartbeatTable(data) {
+        const tableBody = document.getElementById("heartbeat-table-body");
+        tableBody.innerHTML = ""; // Clear existing table data
+
+        console.log(data)
+
+        data.forEach(item => {
+            const row = tableBody.insertRow();
+
+            const deviceCell = row.insertCell();
+            deviceCell.classList.add("px-4", "py-2");
+            deviceCell.textContent = item.Device;
+
+            const healthyCell = row.insertCell();
+            healthyCell.classList.add("px-4", "py-2", "font-bold");
+            healthyCell.textContent = item.Healthy ? "Yes" : "No";
+            healthyCell.classList.add(item.Healthy ? "text-green-500" : "text-red-500");
+
+            const stability24hCell = row.insertCell();
+            stability24hCell.classList.add("px-4", "py-2", "text-left");
+            stability24hCell.textContent = item["Stability 24h"] + "%";
+
+            const stability7dCell = row.insertCell();
+            stability7dCell.classList.add("px-4", "py-2", "text-left");
+            stability7dCell.textContent = item["Stability 7d"] + "%";
+
+            const stabilityMonthCell = row.insertCell();
+            stabilityMonthCell.classList.add("px-4", "py-2", "text-left");
+            stabilityMonthCell.textContent = item["Stability month"] + "%";
+
+            const lastSeenCell = row.insertCell();
+            lastSeenCell.classList.add("px-4", "py-2", "text-left");
+            lastSeenCell.textContent = item["Last Seen"];
+        });
+    }
+
+    // WebSocket connection
+    const websocket = new WebSocket("ws://localhost:8000/dashboard/ws/heartbeat");
+
+    websocket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        updateHeartbeatTable(data);
+    };
+
+    websocket.onclose = function(event) {
+        console.log("WebSocket connection closed:", event);
+    };
+
+    websocket.onerror = function(error) {
+        console.error("WebSocket error:", error);
+    };
+</script>
