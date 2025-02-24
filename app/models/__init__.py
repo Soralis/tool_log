@@ -22,7 +22,7 @@ from .workpiece import (Workpiece, WorkpieceBase, WorkpieceCreate, WorkpieceUpda
                         OrderCompletion, OrderCompletionCreate, OrderCompletionUpdate, OrderCompletionRead
                         )
 from .manufacturer import Manufacturer, ManufacturerBase, ManufacturerCreate, ManufacturerUpdate, ManufacturerRead
-from .log_device import LogDevice, LogDeviceSetMachine
+from .log_device import LogDevice, LogDeviceSetMachine, Heartbeat
 
 __all__ = [
     # Monitoring
@@ -65,5 +65,5 @@ __all__ = [
     "Manufacturer", "ManufacturerBase", "ManufacturerCreate", "ManufacturerUpdate", "ManufacturerRead",
     
     # Log Device
-    "LogDevice", "LogDeviceSetMachine"    
+    "LogDevice", "LogDeviceSetMachine", "Heartbeat"   
 ]

@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form
 from sqlmodel import Session, select
-from datetime import time, datetime
-
+from datetime import datetime
+from fastapi.responses import JSONResponse
+from app.models import LogDevice, Heartbeat
 from app.models import User, Shift
 from app.database_config import get_session
-from app.templates.jinja_functions import templates
+
+
 
 router = APIRouter()
 
@@ -35,3 +37,16 @@ async def users_by_shift(session: Session = Depends(get_session)):
         users_by_shift[shift] = sorted(users_by_shift[shift], key=lambda x: x["name"])
 
     return {"users_by_shift": users_by_shift, "active_shift": active_shift}
+
+@router.post("/heartbeat")
+async def heartbeat(device_token: str = Form(...), session: Session = Depends(get_session)):
+    log_device: LogDevice = session.exec(select(LogDevice).filter(LogDevice.token == device_token)).one_or_none()
+    if log_device is None:
+        return JSONResponse(content={"error": "Log Device not found"}, status_code=404)
+
+    # Create a new Heartbeat record
+    heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
+    session.add(heartbeat)
+    session.commit()
+
+    return JSONResponse(content={"message": "Heartbeat recorded successfully"}, status_code=200)

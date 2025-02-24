@@ -4,15 +4,18 @@ from fastapi.exceptions import HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+
 from app.templates.jinja_functions import templates
 from app.database_config import init_db, get_session
 from app.router import base, dashboard, device, unprotected
 from app.router.engineer import _engineer
 from app.router.operator import _operator
-from app.models import UserRole, ServiceMetrics
+from app.models import UserRole, ServiceMetrics, Heartbeat, LogDevice
 from auth import authenticate_or_create_device, authenticate_operator, require_role
 from starlette.middleware.base import BaseHTTPMiddleware
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 app = FastAPI()
@@ -62,6 +65,9 @@ SERVER_START_TIME = datetime.now()
 async def initialize_metrics():
     db = next(get_session())
     try:
+        schedule_tasks()
+        scheduler.start()
+
         # Delete any existing metrics to ensure a fresh start
         statement = select(ServiceMetrics)
         existing_metrics = db.exec(statement).first()
@@ -162,6 +168,40 @@ async def authenticate_operator_route(request: Request):
 @app.get("/monitoring-dashboard")
 async def monitoring_dashboard(request: Request):
     return templates.TemplateResponse("monitoring.html.j2", {"request": request})
+
+# Create the scheduler
+scheduler = AsyncIOScheduler()
+
+def schedule_tasks():
+    scheduler.add_job(run_every_minute, 'interval', minutes=1)
+    scheduler.add_job(run_every_day, CronTrigger(hour=0, minute=0))
+
+async def run_every_minute():
+    session = next(get_session())
+    try:
+        log_device: LogDevice = session.exec(select(LogDevice).filter(LogDevice.name == 'Server')).one_or_none()
+        if log_device is None:
+            log_device = LogDevice(name='Server')
+            session.add(log_device)
+            session.commit()
+
+        # Create a new Heartbeat record
+        heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
+        session.add(heartbeat)
+        session.commit()
+    finally:
+        session.close()
+
+def run_every_day():
+    session = next(get_session())
+    try:
+        older_than_a_month = datetime.now() - timedelta(days=30)
+        heartbeats = session.exec(select(Heartbeat).where(Heartbeat.timestamp < older_than_a_month)).all()
+        for heartbeat in heartbeats:
+            session.delete(heartbeat)
+        session.commit()
+    finally:
+        session.close()
 
 if __name__ == "__main__":
     import uvicorn

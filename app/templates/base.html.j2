@@ -193,6 +193,43 @@
         function hardReload() {
             location.reload(true);
         }
+        
+        async function sendHeartbeat() {
+            let deviceToken = null;
+            const cookies = document.cookie.split('; ');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i];
+                const [name, value] = cookie.split('=');
+                if (name === 'device_token') {
+                    console.log('Device token found:', name, value);
+                    deviceToken = value;
+                    break;
+                }
+            }
+
+            if (!deviceToken) {
+                console.warn('Device token not found in cookies.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/unprotected/heartbeat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `device_token=${deviceToken}`
+                });
+
+                if (!response.ok) {
+                    console.error('Heartbeat failed:', response.status);
+                } 
+            } catch (error) {
+                console.error('Error sending heartbeat:', error);
+            }
+        }
+
+        setInterval(sendHeartbeat, 60000);
     </script>
 
     {% block extra_head %}{% endblock %}

@@ -128,7 +128,7 @@ async def authenticate_or_create_device(device_name: str, db: Session = Depends(
     response.set_cookie(
         key="device_token",
         value=access_token,
-        httponly=True,
+        httponly=False,
         secure=False,  # Set to False if not using HTTPS
         samesite="lax",
         domain=None,  # Set to your domain if needed

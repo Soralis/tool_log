@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import JSONResponse
-from app.models import LogDevice, LogDeviceSetMachine
+from app.models import LogDevice
 from app.models import Machine, MachineBase
 from sqlmodel import Session, select
-from typing import Annotated, List
+from typing import List
 from app.templates.jinja_functions import templates
 from app.database_config import engine
 
