@@ -58,6 +58,6 @@
   import { update_data } from '/static/js/dashboard/update_chart.js';
   // Listen for filter changes and update the chart
   document.body.addEventListener('filterChanged', function() {
-      update_data(chart, option, '/dashboard/api/spend_summary');
+      update_data(chart, option, '/dashboard/monetary/api/spend_summary');
   });
 </script>
