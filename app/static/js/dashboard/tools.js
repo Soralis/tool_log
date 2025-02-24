@@ -112,7 +112,6 @@ const statusDiv = document.getElementById('connection-status');
 function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     ws = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/tools`);
-    console.log('tools ws', ws);
     
     ws.onopen = function() {
         statusDiv.className = 'hidden';

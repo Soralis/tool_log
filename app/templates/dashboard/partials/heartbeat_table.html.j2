@@ -52,7 +52,8 @@
     }
 
     // WebSocket connection
-    const websocket = new WebSocket("ws://localhost:8000/dashboard/ws/heartbeat");
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const websocket = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/heartbeat`);
 
     websocket.onmessage = function(event) {
         const data = JSON.parse(event.data);
