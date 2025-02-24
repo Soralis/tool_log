@@ -13,7 +13,13 @@
     </tbody>
 </table>
 
+<!-- Connection Status -->
+<div id="connection-status" class="fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500/100">
+    Connecting...
+</div>
+
 <script>
+    const statusDiv = document.getElementById('connection-status');
     // Function to update the heartbeat table
     function updateHeartbeatTable(data) {
         const tableBody = document.getElementById("heartbeat-table-body");
@@ -50,19 +56,32 @@
     }
 
     // WebSocket connection
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const websocket = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/heartbeat`);
+    function connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const websocket = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/heartbeat`);
 
-    websocket.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        updateHeartbeatTable(data);
-    };
+        websocket.onopen = function() {
+            statusDiv.className = 'hidden';
+        };    
 
-    websocket.onclose = function(event) {
-        console.log("WebSocket connection closed:", event);
-    };
+        websocket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            updateHeartbeatTable(data);
+        };
 
-    websocket.onerror = function(error) {
-        console.error("WebSocket error:", error);
-    };
+        websocket.onclose = function() {
+            statusDiv.textContent = 'Reconnecting...';
+            statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500/100';
+            // Attempt to reconnect after 5 seconds
+            setTimeout(connectWebSocket, 5000);
+        };
+
+        websocket.onerror = function(error) {
+            console.error("WebSocket error:", error);
+        };
+
+        return websocket
+    }
+
+    connectWebSocket()
 </script>
