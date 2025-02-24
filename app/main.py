@@ -173,10 +173,10 @@ async def monitoring_dashboard(request: Request):
 scheduler = AsyncIOScheduler()
 
 def schedule_tasks():
-    scheduler.add_job(run_every_minute, 'interval', minutes=1)
+    scheduler.add_job(run_every_5_minutes, 'interval', minutes=5)
     scheduler.add_job(run_every_day, CronTrigger(hour=0, minute=0))
 
-async def run_every_minute():
+async def run_every_5_minutes():
     session = next(get_session())
     try:
         log_device: LogDevice = session.exec(select(LogDevice).filter(LogDevice.name == 'Server')).one_or_none()
