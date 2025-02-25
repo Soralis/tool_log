@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Request, Depends, Query, WebSocket
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional
+from datetime import datetime, timedelta
+from typing import Dict, List
 from sqlmodel import Session, select
 import socket
 import asyncio
 import json
-import time
 import pytz
 
 from app.templates.jinja_functions import templates
@@ -82,6 +81,9 @@ def calculate_uptime_percentage(heartbeats: List[datetime], time_horizon: timede
     if not heartbeats:
         return 0.0
     
+    # sort heartbeats by time
+    heartbeats.sort()
+    
     eastern = pytz.timezone('America/New_York')
     now = datetime.now(eastern)
     start_time = now - time_horizon
@@ -91,7 +93,8 @@ def calculate_uptime_percentage(heartbeats: List[datetime], time_horizon: timede
     last_heartbeat_time = None
     for hb in heartbeats:
         if start_time <= hb <= now:
-            if last_heartbeat_time is None or (hb - last_heartbeat_time) >= timedelta(minutes=5):
+            time_since_last_valid = hb - last_heartbeat_time if last_heartbeat_time else timedelta(seconds=0)
+            if last_heartbeat_time is None or time_since_last_valid >= timedelta(seconds=298):
                 valid_heartbeats.append(hb)
                 last_heartbeat_time = hb
 
@@ -141,7 +144,7 @@ async def get_device_status(db: Session) -> List[Dict]:
             else:
                 hours = minutes / 60
                 last_seen = f"{int(hours)} hours ago"
-        
+
         # Calculate stability percentages
         stability_24h = calculate_uptime_percentage(heartbeats, timedelta(hours=24))
         stability_7d = calculate_uptime_percentage(heartbeats, timedelta(days=7))
