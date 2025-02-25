@@ -18,27 +18,83 @@ from app.models import ChangeOver, ChangeOverCreate, ChangeOverUpdate, ChangeOve
 from app.models import Workpiece, WorkpieceCreate, WorkpieceUpdate, WorkPieceRead
 from .generic_router import create_generic_router
 from .recipes import router as recipes_router
+from sqlmodel import Session
+from app.database_config import engine
+
+# Generic fixed field callback - generic function to retrieve fixed fields based on a related fixed item.
+def generic_fixed_field_callback(mapping: dict, calling_model, extra: dict = None):
+    """
+    A generic callback factory to supply fixed field options.
+    The mapping must be of the form:
+        {
+            fixed_field_name: { calling_model_field: (FixedModel, fixed_field_relation) }
+        }
+    When a model-X (of type calling_model) has a fixed field (e.g. "tool_attributes"),
+    this callback uses the model-X’s trigger field (e.g. tool_type_id) to look up model-Y (e.g. ToolType)
+    and retrieves the fixed options from model-Y's attribute (e.g. "tool_attributes").
+    The returned callback function expects an optional model_id parameter. If omitted,
+    it will attempt to use extra["id"].
+    If only one fixed field is defined in the mapping, the callback returns the list of options directly;
+    otherwise, it returns a dict mapping each fixed field to its options.
+    """
+    def callback(model_id=None):
+        if model_id is None:
+            if extra and "id" in extra:
+                model_id = extra["id"]
+            else:
+                return {}
+        options = {}
+        with Session(engine) as session:
+            instance = session.get(calling_model, model_id)
+            if not instance:
+                return {}
+            for fixed_field, trigger_mapping in mapping.items():
+                for trigger_field, (FixedModel, fixed_relation) in trigger_mapping.items():
+                    if not hasattr(instance, trigger_field):
+                        continue
+                    fixed_id = getattr(instance, trigger_field)
+                    fixed_item = session.get(FixedModel, fixed_id)
+                    if fixed_item and hasattr(fixed_item, fixed_relation):
+                        fixed_fields = []
+                        for attr in getattr(fixed_item, fixed_relation):
+                            
+                            fixed_fields.append({
+                                "name": attr.name,
+                                "unit": attr.unit,
+                                "field_id": attr.id,
+                                "value": next((sf.value for sf in getattr(instance, fixed_field) if getattr(sf, f"{fixed_field.rstrip('s')}_id") == attr.id), None),
+                                "required": True
+                            })
+                        options[fixed_field] = fixed_fields
+        return options
+    return callback
 
 router = APIRouter()
 
+# Define a generic extra context for fixed fields.
+# In a real scenario, the tool_type_id might be provided from the frontend or configuration.
+generic_extra_context = {"tool_type_id": 1}  # Placeholder; adjust as needed.
+
 # Create generic routers
-users_router = create_generic_router(User, UserRead, UserCreate, UserUpdate, "User", {"enum_fields": {"role": UserRole, 'payment_type': PaymentType}})
+users_router = create_generic_router(User, UserRead, UserCreate, UserUpdate, "User", {"enum_fields": {"role": UserRole, "payment_type": PaymentType}})
 shift_router = create_generic_router(Shift, ShiftRead, ShiftCreate, ShiftUpdate, "Shift")
 machines_router = create_generic_router(Machine, MachineRead, MachineCreate, MachineUpdate, "Machine")
 manufacturers_router = create_generic_router(Manufacturer, ManufacturerRead, ManufacturerCreate, ManufacturerUpdate, "Manufacturer")
-tools_router = create_generic_router(Tool, ToolRead, ToolCreate, ToolUpdate, "Tool")
+tool_fixed_mapping = {
+    "tool_attributes": {"tool_type_id": (ToolType, "tool_attributes")}
+}
+tools_router = create_generic_router(Tool, ToolRead, ToolCreate, ToolUpdate, "Tool", fixed_field_callback=generic_fixed_field_callback(tool_fixed_mapping, Tool))
 tool_attributes_router = create_generic_router(ToolAttribute, ToolAttributeRead, ToolAttributeCreate, ToolAttributeUpdate, "Tool_Attribute")
 # tool_settings_router = create_generic_router(ToolSettings, ToolSettingsCreate, ToolSettingsUpdate, "Tool_Settings")
 tool_type_router = create_generic_router(ToolType, ToolTypeRead, ToolTypeCreate, ToolTypeUpdate, "Tool_Type", {"enum_fields": {"sentiment": Sentiment}})
 tool_life_router = create_generic_router(ToolLife, ToolLifeRead, ToolLifeCreate, ToolLifeUpdate, "Tool_Life", {"enum_fields": {"sentiment": Sentiment}})
 note_router = create_generic_router(Note, NoteRead, NoteCreate, NoteUpdate, "Note")
-measureable_router = create_generic_router(Measureable, MeasureableRead, MeasureableCreate, MeasureableUpdate, 'Measureable')
+measureable_router = create_generic_router(Measureable, MeasureableRead, MeasureableCreate, MeasureableUpdate, "Measureable")
 change_reason_router = create_generic_router(ChangeReason, ChangeReasonRead, ChangeReasonCreate, ChangeReasonUpdate, "Change_Reason", {"enum_fields": {"sentiment": Sentiment}})
 tool_orders_router = create_generic_router(ToolOrder, ToolOrderRead, ToolOrderCreate, ToolOrderUpdate, "Tool_Order")
 # recipe_router = create_generic_router(Recipe, RecipeCreate, RecipeUpdate, "Recipe")
 change_over_router = create_generic_router(ChangeOver, ChangeOverRead, ChangeOverCreate, ChangeOverUpdate, "Change_Over")
 workpiece_router = create_generic_router(Workpiece, WorkPieceRead, WorkpieceCreate, WorkpieceUpdate, "Workpiece")
-
 
 # Include the generic routers
 router.include_router(users_router, prefix="/users", tags=["users"])
@@ -54,23 +110,18 @@ router.include_router(tool_orders_router, prefix="/tool_orders", tags=["tool_ord
 router.include_router(tool_life_router, prefix="/tool_lifes", tags=["tool_lifes"])
 router.include_router(note_router, prefix="/notes", tags=["notes"])
 router.include_router(tool_type_router, prefix="/tool_types", tags=["tool_types"])
-router.include_router(measureable_router, prefix='/measureable', tags=['measureable'])
+router.include_router(measureable_router, prefix="/measureable", tags=["measureable"])
 router.include_router(change_over_router, prefix="/change_overs", tags=["change_overs"])
 router.include_router(workpiece_router, prefix="/workpieces", tags=["workpieces"])
 
 router.include_router(recipes_router, prefix="/recipes", tags=["recipes"])
-
 
 @router.get("/")
 async def root(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="engineer/index.html.j2",
-        context= {
+        context={
             'item_type': 'Device',
         }
     )
-
-
-
-        

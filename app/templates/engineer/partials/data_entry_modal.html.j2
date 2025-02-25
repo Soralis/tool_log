@@ -148,6 +148,19 @@
             </div>
         {% endif %}
     {% endfor %}
+    {% if fixed_field_options is defined %}
+    <div class="fixed-fields">
+        <h4>Attributes</h4>
+        {% for group_name, options in fixed_field_options.items() %}
+            {% for option in options %}
+            <div class="form-group">
+                <label for="fixed_{{ option.field_id }}">{{ option.name }} ({{ option.unit }}){% if option.required %} *{% endif %}:</label>
+                <input type="text" id="fixed_{{ option.field_id }}" name="fixed__{{ group_name }}__{{ option.field_id }}" value="{{ option.value }}" {% if option.required %}required{% endif %}>
+            </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+    {% endif %}
     {% if item %}
     <input type="hidden" name="id" value="{{ item.id }}">
     {% endif %}

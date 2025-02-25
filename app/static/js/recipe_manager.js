@@ -130,7 +130,7 @@ class RecipeManager {
     showToolPositionForm(positionName = '', toolData = null) {
         // Reset and prepare form
         this.toolPositionForm.reset();
-        document.getElementById(this.prefix + 'ToolAttributes').innerHTML = '';
+        document.getElementById(this.prefix + 'ToolSettings').innerHTML = '';
 
         // Set position name if provided
         const nameInput = document.getElementById(this.prefix + 'TpName');
@@ -171,7 +171,7 @@ class RecipeManager {
                 this.toolPositionForm.appendChild(idInput);
             }
 
-            // Set tool attributes after they're created by the change event
+            // Set tool settings after they're created by the change event
             setTimeout(() => {
                 Object.entries(toolData.tool_settings).forEach(([name, value]) => {
                     const input = document.querySelector(`#${this.prefix}_${name}`);
@@ -197,26 +197,26 @@ class RecipeManager {
         // Tool type selection change
         document.getElementById(this.prefix + 'ToolType').addEventListener('change', (e) => {
             this.populateToolSelect(e.target.value);
-            // Reset tool selection and attributes when type changes
+            // Reset tool selection and settings when type changes
             document.getElementById(this.prefix + 'Tool').value = '';
-            document.getElementById(this.prefix + 'ToolAttributes').innerHTML = '';
+            document.getElementById(this.prefix + 'ToolSettings').innerHTML = '';
         });
 
         // Tool selection change
         document.getElementById(this.prefix + 'Tool').addEventListener('change', (e) => {
             const toolId = e.target.value;
             const tool = this.toolsData[toolId];
-            const toolAttributesDiv = document.getElementById(this.prefix + 'ToolAttributes');
-            toolAttributesDiv.innerHTML = '';
+            const toolSettingsDiv = document.getElementById(this.prefix + 'ToolSettings');
+            toolSettingsDiv.innerHTML = '';
 
-            if (tool && tool.attributes) {
-                tool.attributes.forEach(attr => {
+            if (tool && tool.settings) {
+                tool.settings.forEach(attr => {
                     const attrDiv = document.createElement('div');
                     attrDiv.innerHTML = `
                         <label for="${this.prefix}_${attr.name}">${attr.name} (${attr.unit}):</label>
                         <input type="number" step="any" id="${this.prefix}_${attr.name}" name="${attr.name}" required>
                     `;
-                    toolAttributesDiv.appendChild(attrDiv);
+                    toolSettingsDiv.appendChild(attrDiv);
                 });
             }
         });
@@ -234,10 +234,10 @@ class RecipeManager {
                 group = this.createToolPositionGroup(positionName);
             }
 
-            const toolSettings = {};
-            const toolAttributes = document.getElementById(this.prefix + 'ToolAttributes').querySelectorAll('input');
-            toolAttributes.forEach(attr => {
-                toolSettings[attr.name] = parseFloat(attr.value);
+            const toolSettings = document.getElementById(this.prefix + 'ToolSettings').querySelectorAll('input');
+            const settings = {};
+            toolSettings.forEach(attr => {
+                settings[attr.name] = parseFloat(attr.value);
             });
 
             // Get the tool position ID if it exists
@@ -249,11 +249,13 @@ class RecipeManager {
             if (this.currentEditIndex !== null) {
                 // Update existing option
                 const wasSelected = select.selectedIndex === this.currentEditIndex;
+                const selectedTool = this.toolsData[toolSelect.value];
                 const newValue = JSON.stringify({
                     id: toolPositionId,
                     tool_id: toolSelect.value,
                     expected_life: parseInt(e.target.expected_life.value),
-                    tool_settings: toolSettings
+                    tool_settings: settings,
+                    tool_attributes: selectedTool.attributes
                 });
                 
                 select.options[this.currentEditIndex].value = newValue;
@@ -265,20 +267,22 @@ class RecipeManager {
                 }
             } else {
                 // Add new option
+                const selectedTool = this.toolsData[toolSelect.value];
                 this.addToolPositionToGroup(group, {
                     id: toolPositionId,
                     name: positionName,
                     tool_id: toolSelect.value,
                     tool_name: toolName,
                     expected_life: parseInt(e.target.expected_life.value),
-                    tool_settings: toolSettings,
+                    tool_settings: settings,
+                    tool_attributes: selectedTool.attributes,
                     selected: false
                 });
             }
 
             this.toolPositionModal.classList.remove('active');
             this.toolPositionForm.reset();
-            document.getElementById(this.prefix + 'ToolAttributes').innerHTML = '';
+            document.getElementById(this.prefix + 'ToolSettings').innerHTML = '';
             
             // Remove the ID input if it exists
             if (idInput) {
@@ -367,7 +371,8 @@ class RecipeManager {
             id: toolPosition.id,
             tool_id: toolPosition.tool_id,
             expected_life: toolPosition.expected_life,
-            tool_settings: toolPosition.tool_settings
+            tool_settings: toolPosition.tool_settings,
+            tool_attributes: toolPosition.tool_attributes
         });
         option.textContent = `${toolPosition.tool_name} (Life: ${toolPosition.expected_life})`;
         select.appendChild(option);
@@ -386,11 +391,20 @@ class RecipeManager {
             const hasHighRole = window.userRole >= 4;
             
             detailsDiv.innerHTML = `
-                <p>Expected Life: ${data.expected_life}</p>
-                ${Object.entries(data.tool_settings).map(([name, value]) => {
-                    const attr = tool.attributes.find(a => a.name === name);
-                    return `<p class="tool-attribute">${name}: ${value} ${attr ? attr.unit : ''}</p>`;
-                }).join('')}
+                <div class="grid grid-cols-2 max-w-full">
+                    <div>
+                        <p>Expected Life: ${data.expected_life}</p>
+                        ${Object.entries(data.tool_settings).map(([name, value]) => {
+                            const sett = tool.settings.find(a => a.name === name);
+                            return `<p class="tool-setting">${name}: ${value} ${sett ? sett.unit : ''}</p>`;
+                        }).join('')}
+                    </div>
+                    <div
+                        ${data.tool_attributes.map(attr => {
+                            return `<p class="tool-setting text-right">${attr.name}: ${attr.value} ${attr.unit}</p>`;
+                        }).join('')}
+                    </div>
+                </div>
                 ${hasHighRole ? `
                 <div class="tool-position-actions">
                     <button type="button" class="btn-edit" onclick="${this.getManagerName()}.editToolPosition(this)">Edit</button>
@@ -420,7 +434,8 @@ class RecipeManager {
             id: data.id,
             tool_id: data.tool_id,
             expected_life: data.expected_life,
-            tool_settings: data.tool_settings
+            tool_settings: data.tool_settings,
+            tool_attributes: data.tool_attributes
         });
     }
 
@@ -453,6 +468,7 @@ class RecipeManager {
                         tool_id: data.tool_id,
                         expected_life: data.expected_life,
                         tool_settings: data.tool_settings,
+                        tool_attributes: data.tool_attributes,
                         selected: option.value === selectedValue
                     });
                 }
@@ -483,18 +499,19 @@ class RecipeManager {
         Object.entries(positionGroups).forEach(([name, positions]) => {
             const group = this.createToolPositionGroup(name);
             
-            positions.forEach(tp => {
-                const tool = this.toolsData[tp.tool_id];
-                this.addToolPositionToGroup(group, {
-                    id: tp.id,
-                    name: tp.name,
-                    tool_id: tp.tool_id,
-                    tool_name: tool ? tool.name : 'Unknown Tool',
-                    expected_life: tp.expected_life,
-                    tool_settings: tp.tool_settings,
-                    selected: tp.selected
+                positions.forEach(tp => {
+                    const tool = this.toolsData[tp.tool_id];
+                    this.addToolPositionToGroup(group, {
+                        id: tp.id,
+                        name: tp.name,
+                        tool_id: tp.tool_id,
+                        tool_name: tool ? tool.name : 'Unknown Tool',
+                        expected_life: tp.expected_life,
+                        tool_settings: tp.tool_settings,
+                        tool_attributes: tp.tool_attributes || (tool ? tool.attributes : {}),
+                        selected: tp.selected
+                    });
                 });
-            });
         });
     }
 }

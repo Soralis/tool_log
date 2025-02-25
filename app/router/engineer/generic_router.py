@@ -1,9 +1,9 @@
 import json
 from datetime import datetime, time
-from fastapi import APIRouter, Request, HTTPException, status, Header, Depends
+from fastapi import APIRouter, Request, HTTPException, status, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import ValidationError
-from sqlmodel import Session, select, inspect, SQLModel, func
+from sqlmodel import Session, select, inspect, SQLModel, func, inspect as sql_inspect
 from sqlalchemy import Integer, String, Boolean, Float, DateTime
 from sqlalchemy.orm import joinedload, RelationshipProperty
 from sqlalchemy.sql import sqltypes
@@ -16,12 +16,14 @@ from app.models import Machine, MachineCreate, MachineRead
 from app.models import User, UserCreate, UserRead
 from app.models import Shift, ShiftCreate, ShiftRead
 from app.models import Tool, ToolCreate, ToolRead, ToolAttribute, ToolAttributeCreate, ToolAttributeRead
+from app.models import ToolAttributeValue, ToolAttributeValueCreate, ToolAttributeValueUpdate, ToolAttributeValueRead
 from app.models import ToolLife, ToolLifeCreate, ToolLifeRead
 from app.models import Note, NoteCreate, NoteRead
 from app.models import ToolType, ToolTypeCreate, ToolTypeRead
+from app.models import ToolSetting, ToolSettingCreate, ToolSettingRead
 from app.models import Recipe, RecipeCreate, RecipeRead
 from app.models import ChangeReason, ChangeReasonCreate, ChangeReasonRead
-from typing import Type, Dict, Any, ForwardRef, get_origin, get_args, List
+from typing import Type, Dict, Any, ForwardRef, get_origin, get_args, List, Optional, Callable
 from auth import get_current_operator
 
 # Create a mapping of string names to SQLModel classes
@@ -35,6 +37,8 @@ model_mapping = {
     'toollife': {"model": ToolLife, "create": ToolLifeCreate, "read": ToolLifeRead},
     'note': {"model": Note, "create": NoteCreate, "read": NoteRead},
     'toolattribute': {"model": ToolAttribute, "create": ToolAttributeCreate, "read": ToolAttributeRead},
+    'toolattributevalue': {"model": ToolAttributeValue, "create": ToolAttributeValueCreate, "read": ToolAttributeValueRead},
+    'toolsetting': {"model": ToolSetting, "create": ToolSettingCreate, "read": ToolSettingRead},
     'tooltype': {"model": ToolType, "create": ToolTypeCreate, "read": ToolTypeRead},
     'recipe': {"model": Recipe, "create": RecipeCreate, "read": RecipeRead},
     'shift': {"model": Shift, "create": ShiftCreate, "read": ShiftRead},
@@ -46,7 +50,8 @@ def create_generic_router(
     create_model: Type[SQLModel],
     update_model: Type[SQLModel],
     item_type: str,
-    extra_context: Dict[str, Any] = None
+    extra_context: Dict[str, Any] = None,
+    fixed_field_callback: Optional[Callable[[], List[Dict[str, Any]]]] = None
 ):
     router = APIRouter()
 
@@ -117,10 +122,8 @@ def create_generic_router(
     @router.get("/", response_class=HTMLResponse)
     async def get_items(request: Request):
         router.context['relationship_options'], router.context['children'] = get_relations_and_children()
-
         if extra_context:
             router.context.update(extra_context)
-
         return templates.TemplateResponse(
             request=request,
             name="engineer/data.html.j2",
@@ -251,7 +254,14 @@ def create_generic_router(
         
         context['item'] = db_item
         context['model'] = update_model
-            
+        if fixed_field_callback:
+            fixed_field_options = fixed_field_callback(item_id)
+            for key, value in fixed_field_options.items():
+                context['fixed_field_options'] = {}
+                if key in context['relationship_options']:
+                    del context['relationship_options'][key]
+                context['fixed_field_options'][key] = value
+
         # Add this debug print
         print(f"Update Context: {context}")
         
@@ -267,6 +277,7 @@ def create_generic_router(
         
         existing_relations: Dict[str, Any] = {}
         new_relations: Dict[str, Any] = {}
+        fixed_fields: Dict[str, Any] = {}
 
         for field_name, value in form_data._list:
             if not value:
@@ -283,8 +294,13 @@ def create_generic_router(
                 existing_relations[list_field_name].append(int(value))
             elif field_name.endswith('_new'):
                 new_relations[field_name.rstrip('_new')] = json.loads(value)
+            elif field_name.startswith('fixed_'):
+                parts = field_name.split('__')
+                if not parts[1] in fixed_fields:
+                    fixed_fields[parts[1]] = []
+                fixed_fields[parts[1]].append({f'{parts[1].rstrip('s')}_id':parts[2], 'value': json.loads(value)})
 
-        return form_dict, existing_relations, new_relations
+        return form_dict, existing_relations, new_relations, fixed_fields
     
 
     @router.post("/", response_class=JSONResponse)
@@ -364,7 +380,7 @@ def create_generic_router(
 
     @router.put("/{item_id}")
     async def update_item(item_id: int, request: Request, user: User = Depends(get_current_operator)):
-        form_dict, existing_relations, new_relations = await get_form_data(request)
+        form_dict, existing_relations, new_relations, fixed_form_fields = await get_form_data(request)
 
         if item_id != int(form_dict['id']):
             raise HTTPException(status_code=400, detail=f"Path {item_type.lower()}_id does not match form data id")
@@ -416,6 +432,34 @@ def create_generic_router(
                             relation_list.append(new_item)
                         except ValidationError as e:
                             raise HTTPException(status_code=422, detail=f"Validation error in {relation_name}: {str(e)}")
+
+            if fixed_form_fields:
+                for field_key, updates in fixed_form_fields.items():
+                    fixed_field_list = getattr(item, field_key)
+                    field_type = model.__annotations__.get(field_key)
+                    model_class = None
+                    if field_type:
+                        origin = get_origin(field_type)
+                        if origin is list:
+                            inner = get_args(field_type)[0]
+                        elif origin is not None and "Mapped" in str(origin):
+                            inner = get_args(field_type)[0]
+                        else:
+                            continue
+                        if get_origin(inner) is list:
+                            model_inner = get_args(inner)[0]
+                        else:
+                            model_inner = inner
+                        if isinstance(model_inner, ForwardRef):
+                            model_class = globals().get(model_inner.__forward_arg__)
+                        else:
+                            model_class = model_inner
+                    else:
+                        continue
+                    fixed_field_list.clear()
+                    for update in updates:
+                        new_instance = model_class(**update)
+                        fixed_field_list.append(new_instance)
 
             try:
                 session.add(item)

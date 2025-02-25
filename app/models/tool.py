@@ -1,10 +1,10 @@
 from typing import Optional, List, Dict, TYPE_CHECKING
+from .tool_type import Sentiment
 from pydantic import field_validator
 from sqlmodel import Field, SQLModel, Relationship, Column, JSON
 from sqlalchemy import UniqueConstraint
 from datetime import datetime as dt
 from decimal import Decimal
-from enum import IntEnum
 from .model_connections import RecipeTool
 
 if TYPE_CHECKING:
@@ -13,99 +13,8 @@ if TYPE_CHECKING:
     from .user import User
     from .manufacturer import Manufacturer
     from .workpiece import Workpiece
-
-
-class ToolTypeBase(SQLModel):
-    name: str = Field(index=True, unique=True)
-    perishable: bool = Field(default=True)
-
-
-class ToolType(ToolTypeBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    active: bool = Field(default=True, nullable=False)
-
-    tool_attributes: List['ToolAttribute'] = Relationship(back_populates='tool_type', cascade_delete=True)
-    change_reasons: List['ChangeReason'] = Relationship(back_populates='tool_type', cascade_delete=True)
-    tools: List['Tool'] = Relationship(back_populates='tool_type')
-
-
-class ToolTypeCreate(ToolTypeBase):
-    change_reasons: List['ChangeReason'] = []
-    tool_attributes: List['ToolAttribute'] = []
-
-
-class ToolTypeUpdate(ToolTypeCreate):
-    id: int
-    active: bool
-
-
-class ToolTypeRead(ToolTypeBase):
-    id: int
-    active: bool
-
-
-class ToolAttribute(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str
-    unit: str
-    tool_type_id: int = Field(foreign_key='tooltype.id', ondelete='CASCADE')
-    tool_type: ToolType = Relationship(back_populates='tool_attributes')
-
-    __table_args__ = (UniqueConstraint('name', 'tool_type_id'),)
-
-
-class ToolAttributeCreate(SQLModel):
-    name: str
-    unit: str
-    tool_type_id: int
-
-
-class ToolAttributeUpdate(ToolAttributeCreate):
-    id: int
-
-
-class ToolAttributeRead(SQLModel):
-    id: int
-    name: str
-    unit: str
-
-
-class Sentiment(IntEnum):
-    VERY_BAD = 1
-    BAD = 2
-    NEUTRAL = 3
-    GOOD = 4
-    VERY_GOOD = 5
-
-class ChangeReasonBase(SQLModel):
-    name: str = Field(index=True)
-    sentiment: Sentiment = Field(default=Sentiment.NEUTRAL)
-
-
-class ChangeReason(ChangeReasonBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    active: bool = Field(default=True, nullable=False)
-
-    tool_type_id: int = Field(foreign_key='tooltype.id', ondelete='CASCADE')
-    tool_type: ToolType = Relationship(back_populates='change_reasons')
-
-    tool_lifes: List['ToolLife'] = Relationship(back_populates='change_reason')
-
-    __table_args__ = (UniqueConstraint('name', 'tool_type_id'),)
-
-
-class ChangeReasonCreate(ChangeReasonBase):
-    pass
-
-
-class ChangeReasonUpdate(ChangeReasonCreate):
-    id: int
-    active: bool
-
-
-class ChangeReasonRead(ChangeReasonBase):
-    id: int
-
+    from .tool_type import ToolType, ChangeReason, Sentiment
+    from .model_connections import ToolAttributeValue
 
 class ToolBase(SQLModel):
     name: str = Field(index=True)
@@ -127,16 +36,18 @@ class Tool(ToolBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     manufacturer: 'Manufacturer' = Relationship(back_populates='tools')
     inventory: Optional[int] = Field(default=0)
-    tool_type: ToolType = Relationship(back_populates='tools')
+    tool_type: 'ToolType' = Relationship(back_populates='tools')
     active: bool = Field(default=True, nullable=False)
     recipes: List['Recipe'] = Relationship(back_populates='tools', link_model=RecipeTool)
     tool_lifes: List['ToolLife'] = Relationship(back_populates='tool')
     tool_orders: List['ToolOrder'] = Relationship(back_populates='tool')
     tool_positions: List['ToolPosition'] = Relationship(back_populates='tool')
     tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='tool')
+    tool_attributes: List['ToolAttributeValue'] = Relationship(back_populates="tool")
 
 
 class ToolCreate(ToolBase):
+    # tool_attributes: List['ToolAttributeValue'] = []
     pass
 
 
@@ -151,7 +62,7 @@ class ToolRead(SQLModel):
     name: str
     inventory: int
     manufacturer: 'Manufacturer'
-    tool_type: ToolType
+    tool_type: 'ToolType'
     active: bool
 
 
@@ -240,7 +151,7 @@ class ToolLife(ToolLifeBase, table=True):
     tool: Tool = Relationship(back_populates='tool_lifes')
     recipe: 'Recipe' = Relationship(back_populates='tool_lifes')
     # tool_order: ToolOrder = Relationship(back_populates='tool_lifes')
-    change_reason: ChangeReason = Relationship(back_populates='tool_lifes')
+    change_reason: 'ChangeReason' = Relationship(back_populates='tool_lifes')
     tool_position: 'ToolPosition' = Relationship(back_populates='tool_lifes')
     notes: List['Note'] = Relationship(back_populates='tool_life')
 
