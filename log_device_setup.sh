@@ -4,6 +4,36 @@
 SERVER_IP="10.0.36.192"
 # read -p "Enter the Server IP Address: " SERVER_IP
 
+# WLAN configuration - Edit these values to change network settings
+WLAN_SSID="YourWifiNetworkName"
+WLAN_PASSWORD="YourWifiPassword"
+CONFIGURE_WLAN=false  # Set to true to apply WLAN configuration
+
+# Configure WLAN if enabled
+if [ "$CONFIGURE_WLAN" = true ]; then
+  echo "Configuring WLAN with SSID: $WLAN_SSID"
+  
+  # Create wpa_supplicant configuration
+  sudo bash -c "cat > /etc/wpa_supplicant/wpa_supplicant.conf << EOF
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=DE
+
+network={
+    ssid=\"$WLAN_SSID\"
+    psk=\"$WLAN_PASSWORD\"
+    key_mgmt=WPA-PSK
+}
+EOF"
+
+  # Restart networking to apply changes
+  echo "Restarting networking services..."
+  sudo systemctl restart dhcpcd
+  sudo wpa_cli -i wlan0 reconfigure
+  
+  echo "WLAN configuration updated. New settings will be applied."
+fi
+
 # Get Raspberry Pi's MAC address for device name
 DEVICE_NAME=$(ifconfig wlan0 | grep ether | awk '{print $2}')
 

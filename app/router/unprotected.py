@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends, Form, Request
 from sqlmodel import Session, select
 from datetime import datetime
 from fastapi.responses import JSONResponse
@@ -52,13 +52,25 @@ async def heartbeat_old(device_token: str = Form(...), session: Session = Depend
     return JSONResponse(content={"message": "Heartbeat recorded successfully"}, status_code=200)
 
 @router.post("/heartbeat")
-async def heartbeat(device_token: str, session: Session = Depends(get_session)):
+async def heartbeat(device_token: str, session: Session = Depends(get_session), request:Request=None):
+    if request is None:
+        request = Request
+    
     if not device_token:
         return JSONResponse(content={"error": "Log Device token not provided"}, status_code=400)
+    
     log_device: LogDevice = session.exec(select(LogDevice).filter(LogDevice.token == device_token)).one_or_none()
     if log_device is None:
         return JSONResponse(content={"error": "Log Device not found"}, status_code=404)
 
+    # Get client IP address
+    client_ip = request.client.host if hasattr(request, 'client') else None
+    
+    # Update the log device's IP address if it has changed
+    if client_ip and log_device.ip_address != client_ip:
+        log_device.ip_address = client_ip
+        session.add(log_device)
+    
     # Create a new Heartbeat record
     heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
     session.add(heartbeat)

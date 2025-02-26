@@ -93,7 +93,9 @@ else
     fi
 fi
 
+# Make scripts executable
 sudo chmod 700 deploy.sh
+sudo chmod 700 update_log_devices.sh
 
 # Navigate to the new directory
 cd "$NEW_DIR"
