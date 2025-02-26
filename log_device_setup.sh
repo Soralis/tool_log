@@ -96,8 +96,9 @@ chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScro
   --disable \$KIOSK_URL
 EOF'
 
-# Make heartbeat.sh executable
-chmod +x heartbeat.sh
+# Copy heartbeat.sh to home directory and make it executable
+cp heartbeat.sh /home/pi/heartbeat.sh
+chmod +x /home/pi/heartbeat.sh
 
 # Set Openbox environment
 echo "Setting Openbox Environment"
@@ -109,7 +110,10 @@ sudo bash -c "echo \"export SERVER_IP=${SERVER_IP}\" > /etc/environment"
 
 # Add cron job to run heartbeat.sh every minute
 echo "Adding cron job for heartbeat"
-(crontab -l 2>/dev/null; echo "* * * * * /heartbeat.sh") | crontab -
+# Remove any existing heartbeat.sh entries first
+(crontab -l 2>/dev/null | grep -v "heartbeat.sh") | crontab -
+# Add the new entry
+(crontab -l 2>/dev/null; echo "* * * * * /home/pi/heartbeat.sh") | crontab -
 
 # Insert Start conditions to bash_profile
 echo "Setting Start Conditions"
