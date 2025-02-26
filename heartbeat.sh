@@ -20,6 +20,12 @@ SERVER_IP="10.0.0.148:8000" # for home office, with port (no nginx)
 # Heartbeat function
 heartbeat() {
   echo "Sending heartbeat to http://${SERVER_IP}/unprotected/heartbeat"
+  COUNTER_FILE="/tmp/failed_pings.txt"
+  if [ -f "$COUNTER_FILE" ]; then
+      FAILED_PINGS=$(cat "$COUNTER_FILE")
+  else
+      FAILED_PINGS=0
+  fi
 
   curl_data()
   {
@@ -39,23 +45,22 @@ EOF
   
   if echo "$RESPONSE" | grep -q "success"; then
     FAILED_PINGS=0
+    echo "0" > "$COUNTER_FILE"
     echo "$(date): Heartbeat successful. Failed pings reset to 0." >> /tmp/heartbeat_status.log
     echo "Heartbeat successful"
   else
-    echo "$(date): Heartbeat failed." >> /tmp/heartbeat_status.log
     FAILED_PINGS=$((FAILED_PINGS + 1))
-    echo "Failed pings: $FAILED_PINGS" >> /tmp/heartbeat_status.log
+    echo "$FAILED_PINGS" > "$COUNTER_FILE"
+    echo "$(date): Heartbeat failed. Failed pings: $FAILED_PINGS" >> /tmp/heartbeat_status.log
     echo "Heartbeat failed"
     if [ "$FAILED_PINGS" -ge 5 ]; then
+      echo "0" > "$COUNTER_FILE"
       echo "$(date): No heartbeat for 5 minutes. Rebooting..." >> /tmp/heartbeat_status.log
       echo "No heartbeat for 5 minutes. Rebooting..."
       sudo reboot
     fi
   fi
 }
-
-# Initialize failed pings counter
-FAILED_PINGS=0
 
 # Run Heartbeat
 heartbeat
