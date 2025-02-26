@@ -59,6 +59,10 @@ sudo apt-get install --no-install-recommends xserver-xorg x11-xserver-utils xini
 echo "Installing chromium"
 sudo apt-get install --no-install-recommends chromium-browser -y
 
+# Delete uneccessary installs
+echo "Cleaning up"
+sudo apt autoremove -y
+
 # Rotate Touch
 echo "Rotating Touch Input"
 sudo cp /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/
@@ -96,8 +100,8 @@ chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScro
   --disable \$KIOSK_URL
 EOF'
 
-# Copy heartbeat.sh to home directory and make it executable
-cp heartbeat.sh /home/pi/heartbeat.sh
+# Retrieve heartbeat.sh from GitHub and make it executable
+wget -O /home/pi/heartbeat.sh https://raw.githubusercontent.com/Soralis/tool_log/master/heartbeat.sh
 chmod +x /home/pi/heartbeat.sh
 
 # Set Openbox environment
@@ -114,6 +118,7 @@ echo "Adding cron job for heartbeat"
 (crontab -l 2>/dev/null | grep -v "heartbeat.sh") | crontab -
 # Add the new entry
 (crontab -l 2>/dev/null; echo "* * * * * /home/pi/heartbeat.sh") | crontab -
+echo "Heartbeat.sh installed and cron job added"
 
 # Insert Start conditions to bash_profile
 echo "Setting Start Conditions"
