@@ -22,9 +22,9 @@ heartbeat() {
   echo "Sending heartbeat to http://${SERVER_IP}/unprotected/heartbeat"
   
   # Use POST method with device_token parameter
-  RESPONSE=$(curl -s -X POST "http://${SERVER_IP}/unprotected/heartbeat" \
+  RESPONSE=$(curl -s POST "http://${SERVER_IP}/unprotected/heartbeat" \
     -H "Content-Type: application/json" \
-    -d "{\"device_token\": \"${DEVICE_NAME}\"}")
+    -d "{'device_token': '${DEVICE_NAME}'}")
   
   echo "Response: $RESPONSE"
   
@@ -44,5 +44,5 @@ heartbeat() {
 # Initialize failed pings counter
 FAILED_PINGS=0
 
-# Heartbeat
+# Run Heartbeat
 heartbeat
