@@ -20,11 +20,20 @@ SERVER_IP="10.0.0.148:8000" # for home office, with port (no nginx)
 # Heartbeat function
 heartbeat() {
   echo "Sending heartbeat to http://${SERVER_IP}/unprotected/heartbeat"
+
+  curl_data()
+  {
+    cat<<EOF
+  {
+    "device_token": "$DEVICE_NAME"
+  }
+EOF
+  }
   
   # Use POST method with device_token parameter
-  RESPONSE=$(curl -s POST "http://${SERVER_IP}/unprotected/heartbeat" \
+  RESPONSE=$(curl -s -X POST "http://${SERVER_IP}/unprotected/heartbeat" \
     -H "Content-Type: application/json" \
-    -d "{'device_token': '${DEVICE_NAME}'}")
+    -d "$(curl_data)" )
   
   echo "Response: $RESPONSE"
   
@@ -34,8 +43,8 @@ heartbeat() {
   else
     echo "Heartbeat failed"
     FAILED_PINGS=$((FAILED_PINGS + 1))
-    if [ "$FAILED_PINGS" -ge 15 ]; then
-      echo "No heartbeat for 15 minutes. Rebooting..."
+    if [ "$FAILED_PINGS" -ge 5 ]; then
+      echo "No heartbeat for 5 minutes. Rebooting..."
       sudo reboot
     fi
   fi

@@ -38,18 +38,18 @@ async def users_by_shift(session: Session = Depends(get_session)):
 
     return {"users_by_shift": users_by_shift, "active_shift": active_shift}
 
-@router.post("/heartbeat_old")
-async def heartbeat_old(device_token: str = Form(...), session: Session = Depends(get_session)):
-    log_device: LogDevice = session.exec(select(LogDevice).filter(LogDevice.token == device_token)).one_or_none()
-    if log_device is None:
-        return JSONResponse(content={"error": "Log Device not found"}, status_code=404)
+# @router.post("/heartbeat_old")
+# async def heartbeat_old(device_token: str = Form(...), session: Session = Depends(get_session)):
+#     log_device: LogDevice = session.exec(select(LogDevice).filter(LogDevice.token == device_token)).one_or_none()
+#     if log_device is None:
+#         return JSONResponse(content={"error": "Log Device not found"}, status_code=404)
 
-    # Create a new Heartbeat record
-    heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
-    session.add(heartbeat)
-    session.commit()
+#     # Create a new Heartbeat record
+#     heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
+#     session.add(heartbeat)
+#     session.commit()
 
-    return JSONResponse(content={"message": "Heartbeat recorded successfully"}, status_code=200)
+#     return JSONResponse(content={"message": "Heartbeat recorded successfully"}, status_code=200)
 
 @router.post("/heartbeat")
 async def heartbeat(request: Request, session: Session = Depends(get_session)):
