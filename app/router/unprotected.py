@@ -88,8 +88,8 @@ async def heartbeat(request: Request, session: Session = Depends(get_session)):
         session.add(log_device)
     
     # Create a new Heartbeat record
-    heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
-    session.add(heartbeat)
+    logged_heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
+    session.add(logged_heartbeat)
     session.commit()
 
     return JSONResponse(content={"message": "Heartbeat recorded successfully", "success": True}, status_code=200)
