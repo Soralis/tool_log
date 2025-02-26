@@ -3,12 +3,12 @@
 # Get Raspberry Pi's MAC address for device name
 DEVICE_NAME=$(ifconfig wlan0 | grep ether | awk '{print $2}')
 
-# Prompt for Base URL from environment variable
-SERVER_IP=${SERVER_IP}
+# Set server IP address
+SERVER_IP="10.0.36.192"
 
 # Heartbeat function
 heartbeat() {
-  ping -c 1 -W 5 http://${SERVER_IP}/unprotected/heartbeat?device_name=${DEVICE_NAME} > /dev/null
+  curl -s -o /dev/null -w "%{http_code}" "http://${SERVER_IP}/unprotected/heartbeat?device_name=${DEVICE_NAME}" | grep -q "200"
   if [ $? -eq 0 ]; then
     echo "Heartbeat successful"
     FAILED_PINGS=0

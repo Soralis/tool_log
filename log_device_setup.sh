@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Prompt for Base URL
-read -p "Enter the Server IP Address: " SERVER_IP
+# Set server IP address
+SERVER_IP="10.0.36.192"
+# read -p "Enter the Server IP Address: " SERVER_IP
 
 # Get Raspberry Pi's MAC address for device name
 DEVICE_NAME=$(ifconfig wlan0 | grep ether | awk '{print $2}')
