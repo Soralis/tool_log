@@ -15,7 +15,7 @@ echo "Using device identifier: $DEVICE_NAME"
 
 # Set server IP address
 # SERVER_IP="10.0.36.192"
-SERVER_IP="10.0.0.148" # for home office, without port
+SERVER_IP="10.0.0.148:8000" # for home office, with port (no nginx)
 
 # Heartbeat function
 heartbeat() {
