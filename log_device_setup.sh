@@ -2,12 +2,12 @@
 
 # Set server IP address
 # SERVER_IP="10.0.36.192"
-SERVER_IP="10.0.0.38" # for home office
+SERVER_IP="10.0.0.38:8000" # for home office
 # read -p "Enter the Server IP Address: " SERVER_IP
 
 # WLAN configuration - Edit these values to change network settings
-WLAN_SSID="YourWifiNetworkName"
-WLAN_PASSWORD="YourWifiPassword"
+WLAN_SSID="NUSA226T15 5362"
+WLAN_PASSWORD="83*n200D"
 CONFIGURE_WLAN=false  # Set to true to apply WLAN configuration
 
 # Configure WLAN if enabled
