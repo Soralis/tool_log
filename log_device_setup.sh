@@ -3,9 +3,10 @@
 # Prompt for Base URL
 read -p "Enter the Server IP Address: " SERVER_IP
 
-# Get Raspberry Pi's CPU serial number for device name
-DEVICE_NAME=$(cat /proc/cpuinfo | grep Serial | cut -d ' ' -f 2)
-echo "Using Device Serial: $DEVICE_NAME"
+# Get Raspberry Pi's MAC address for device name
+DEVICE_NAME=$(ifconfig wlan0 | grep ether | awk '{print $2}')
+
+echo "Using Device MAC Address: $DEVICE_NAME"
 
 # Construct the KIOSK_URL
 KIOSK_URL="http://${SERVER_IP}/deviceRegistration?device_name=${DEVICE_NAME}"
@@ -63,9 +64,20 @@ chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScro
   --disable \$KIOSK_URL
 EOF'
 
+# Make heartbeat.sh executable
+chmod +x heartbeat.sh
+
 # Set Openbox environment
 echo "Setting Openbox Environment"
 sudo bash -c "echo \"export KIOSK_URL=${KIOSK_URL}\" > /etc/xdg/openbox/environment"
+
+# Set SERVER_IP environment variable
+echo "Setting SERVER_IP Environment"
+sudo bash -c "echo \"export SERVER_IP=${SERVER_IP}\" > /etc/environment"
+
+# Add cron job to run heartbeat.sh every minute
+echo "Adding cron job for heartbeat"
+(crontab -l 2>/dev/null; echo "* * * * * /heartbeat.sh") | crontab -
 
 # Insert Start conditions to bash_profile
 echo "Setting Start Conditions"

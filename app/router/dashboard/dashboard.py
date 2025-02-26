@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Request, Depends, Query, WebSocket
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 from sqlmodel import Session, select
+from sqlalchemy import func, case
 import socket
 import asyncio
 import json
-import pytz
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
@@ -80,19 +80,17 @@ def calculate_uptime_percentage(heartbeats: List[datetime], time_horizon: timede
     """Calculates the uptime percentage over a given time horizon."""
     if not heartbeats:
         return 0.0
-    
+
     # sort heartbeats by time
     heartbeats.sort()
-    
-    eastern = pytz.timezone('America/New_York')
-    now = datetime.now(eastern)
-    start_time = now - time_horizon
-    
+
+    start_time = datetime.now(timezone.utc) - time_horizon
+
     # Filter heartbeats within the time horizon and deduplicate within 5-minute intervals
     valid_heartbeats = []
     last_heartbeat_time = None
     for hb in heartbeats:
-        if start_time <= hb <= now:
+        if start_time <= hb <= datetime.now(timezone.utc):
             time_since_last_valid = hb - last_heartbeat_time if last_heartbeat_time else timedelta(seconds=0)
             if last_heartbeat_time is None or time_since_last_valid >= timedelta(seconds=298):
                 valid_heartbeats.append(hb)
@@ -101,11 +99,34 @@ def calculate_uptime_percentage(heartbeats: List[datetime], time_horizon: timede
     # Calculate expected vs actual heartbeats
     expected_heartbeats = int(time_horizon.total_seconds() / (5 * 60))  # 5 minutes in seconds
     actual_heartbeats = len(valid_heartbeats)
-    
+
     # Avoid division by zero
     if expected_heartbeats == 0:
         return 0.0
-    
+
+    # Calculate uptime percentage
+    uptime_percentage = (actual_heartbeats / expected_heartbeats) * 100
+    return round(min(uptime_percentage, 100.0), 2)  # Cap at 100%
+
+
+def calculate_uptime_percentage_optimized(heartbeats: List[datetime], time_horizon: timedelta) -> float:
+    """Calculates the uptime percentage over a given time horizon without deduplication."""
+    if not heartbeats:
+        return 0.0
+
+    start_time = datetime.now(timezone.utc) - time_horizon
+
+    # Filter heartbeats within the time horizon
+    valid_heartbeats = [hb for hb in heartbeats if start_time <= hb <= datetime.now(timezone.utc)]
+
+    # Calculate expected vs actual heartbeats
+    expected_heartbeats = int(time_horizon.total_seconds() / (5 * 60))  # 5 minutes in seconds
+    actual_heartbeats = len(valid_heartbeats)
+
+    # Avoid division by zero
+    if expected_heartbeats == 0:
+        return 0.0
+
     # Calculate uptime percentage
     uptime_percentage = (actual_heartbeats / expected_heartbeats) * 100
     return round(min(uptime_percentage, 100.0), 2)  # Cap at 100%
@@ -113,25 +134,28 @@ def calculate_uptime_percentage(heartbeats: List[datetime], time_horizon: timede
 
 async def get_device_status(db: Session) -> List[Dict]:
     """Fetches the status of all log devices."""
-    # now = datetime.now()
-    eastern = pytz.timezone('America/New_York')
-    now = datetime.now(eastern)
+    now = datetime.now(timezone.utc)
     devices = db.exec(select(LogDevice).where(LogDevice.track_health)).all()
     device_statuses = []
 
     for device in devices:
         if device.name != 'Server' and not device.machines:
             continue
-        # Fetch heartbeats for the device in the last month
+
+        # Calculate time horizons
         one_month_ago = now - timedelta(days=30)
+
+        # Fetch the last heartbeat for the device in the last month
         heartbeats = db.exec(
             select(Heartbeat.timestamp)
             .where(Heartbeat.log_device_id == device.id)
             .where(Heartbeat.timestamp >= one_month_ago)
+            .order_by(Heartbeat.timestamp.desc())
+
         ).all()
-        
-        # Check if the device is currently "up" (heartbeat in last 5 minutes)
-        last_heartbeat = max(heartbeats, default=None)
+
+        last_heartbeat = heartbeats[0] if heartbeats else None
+        # Determine device health
         is_healthy = last_heartbeat and (now - last_heartbeat) <= timedelta(minutes=5)
 
         # Calculate last seen time
@@ -139,17 +163,18 @@ async def get_device_status(db: Session) -> List[Dict]:
         if last_heartbeat:
             time_diff = now - last_heartbeat
             minutes = time_diff.total_seconds() / 60
+            if minutes < 1:
+                last_seen = "Just now"
             if minutes < 60:
                 last_seen = f"{int(minutes)} minutes ago"
             else:
                 hours = minutes / 60
                 last_seen = f"{int(hours)} hours ago"
 
-        # Calculate stability percentages
-        stability_24h = calculate_uptime_percentage(heartbeats, timedelta(hours=24))
-        stability_7d = calculate_uptime_percentage(heartbeats, timedelta(days=7))
-        stability_month = calculate_uptime_percentage(heartbeats, timedelta(days=30))
-        
+        stability_24h = calculate_uptime_percentage_optimized(heartbeats, timedelta(hours=24))
+        stability_7d = calculate_uptime_percentage_optimized(heartbeats, timedelta(days=7))
+        stability_month = calculate_uptime_percentage_optimized(heartbeats, timedelta(days=30))
+
         device_statuses.append({
             "Device": ', '.join([machine.name for machine in device.machines]) if device.machines else device.name,
             "Healthy": is_healthy if is_healthy else False,
@@ -166,7 +191,7 @@ async def get_device_status(db: Session) -> List[Dict]:
         x["Stability 7d"],  # Then by Stability 7d (ascending)
         x["Stability month"]  # Then by Stability month (ascending)
     ))
-    
+
     return device_statuses
 
 

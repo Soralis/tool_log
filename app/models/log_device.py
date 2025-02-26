@@ -9,10 +9,10 @@ if TYPE_CHECKING:
 
 class Heartbeat(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    timestamp: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False))
+    timestamp: datetime = Field(sa_column=Column(DateTime(timezone=False), nullable=False))
     log_device_id: Optional[int] = Field(default=None, foreign_key="logdevice.id")
     log_device: Optional["LogDevice"] = Relationship(back_populates="heartbeats")
-    
+
     __table_args__ = (Index("ix_heartbeat_log_device_id_timestamp", "log_device_id", "timestamp"),)
 
 
