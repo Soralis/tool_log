@@ -37,7 +37,7 @@ EOF
   }
   
   # Use POST method with device_token parameter
-  RESPONSE=$(curl -s -X POST "http://${SERVER_IP}/unprotected/heartbeat" \
+  RESPONSE=$(curl -s --connect-timeout 30 --max-time 60 -X POST "http://${SERVER_IP}/unprotected/heartbeat" \
     -H "Content-Type: application/json" \
     -d "$(curl_data)" )
   
