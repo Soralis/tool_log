@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Set server IP address
-SERVER_IP="10.0.36.192"
+# SERVER_IP="10.0.36.192"
+SERVER_IP="10.0.0.38" # for home office
 # read -p "Enter the Server IP Address: " SERVER_IP
 
 # WLAN configuration - Edit these values to change network settings
