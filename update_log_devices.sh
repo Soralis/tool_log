@@ -42,6 +42,8 @@ with Session(engine) as session:
     
     # Print device info in a format that can be parsed by bash
     for device in devices:
+        if device.name == "Server":
+            continue
         print(f"{device.name}|{device.ip_address}")
 EOF
 )

@@ -38,12 +38,15 @@ EOF
   echo "Response: $RESPONSE"
   
   if echo "$RESPONSE" | grep -q "success"; then
-    echo "Heartbeat successful"
     FAILED_PINGS=0
+    echo "$(date): Heartbeat successful. Failed pings reset to 0." >> /tmp/heartbeat_status.log
+    echo "Heartbeat successful"
   else
-    echo "Heartbeat failed"
     FAILED_PINGS=$((FAILED_PINGS + 1))
+    echo "$(date): Heartbeat failed. Failed pings: $FAILED_PINGS" >> /tmp/heartbeat_status.log
+    echo "Heartbeat failed"
     if [ "$FAILED_PINGS" -ge 5 ]; then
+      echo "$(date): No heartbeat for 5 minutes. Rebooting..." >> /tmp/heartbeat_status.log
       echo "No heartbeat for 5 minutes. Rebooting..."
       sudo reboot
     fi
