@@ -42,8 +42,9 @@ EOF
     echo "$(date): Heartbeat successful. Failed pings reset to 0." >> /tmp/heartbeat_status.log
     echo "Heartbeat successful"
   else
+    echo "$(date): Heartbeat failed." >> /tmp/heartbeat_status.log
     FAILED_PINGS=$((FAILED_PINGS + 1))
-    echo "$(date): Heartbeat failed. Failed pings: $FAILED_PINGS" >> /tmp/heartbeat_status.log
+    echo "Failed pings: $FAILED_PINGS" >> /tmp/heartbeat_status.log
     echo "Heartbeat failed"
     if [ "$FAILED_PINGS" -ge 5 ]; then
       echo "$(date): No heartbeat for 5 minutes. Rebooting..." >> /tmp/heartbeat_status.log
