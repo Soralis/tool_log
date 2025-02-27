@@ -38,28 +38,44 @@ async def users_by_shift(session: Session = Depends(get_session)):
 
     return {"users_by_shift": users_by_shift, "active_shift": active_shift}
 
-@router.post("/heartbeat_old")
-async def heartbeat_old(device_token: str = Form(...), session: Session = Depends(get_session)):
-    log_device: LogDevice = session.exec(select(LogDevice).filter(LogDevice.token == device_token)).one_or_none()
-    if log_device is None:
-        return JSONResponse(content={"error": "Log Device not found"}, status_code=404)
+# @router.post("/heartbeat_old")
+# async def heartbeat_old(device_token: str = Form(...), session: Session = Depends(get_session)):
+#     log_device: LogDevice = session.exec(select(LogDevice).filter(LogDevice.token == device_token)).one_or_none()
+#     if log_device is None:
+#         return JSONResponse(content={"error": "Log Device not found"}, status_code=404)
 
-    # Create a new Heartbeat record
-    heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
-    session.add(heartbeat)
-    session.commit()
+#     # Create a new Heartbeat record
+#     heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
+#     session.add(heartbeat)
+#     session.commit()
 
-    return JSONResponse(content={"message": "Heartbeat recorded successfully"}, status_code=200)
+#     return JSONResponse(content={"message": "Heartbeat recorded successfully"}, status_code=200)
 
 @router.post("/heartbeat")
-async def heartbeat(device_token: str, session: Session = Depends(get_session), request:Request=None):
-    if request is None:
-        request = Request
+async def heartbeat(request: Request, session: Session = Depends(get_session)):
+    try:
+        # Try to get data from JSON body first
+        data = await request.json()
+        device_token = data.get("device_token")
+    except:
+        # Fall back to form data if JSON parsing fails
+        form = await request.form()
+        device_token = form.get("device_token")
+        if not device_token:
+            # Last resort: try query parameters
+            device_token = request.query_params.get("device_token")
     
     if not device_token:
         return JSONResponse(content={"error": "Log Device token not provided"}, status_code=400)
     
-    log_device: LogDevice = session.exec(select(LogDevice).filter(LogDevice.token == device_token)).one_or_none()
+    # Try to find device by token first
+    log_device = session.exec(select(LogDevice).filter(LogDevice.token == device_token)).one_or_none()
+    
+    # If not found, try to find by name (MAC address)
+    if log_device is None:
+        log_device = session.exec(select(LogDevice).filter(LogDevice.name == device_token)).one_or_none()
+    
+    # If still not found, return error
     if log_device is None:
         return JSONResponse(content={"error": "Log Device not found"}, status_code=404)
 
@@ -72,8 +88,8 @@ async def heartbeat(device_token: str, session: Session = Depends(get_session), 
         session.add(log_device)
     
     # Create a new Heartbeat record
-    heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
-    session.add(heartbeat)
+    logged_heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
+    session.add(logged_heartbeat)
     session.commit()
 
-    return JSONResponse(content={"message": "Heartbeat recorded successfully"}, status_code=200)
+    return JSONResponse(content={"message": "Heartbeat recorded successfully", "success": True}, status_code=200)

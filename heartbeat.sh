@@ -1,7 +1,17 @@
 #!/bin/bash
 
 # Get Raspberry Pi's MAC address for device name
-DEVICE_NAME=$(ifconfig wlan0 | grep ether | awk '{print $2}')
+# Try ip command first, fall back to ifconfig if ip is not available
+if command -v ip > /dev/null; then
+  DEVICE_NAME=$(ip link show wlan0 | grep -o "ether [^ ]*" | cut -d' ' -f2)
+elif command -v ifconfig > /dev/null; then
+  DEVICE_NAME=$(ifconfig wlan0 | grep ether | awk '{print $2}')
+else
+  # Last resort: use hostname as device identifier
+  DEVICE_NAME=$(hostname)
+fi
+
+echo "Using device identifier: $DEVICE_NAME"
 
 # Set server IP address
 SERVER_IP="10.0.36.192"
@@ -9,22 +19,48 @@ SERVER_IP="10.0.36.192"
 
 # Heartbeat function
 heartbeat() {
-  curl -s -o /dev/null -w "%{http_code}" "http://${SERVER_IP}/unprotected/heartbeat?device_name=${DEVICE_NAME}" | grep -q "200"
-  if [ $? -eq 0 ]; then
-    echo "Heartbeat successful"
-    FAILED_PINGS=0
+  echo "Sending heartbeat to http://${SERVER_IP}/unprotected/heartbeat"
+  COUNTER_FILE="/tmp/failed_pings.txt"
+  if [ -f "$COUNTER_FILE" ]; then
+      FAILED_PINGS=$(cat "$COUNTER_FILE")
   else
-    echo "Heartbeat failed"
+      FAILED_PINGS=0
+  fi
+
+  curl_data()
+  {
+    cat<<EOF
+  {
+    "device_token": "$DEVICE_NAME"
+  }
+EOF
+  }
+  
+  # Use POST method with device_token parameter
+  RESPONSE=$(curl -s --connect-timeout 30 --max-time 60 -X POST "http://${SERVER_IP}/unprotected/heartbeat" \
+    -H "Content-Type: application/json" \
+    -d "$(curl_data)" )
+  
+  echo "Response: $RESPONSE"
+  
+  if echo "$RESPONSE" | grep -q "success"; then
+    FAILED_PINGS=0
+    echo "0" > "$COUNTER_FILE"
+    echo "$(date): Heartbeat successful. Failed pings reset to 0." >> /tmp/heartbeat_status.log
+    echo "Heartbeat successful"
+  else
     FAILED_PINGS=$((FAILED_PINGS + 1))
-    if [ "$FAILED_PINGS" -ge 15 ]; then
-      echo "No heartbeat for 15 minutes. Rebooting..."
+    echo "$FAILED_PINGS" > "$COUNTER_FILE"
+    echo "$(date): Heartbeat failed. Failed pings: $FAILED_PINGS" >> /tmp/heartbeat_status.log
+    echo "Heartbeat failed"
+    if [ "$FAILED_PINGS" -ge 5 ]; then
+      echo "0" > "$COUNTER_FILE"
+      echo "$(date): No heartbeat for 5 minutes. Rebooting..." >> /tmp/heartbeat_status.log
+      echo "No heartbeat for 5 minutes. Rebooting..."
       sudo reboot
     fi
   fi
 }
 
-# Initialize failed pings counter
-FAILED_PINGS=0
-
-# Heartbeat
+# Run Heartbeat
 heartbeat
