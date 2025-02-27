@@ -79,7 +79,7 @@ async def get_dashboard_filter(request: Request,
 
 async def get_device_status(db: Session) -> List[Dict]:
     """Fetches the status of all log devices."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now()
     devices = db.exec(select(LogDevice)).all()
     device_statuses = []
 
