@@ -166,7 +166,7 @@ async def periodic_data_sender(websocket: WebSocket, db: Session):
     while True:
         try:
             await send_heartbeat_data(websocket, db)
-            await asyncio.sleep(5)  # Send data every 5 seconds
+            await asyncio.sleep(30)  # Send data every 30 seconds
         except Exception as e:
             print(f"Error in periodic_data_sender: {e}")
             break
