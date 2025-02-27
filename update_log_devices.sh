@@ -29,6 +29,17 @@ log "Retrieving list of active log devices..."
 
 # Use Python to query the database and get the list of active devices
 DEVICES=$(python3 - <<EOF
+import os, sys
+cwd = os.getcwd()
+dep_dir = None
+for candidate in ["app_blue", "app_green"]:
+    if candidate in cwd:
+        dep_dir = candidate
+        break
+if dep_dir:
+    sys.path.insert(0, f"/home/pi/{dep_dir}/tool_log")
+else:
+    sys.path.insert(0, os.getcwd())
 from sqlmodel import Session, select, create_engine
 from app.models import LogDevice
 
