@@ -18,6 +18,8 @@ SSH_KEY_PATH="/home/pi/.ssh/id_rsa"
 
 # SSH options
 SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=5"
+DEPLOY_ROOT="$( cd "$(dirname "$0")/.." && pwd )"
+export DEPLOY_ROOT
 
 # Function to log messages
 log() {
@@ -30,9 +32,11 @@ log "Retrieving list of active log devices..."
 # Use Python to query the database and get the list of active devices
 DEVICES=$(python3 - <<EOF
 import os, sys
-cwd = os.getcwd()
-print("Current working directory:", cwd)
-sys.path.insert(0, cwd)
+deploy_root = os.environ.get("DEPLOY_ROOT")
+if not deploy_root:
+    deploy_root = os.getcwd()
+print("Deploy root:", deploy_root)
+sys.path.insert(0, deploy_root)
 from sqlmodel import Session, select, create_engine
 from app.models import LogDevice
 
@@ -63,7 +67,7 @@ log "Found $DEVICE_COUNT active devices with IP addresses."
 
 # Copy log_device_setup.sh to a temporary location
 TMP_SCRIPT="/tmp/log_device_setup.sh"
-cp log_device_setup.sh $TMP_SCRIPT
+cp "$DEPLOY_ROOT/log_device_setup.sh" $TMP_SCRIPT
 chmod +x $TMP_SCRIPT
 
 # Process each device
