@@ -122,6 +122,7 @@ async def authenticate_or_create_device(device_name: str, db: Session = Depends(
 
     log_device.token = access_token
     log_device.token_expiry = datetime.now() + timedelta(days=int(env['DEVICE_TOKEN_EXPIRE_DAYS']))
+    log_device.last_seen = datetime.now()
     db.commit()
 
     response = JSONResponse(content={"message": "Device authenticated"})
