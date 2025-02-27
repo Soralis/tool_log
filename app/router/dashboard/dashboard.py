@@ -135,7 +135,7 @@ def calculate_uptime_percentage_optimized(heartbeats: List[datetime], time_horiz
 async def get_device_status(db: Session) -> List[Dict]:
     """Fetches the status of all log devices."""
     now = datetime.now(timezone.utc)
-    devices = db.exec(select(LogDevice).where(LogDevice.track_health)).all()
+    devices = db.exec(select(LogDevice)).all()
     device_statuses = []
 
     for device in devices:

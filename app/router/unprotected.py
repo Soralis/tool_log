@@ -83,9 +83,10 @@ async def heartbeat(request: Request, session: Session = Depends(get_session)):
     client_ip = request.client.host if hasattr(request, 'client') else None
     
     # Update the log device's IP address if it has changed
+    log_device.last_seen = datetime.now()
     if client_ip and log_device.ip_address != client_ip:
         log_device.ip_address = client_ip
-        session.add(log_device)
+    session.add(log_device)
     
     # Create a new Heartbeat record
     logged_heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
