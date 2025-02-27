@@ -79,8 +79,12 @@ async def heartbeat(request: Request, session: Session = Depends(get_session)):
     if log_device is None:
         return JSONResponse(content={"error": "Log Device not found"}, status_code=404)
 
-    # Get client IP address
-    client_ip = request.client.host if hasattr(request, 'client') else None
+    # Get client IP address from forwarded headers if available
+    client_ip = request.headers.get("X-Forwarded-For")
+    if client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+    else:
+        client_ip = request.client.host if hasattr(request, 'client') else None
     
     # Update the log device's IP address if it has changed
     log_device.last_seen = datetime.now()
