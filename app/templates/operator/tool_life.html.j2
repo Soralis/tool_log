@@ -475,6 +475,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateSummaryStep();
             }
             updateNextButtonVisibility();
+            setTimeout(() => {
+                const inputField = document.querySelector(`.step[data-step="${currentStep}"] input`);
+                if(inputField){
+                    inputField.focus();
+                }
+            }, 50);
         }
     }
 
@@ -495,6 +501,12 @@ document.addEventListener('DOMContentLoaded', function() {
         currentStep--;
         document.querySelector(`.step[data-step="${currentStep}"]`).style.display = 'block';
         updateNextButtonVisibility();
+        {# setTimeout(() => {
+            const inputField = document.querySelector(`.step[data-step="${currentStep}"] input`);
+            if(inputField){
+                inputField.focus();
+            }
+        }, 50); #}
         if (currentStep === 1) {
             prevBtn.style.display = 'none';
         }
