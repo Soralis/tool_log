@@ -37,8 +37,10 @@ for candidate in ["app_blue", "app_green"]:
         dep_dir = candidate
         break
 if dep_dir:
+    print(dep_dir)
     sys.path.insert(0, f"/home/pi/{dep_dir}/tool_log")
 else:
+    print("No deployment directory found.")
     sys.path.insert(0, os.getcwd())
 from sqlmodel import Session, select, create_engine
 from app.models import LogDevice
