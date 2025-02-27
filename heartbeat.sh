@@ -4,8 +4,8 @@
 DEVICE_NAME=$(ifconfig wlan0 | grep ether | awk '{print $2}')
 
 # Set server IP address
-# SERVER_IP="10.0.36.192"
-SERVER_IP="10.0.0.38:8000" # for home office
+SERVER_IP="10.0.36.192"
+# SERVER_IP="10.0.0.38:8000" # for home office
 
 # Heartbeat function
 heartbeat() {

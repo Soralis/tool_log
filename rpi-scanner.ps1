@@ -26,9 +26,8 @@ foreach ($i in $startIP..$endIP) {
             $results += $ip
             Write-Host "Found potential Raspberry Pi at $ip" -ForegroundColor Green
         } catch {}
+        $tcpClient.Close()
     }
-    
-    $tcpClient.Close()
 }
 
 if ($results.Count -eq 0) {
@@ -37,3 +36,5 @@ if ($results.Count -eq 0) {
     Write-Host "`nFound $($results.Count) device(s) with open SSH port:"
     $results | ForEach-Object { Write-Host $_ }
 }
+
+Read-Host -Prompt "Press Enter to exit"
