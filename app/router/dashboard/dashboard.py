@@ -76,61 +76,6 @@ async def get_dashboard_filter(request: Request,
         "selected_operations": selected_operations or []
     })
 
-def calculate_uptime_percentage(heartbeats: List[datetime], time_horizon: timedelta) -> float:
-    """Calculates the uptime percentage over a given time horizon."""
-    if not heartbeats:
-        return 0.0
-
-    # sort heartbeats by time
-    heartbeats.sort()
-
-    start_time = datetime.now(timezone.utc) - time_horizon
-
-    # Filter heartbeats within the time horizon and deduplicate within 5-minute intervals
-    valid_heartbeats = []
-    last_heartbeat_time = None
-    for hb in heartbeats:
-        if start_time <= hb <= datetime.now(timezone.utc):
-            time_since_last_valid = hb - last_heartbeat_time if last_heartbeat_time else timedelta(seconds=0)
-            if last_heartbeat_time is None or time_since_last_valid >= timedelta(seconds=298):
-                valid_heartbeats.append(hb)
-                last_heartbeat_time = hb
-
-    # Calculate expected vs actual heartbeats
-    expected_heartbeats = int(time_horizon.total_seconds() / (5 * 60))  # 5 minutes in seconds
-    actual_heartbeats = len(valid_heartbeats)
-
-    # Avoid division by zero
-    if expected_heartbeats == 0:
-        return 0.0
-
-    # Calculate uptime percentage
-    uptime_percentage = (actual_heartbeats / expected_heartbeats) * 100
-    return round(min(uptime_percentage, 100.0), 2)  # Cap at 100%
-
-
-def calculate_uptime_percentage_optimized(heartbeats: List[datetime], time_horizon: timedelta) -> float:
-    """Calculates the uptime percentage over a given time horizon without deduplication."""
-    if not heartbeats:
-        return 0.0
-
-    start_time = datetime.now(timezone.utc) - time_horizon
-
-    # Filter heartbeats within the time horizon
-    valid_heartbeats = [hb for hb in heartbeats if start_time <= hb <= datetime.now(timezone.utc)]
-
-    # Calculate expected vs actual heartbeats
-    expected_heartbeats = int(time_horizon.total_seconds() / (5 * 60))  # 5 minutes in seconds
-    actual_heartbeats = len(valid_heartbeats)
-
-    # Avoid division by zero
-    if expected_heartbeats == 0:
-        return 0.0
-
-    # Calculate uptime percentage
-    uptime_percentage = (actual_heartbeats / expected_heartbeats) * 100
-    return round(min(uptime_percentage, 100.0), 2)  # Cap at 100%
-
 
 async def get_device_status(db: Session) -> List[Dict]:
     """Fetches the status of all log devices."""
@@ -138,49 +83,64 @@ async def get_device_status(db: Session) -> List[Dict]:
     devices = db.exec(select(LogDevice)).all()
     device_statuses = []
 
+    # Define time horizons
+    time_horizon_24h = timedelta(hours=24)
+    time_horizon_7d = timedelta(days=7)
+    time_horizon_30d = timedelta(days=30)
+
+    # Heartbeat frequency (minutes)
+    heartbeat_frequency = 1
+
+    # Calculate expected heartbeats for each time horizon
+    expected_heartbeats_24h = int(time_horizon_24h.total_seconds() / (heartbeat_frequency * 60))
+    expected_heartbeats_7d = int(time_horizon_7d.total_seconds() / (heartbeat_frequency * 60))
+    expected_heartbeats_30d = int(time_horizon_30d.total_seconds() / (heartbeat_frequency * 60))
+
     for device in devices:
         if device.name != 'Server' and not device.machines:
             continue
 
-        # Calculate time horizons
-        one_month_ago = now - timedelta(days=30)
+        # Construct the query to count heartbeats for different time horizons using aggregate filters
+        stmt = select(
+            func.count(Heartbeat.timestamp).filter(Heartbeat.timestamp >= now - time_horizon_24h).label("count_24h"),
+            func.count(Heartbeat.timestamp).filter(Heartbeat.timestamp >= now - time_horizon_7d).label("count_7d"),
+            func.count(Heartbeat.timestamp).filter(Heartbeat.timestamp >= now - time_horizon_30d).label("count_30d"),
+        ).where(Heartbeat.log_device_id == device.id)
 
-        # Fetch the last heartbeat for the device in the last month
-        heartbeats = db.exec(
-            select(Heartbeat.timestamp)
-            .where(Heartbeat.log_device_id == device.id)
-            .where(Heartbeat.timestamp >= one_month_ago)
-            .order_by(Heartbeat.timestamp.desc())
+        result = db.exec(stmt).first()
 
-        ).all()
+        # Extract heartbeat counts from the result
+        heartbeats_24h = result.count_24h if result else 0
+        heartbeats_7d = result.count_7d if result else 0
+        heartbeats_30d = result.count_30d if result else 0
 
-        last_heartbeat = heartbeats[0] if heartbeats else None
-        # Determine device health
-        is_healthy = last_heartbeat and (now - last_heartbeat) <= timedelta(minutes=5)
+        # Calculate device health
+        is_healthy = device.last_seen and (now - device.last_seen) <= timedelta(minutes=5)
 
         # Calculate last seen time
         last_seen = "Never"
-        if last_heartbeat:
-            time_diff = now - last_heartbeat
+        if device.last_seen:
+            time_diff = now - device.last_seen
             minutes = time_diff.total_seconds() / 60
             if minutes < 1:
                 last_seen = "Just now"
-            if minutes < 60:
+            elif minutes < 60:
                 last_seen = f"{int(minutes)} minutes ago"
             else:
                 hours = minutes / 60
                 last_seen = f"{int(hours)} hours ago"
 
-        stability_24h = calculate_uptime_percentage_optimized(heartbeats, timedelta(hours=24))
-        stability_7d = calculate_uptime_percentage_optimized(heartbeats, timedelta(days=7))
-        stability_month = calculate_uptime_percentage_optimized(heartbeats, timedelta(days=30))
+        # Calculate stability percentages
+        stability_24h = (heartbeats_24h / expected_heartbeats_24h) * 100 if expected_heartbeats_24h else 0
+        stability_7d = (heartbeats_7d / expected_heartbeats_7d) * 100 if expected_heartbeats_7d else 0
+        stability_month = (heartbeats_30d / expected_heartbeats_30d) * 100 if expected_heartbeats_30d else 0
 
         device_statuses.append({
             "Device": ', '.join([machine.name for machine in device.machines]) if device.machines else device.name,
-            "Healthy": is_healthy if is_healthy else False,
-            "Stability 24h": stability_24h,
-            "Stability 7d": stability_7d,
-            "Stability month": stability_month,
+            "Healthy": is_healthy,
+            "Stability 24h": round(min(stability_24h, 100.0), 2),
+            "Stability 7d": round(min(stability_7d, 100.0), 2),
+            "Stability month": round(min(stability_month, 100.0), 2),
             "Last Seen": last_seen,
         })
 

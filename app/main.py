@@ -187,6 +187,8 @@ async def heartbeat():
 
         # Create a new Heartbeat record
         logged_heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
+        log_device.last_seen = logged_heartbeat.timestamp
+        session.add(log_device)
         session.add(logged_heartbeat)
         session.commit()
     finally:
