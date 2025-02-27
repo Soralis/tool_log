@@ -12,6 +12,19 @@ else
 fi
 
 echo "Using device identifier: $DEVICE_NAME"
+# Detect network IP address (from wlan0)
+if command -v ip > /dev/null; then
+  DEVICE_IP=$(ip -4 addr show wlan0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+elif command -v ifconfig > /dev/null; then
+  DEVICE_IP=$(ifconfig wlan0 | grep 'inet ' | awk '{print $2}')
+else
+  DEVICE_IP=""
+fi
+if [ -n "$DEVICE_IP" ]; then
+  echo "Detected device IP: $DEVICE_IP"
+else
+  echo "Device IP not detected."
+fi
 
 # Set server IP address
 SERVER_IP="10.0.36.192"
@@ -37,8 +50,12 @@ EOF
   }
   
   # Use POST method with device_token parameter
+  EXTRA_HEADER=""
+  if [ -n "$DEVICE_IP" ]; then
+      EXTRA_HEADER="-H \"X-Real-IP: $DEVICE_IP\""
+  fi
   RESPONSE=$(curl -s --connect-timeout 30 --max-time 60 -X POST "http://${SERVER_IP}/unprotected/heartbeat" \
-    -H "Content-Type: application/json" \
+    -H "Content-Type: application/json" $EXTRA_HEADER \
     -d "$(curl_data)" )
   
   echo "Response: $RESPONSE"
