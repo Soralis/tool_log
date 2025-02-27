@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Request
 from sqlmodel import Session, select
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi.responses import JSONResponse
 from app.models import LogDevice, Heartbeat
 from app.models import User, Shift
@@ -83,13 +83,13 @@ async def heartbeat(request: Request, session: Session = Depends(get_session)):
     client_ip = request.client.host if hasattr(request, 'client') else None
     
     # Update the log device's IP address if it has changed
-    log_device.last_seen = datetime.now()
+    log_device.last_seen = datetime.now(timezone.utc)
     if client_ip and log_device.ip_address != client_ip:
         log_device.ip_address = client_ip
     session.add(log_device)
     
     # Create a new Heartbeat record
-    logged_heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
+    logged_heartbeat = Heartbeat(timestamp=datetime.now(timezone.utc), log_device_id=log_device.id)
     session.add(logged_heartbeat)
     session.commit()
 

@@ -15,7 +15,7 @@ from app.router.operator import _operator
 from app.models import UserRole, ServiceMetrics, Heartbeat, LogDevice
 from auth import authenticate_or_create_device, authenticate_operator, require_role
 from starlette.middleware.base import BaseHTTPMiddleware
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 app = FastAPI()
@@ -186,8 +186,8 @@ async def heartbeat():
             session.commit()
 
         # Create a new Heartbeat record
-        logged_heartbeat = Heartbeat(timestamp=datetime.now(), log_device_id=log_device.id)
-        log_device.last_seen = logged_heartbeat.timestamp
+        logged_heartbeat = Heartbeat(timestamp=datetime.now(timezone.utc), log_device_id=log_device.id)
+        log_device.last_seen = datetime.now(timezone.utc)
         session.add(log_device)
         session.add(logged_heartbeat)
         session.commit()
