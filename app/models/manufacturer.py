@@ -7,6 +7,7 @@ if TYPE_CHECKING:
 
 class ManufacturerBase(SQLModel):
     name: str = Field(index=True, unique=True)
+    number: Optional[str] = None
     description: Optional[str] = None
 
 
