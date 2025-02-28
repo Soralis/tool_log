@@ -19,8 +19,8 @@ class ToolAttributeValue(SQLModel, table=True):
     tool_attribute_id: int = Field(foreign_key="toolattribute.id", nullable=False, ondelete="CASCADE")
     value: str  # Store value as a string; convert as needed
 
-    tool: "Tool" = Relationship(back_populates="tool_attributes", cascade_delete=False)
-    tool_attribute: "ToolAttribute" = Relationship(back_populates="attribute_values", cascade_delete=False)
+    tool: "Tool" = Relationship(back_populates="tool_attributes")
+    tool_attribute: "ToolAttribute" = Relationship(back_populates="attribute_values")
 
 class ToolAttributeValueCreate(SQLModel):
     tool_id: int

@@ -19,9 +19,9 @@ class Workpiece(WorkpieceBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True, nullable=False)
 
-    recipes: List['Recipe'] = Relationship(back_populates='workpiece')
-    order_completions: List['OrderCompletion'] = Relationship(back_populates='workpiece')
-    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='workpiece')
+    recipes: List['Recipe'] = Relationship(back_populates='workpiece', cascade_delete=True)
+    order_completions: List['OrderCompletion'] = Relationship(back_populates='workpiece', cascade_delete=False)
+    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='workpiece', cascade_delete=False)
 
 class WorkpieceCreate(WorkpieceBase):
     pass

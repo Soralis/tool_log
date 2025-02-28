@@ -39,7 +39,7 @@ class Tool(ToolBase, table=True):
     stop_order: bool = Field(default=False)
     tool_type: 'ToolType' = Relationship(back_populates='tools')
     active: bool = Field(default=True, nullable=False)
-    recipes: List['Recipe'] = Relationship(back_populates='tools', link_model=RecipeTool)
+    recipes: List['Recipe'] = Relationship(back_populates='tools', link_model=RecipeTool, cascade_delete=False)
     tool_lifes: List['ToolLife'] = Relationship(back_populates='tool', cascade_delete=True)
     tool_orders: List['ToolOrder'] = Relationship(back_populates='tool', cascade_delete=True)
     tool_positions: List['ToolPosition'] = Relationship(back_populates='tool', cascade_delete=True)
@@ -194,10 +194,10 @@ class Note(NoteBase, table=True):
     created_at: dt = Field(default_factory=dt.now)
     updated_at: dt = Field(default_factory=dt.now)
 
-    tool_life: Optional[ToolLife] = Relationship(back_populates='notes', cascade_delete=False)
-    tool_order: Optional[ToolOrder] = Relationship(back_populates='notes', cascade_delete=False)
-    order_delivery: Optional[OrderDelivery] = Relationship(back_populates='notes', cascade_delete=False)
-    user: 'User' = Relationship(back_populates='notes', cascade_delete=False)
+    tool_life: Optional[ToolLife] = Relationship(back_populates='notes')
+    tool_order: Optional[ToolOrder] = Relationship(back_populates='notes')
+    order_delivery: Optional[OrderDelivery] = Relationship(back_populates='notes')
+    user: 'User' = Relationship(back_populates='notes')
 
 class NoteRead(SQLModel):
     id: int
@@ -238,12 +238,12 @@ class ToolConsumption(SQLModel, table=True):
     user_id: Optional[int] = Field(foreign_key='user.id', default=None, ondelete='SET NULL')
     workpiece_id: Optional[int] = Field(foreign_key='workpiece.id', ondelete='SET NULL', default=None)
 
-    machine: 'Machine' = Relationship(back_populates='tool_consumptions', cascade_delete=False)
-    tool: 'Tool' = Relationship(back_populates='tool_consumptions', cascade_delete=False)
-    recipe: 'Recipe' = Relationship(back_populates='tool_consumptions', cascade_delete=False)
-    tool_position: 'ToolPosition' = Relationship(back_populates='tool_consumptions', cascade_delete=False)
-    user: 'User' = Relationship(back_populates='tool_consumptions', cascade_delete=False)
-    workpiece: 'Workpiece' = Relationship(back_populates='tool_consumptions', cascade_delete=False)
+    machine: 'Machine' = Relationship(back_populates='tool_consumptions')
+    tool: 'Tool' = Relationship(back_populates='tool_consumptions')
+    recipe: 'Recipe' = Relationship(back_populates='tool_consumptions')
+    tool_position: 'ToolPosition' = Relationship(back_populates='tool_consumptions')
+    user: 'User' = Relationship(back_populates='tool_consumptions')
+    workpiece: 'Workpiece' = Relationship(back_populates='tool_consumptions')
 
 
 class ToolConsumptionCreate(SQLModel):

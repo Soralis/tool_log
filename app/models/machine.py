@@ -60,7 +60,7 @@ class Machine(MachineBase, table=True):
     tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='machine', cascade_delete=False)
 
     current_recipe_id: Optional[int] = Field(default=None, foreign_key='recipe.id', ondelete='SET NULL')
-    current_recipe: 'Recipe' = Relationship(back_populates='machine', sa_relationship_kwargs={"foreign_keys": "[Machine.current_recipe_id]"}, cascade_delete=True)
+    current_recipe: 'Recipe' = Relationship(back_populates='machine', sa_relationship_kwargs={"foreign_keys": "[Machine.current_recipe_id]"})
 
 
 class MachineCreate(MachineBase):
