@@ -115,7 +115,7 @@ async def get_device_status(db: Session) -> List[Dict]:
         heartbeats_30d = result.count_30d if result else 0
 
         # Calculate device health
-        is_healthy = device.last_seen and (now - device.last_seen) <= timedelta(minutes=5)
+        is_healthy = device.last_seen and (now - device.last_seen) <= timedelta(minutes=5) if device.last_seen else False
 
         # Calculate last seen time
         last_seen = "Never"
@@ -137,6 +137,7 @@ async def get_device_status(db: Session) -> List[Dict]:
 
         device_statuses.append({
             "Device": ', '.join([machine.name for machine in device.machines]) if device.machines else device.name,
+            "IP": device.ip_address,
             "Healthy": is_healthy,
             "Stability 24h": round(min(stability_24h, 100.0), 2),
             "Stability 7d": round(min(stability_7d, 100.0), 2),
