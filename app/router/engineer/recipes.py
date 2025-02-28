@@ -234,7 +234,7 @@ async def update_recipe(
             position = session.get(ToolPosition, tp['id'])
             if position:
                 for key, value in tp.items():
-                    if key != 'id':
+                    if key != 'id' and key != 'tool_attributes':
                         setattr(position, key, value)
         else:  # Create new position
             db_tp = ToolPosition.model_validate(tp)

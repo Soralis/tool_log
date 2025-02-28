@@ -90,7 +90,7 @@ def create_generic_router(
                                 # Get the read model for this relation
                                 related_read_model = related_model_info['read']
                                 relations[field_name] = [
-                                    {field: getattr(item, field) for field in related_read_model.model_fields.keys()}
+                                    {"id": item.id, **{field: getattr(item, field) for field in related_read_model.model_fields.keys()}}
                                     for item in related_items
                                 ]
                                 children[field_name]['instances'] = relations[field_name]
@@ -381,6 +381,10 @@ def create_generic_router(
     @router.put("/{item_id}")
     async def update_item(item_id: int, request: Request, user: User = Depends(get_current_operator)):
         form_dict, existing_relations, new_relations, fixed_form_fields = await get_form_data(request)
+        _, children = get_relations_and_children(item_id)
+        for child_field in children.keys():
+            if child_field not in existing_relations:
+                existing_relations[child_field] = []
 
         if item_id != int(form_dict['id']):
             raise HTTPException(status_code=400, detail=f"Path {item_type.lower()}_id does not match form data id")
@@ -462,7 +466,7 @@ def create_generic_router(
                         fixed_field_list.append(new_instance)
 
             try:
-                session.add(item)
+                # session.add(item)
                 session.commit()
                 session.refresh(item)
             except Exception as e:
