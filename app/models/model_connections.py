@@ -15,12 +15,12 @@ class RecipeTool(SQLModel, table=True):
 
 class ToolAttributeValue(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    tool_id: int = Field(foreign_key="tool.id", nullable=False)
-    tool_attribute_id: int = Field(foreign_key="toolattribute.id", nullable=False)
+    tool_id: int = Field(foreign_key="tool.id", nullable=False, ondelete="CASCADE")
+    tool_attribute_id: int = Field(foreign_key="toolattribute.id", nullable=False, ondelete="CASCADE")
     value: str  # Store value as a string; convert as needed
 
-    tool: "Tool" = Relationship(back_populates="tool_attributes")
-    tool_attribute: "ToolAttribute" = Relationship(back_populates="attribute_values")
+    tool: "Tool" = Relationship(back_populates="tool_attributes", cascade_delete=False)
+    tool_attribute: "ToolAttribute" = Relationship(back_populates="attribute_values", cascade_delete=False)
 
 class ToolAttributeValueCreate(SQLModel):
     tool_id: int

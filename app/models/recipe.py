@@ -15,8 +15,8 @@ if TYPE_CHECKING:
 class RecipeBase(SQLModel):
     name: str = Field(index=True)
     description: Optional[str] = None
-    workpiece_id: int = Field(foreign_key='workpiece.id')
-    machine_id: int = Field(foreign_key='machine.id')
+    workpiece_id: int = Field(foreign_key='workpiece.id', ondelete='CASCADE')
+    machine_id: int = Field(foreign_key='machine.id', ondelete='CASCADE')
 
     __table_args__ = (UniqueConstraint('name', 'workpiece_id', 'machine_id'),)
 
@@ -26,12 +26,12 @@ class Recipe(RecipeBase, table=True):
     created_at: datetime = Field(default_factory=datetime.now, nullable=False)
     active: bool = Field(default=True, nullable=False)
     tool_positions: List['ToolPosition'] = Relationship(back_populates='recipe', cascade_delete=True)
-    machine: 'Machine' = Relationship(back_populates='recipes', sa_relationship_kwargs={"foreign_keys": "[Recipe.machine_id]"})
-    workpiece: 'Workpiece' = Relationship(back_populates='recipes')
-    tools: List['Tool'] = Relationship(back_populates='recipes', link_model=RecipeTool)
-    tool_lifes: List['ToolLife'] = Relationship(back_populates='recipe')
-    change_overs: List['ChangeOver'] = Relationship(back_populates='recipe')    
-    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='recipe')
+    machine: 'Machine' = Relationship(back_populates='recipes', sa_relationship_kwargs={"foreign_keys": "[Recipe.machine_id]"}, cascade_delete=False)
+    workpiece: 'Workpiece' = Relationship(back_populates='recipes', cascade_delete=False)
+    tools: List['Tool'] = Relationship(back_populates='recipes', link_model=RecipeTool, cascade_delete=False)
+    tool_lifes: List['ToolLife'] = Relationship(back_populates='recipe', cascade_delete=False)
+    change_overs: List['ChangeOver'] = Relationship(back_populates='recipe', cascade_delete=True)    
+    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='recipe', cascade_delete=False)
 
 
 class RecipeCreate(RecipeBase):
@@ -59,10 +59,10 @@ class ToolPosition(SQLModel, table=True):
     name: str
     recipe_id: int = Field(foreign_key='recipe.id', ondelete='CASCADE')
     recipe: Recipe = Relationship(back_populates='tool_positions')
-    tool_id: Optional[int] = Field(foreign_key='tool.id')
+    tool_id: int = Field(foreign_key='tool.id', ondelete='CASCADE')
     tool: 'Tool' = Relationship(back_populates='tool_positions')
-    tool_lifes: List['ToolLife'] = Relationship(back_populates='tool_position')
-    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='tool_position')
+    tool_lifes: List['ToolLife'] = Relationship(back_populates='tool_position', cascade_delete=False)
+    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='tool_position', cascade_delete=False)
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
     expected_life: Optional[int] = Field(default=None, gt=0)
     
@@ -75,7 +75,7 @@ class ToolPosition(SQLModel, table=True):
 
 class ToolPositionCreate(SQLModel):
     selected: bool
-    tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
+    tool_settings: Dict
 
 
 class ToolPositionUpdate(ToolPositionCreate):
@@ -88,4 +88,4 @@ class ToolPositionRead(SQLModel):
     recipe: Recipe
     tool: 'Tool'
     machine: 'Machine'
-    tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
+    tool_settings: Dict

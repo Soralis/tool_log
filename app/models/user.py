@@ -33,7 +33,7 @@ class UserBase(SQLModel):
     pin: str = Field(min_length=3, max_length=5)
     role: UserRole
     payment_type: PaymentType
-    shift_id: Optional[int] = Field(foreign_key='shift.id', ondelete='CASCADE')
+    shift_id: Optional[int] = Field(foreign_key='shift.id', ondelete='SET NULL')
 
 
 class User(UserBase, table=True):
@@ -44,12 +44,12 @@ class User(UserBase, table=True):
     token: Optional[str] = Field(default=None, max_length=255)
     token_expiry: Optional[datetime] = Field(default=None)
 
-    tool_lifes: List['ToolLife'] = Relationship(back_populates='creator')
-    performed_change_overs: List['ChangeOver'] = Relationship(back_populates='user')
-    tool_orders: List['ToolOrder'] = Relationship(back_populates='user')
-    notes: List['Note'] = Relationship(back_populates='user')
-    order_completions: List['OrderCompletion'] = Relationship(back_populates='user')
-    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='user')
+    tool_lifes: List['ToolLife'] = Relationship(back_populates='creator', cascade_delete=False)
+    performed_change_overs: List['ChangeOver'] = Relationship(back_populates='user', cascade_delete=False)
+    tool_orders: List['ToolOrder'] = Relationship(back_populates='user', cascade_delete=False)
+    notes: List['Note'] = Relationship(back_populates='user', cascade_delete=False)
+    order_completions: List['OrderCompletion'] = Relationship(back_populates='user', cascade_delete=False)
+    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='user', cascade_delete=False)
     shift: Optional['Shift'] = Relationship(back_populates='users')
 
 
@@ -78,7 +78,7 @@ class Shift(SQLModel, table=True):
     start_time: datetime
     end_time: datetime
 
-    users: List['User'] = Relationship(back_populates="shift")
+    users: List['User'] = Relationship(back_populates="shift", cascade_delete=False)
 
 class ShiftCreate(SQLModel):
     name: str

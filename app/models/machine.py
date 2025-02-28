@@ -50,17 +50,17 @@ class MachineBase(SQLModel):
 class Machine(MachineBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True, nullable=False)
-    log_device_id: Optional[int] = Field(default=None, foreign_key='logdevice.id')
+    log_device_id: Optional[int] = Field(default=None, foreign_key='logdevice.id', ondelete='SET NULL')
     log_device: Optional['LogDevice'] = Relationship(back_populates='machines')
 
-    measureables: List[Measureable] = Relationship(back_populates='machine')
-    tool_lifes: List['ToolLife'] = Relationship(back_populates='machine')
-    recipes: List['Recipe'] = Relationship(back_populates='machine', sa_relationship_kwargs={"foreign_keys": "[Recipe.machine_id]"})
+    measureables: List[Measureable] = Relationship(back_populates='machine', cascade_delete=True)
+    tool_lifes: List['ToolLife'] = Relationship(back_populates='machine', cascade_delete=False)
+    recipes: List['Recipe'] = Relationship(back_populates='machine', sa_relationship_kwargs={"foreign_keys": "[Recipe.machine_id]"}, cascade_delete=True)
     change_overs: List['ChangeOver'] = Relationship(back_populates='machine', cascade_delete=True)
-    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='machine', cascade_delete=True)
+    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='machine', cascade_delete=False)
 
-    current_recipe_id: Optional[int] = Field(default=None, foreign_key='recipe.id')
-    current_recipe: 'Recipe' = Relationship(back_populates='machine', sa_relationship_kwargs={"foreign_keys": "[Machine.current_recipe_id]"})
+    current_recipe_id: Optional[int] = Field(default=None, foreign_key='recipe.id', ondelete='SET NULL')
+    current_recipe: 'Recipe' = Relationship(back_populates='machine', sa_relationship_kwargs={"foreign_keys": "[Machine.current_recipe_id]"}, cascade_delete=True)
 
 
 class MachineCreate(MachineBase):

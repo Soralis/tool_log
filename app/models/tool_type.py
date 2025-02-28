@@ -20,7 +20,7 @@ class ToolType(ToolTypeBase, table=True):
     tool_settings: List['ToolSetting'] = Relationship(back_populates='tool_type', cascade_delete=True)
     tool_attributes: List['ToolAttribute'] = Relationship(back_populates='tool_type', cascade_delete=True)
     change_reasons: List['ChangeReason'] = Relationship(back_populates='tool_type', cascade_delete=True)
-    tools: List['Tool'] = Relationship(back_populates='tool_type')
+    tools: List['Tool'] = Relationship(back_populates='tool_type', cascade_delete=True)
 
 
 class ToolTypeCreate(ToolTypeBase):
@@ -46,10 +46,10 @@ class ToolAttributeBase(SQLModel):
 class ToolAttribute(ToolAttributeBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tool_type: ToolType = Relationship(back_populates='tool_attributes')
-    attribute_values: List['ToolAttributeValue'] = Relationship(back_populates='tool_attribute')
-
+    attribute_values: List['ToolAttributeValue'] = Relationship(back_populates='tool_attribute', cascade_delete=True)
 
     __table_args__ = (UniqueConstraint('name', 'tool_type_id'),)
+    
 
 class ToolAttributeCreate(ToolAttributeBase):
     pass
@@ -106,7 +106,7 @@ class ChangeReason(ChangeReasonBase, table=True):
     tool_type_id: int = Field(foreign_key='tooltype.id', ondelete='CASCADE')
     tool_type: 'ToolType' = Relationship(back_populates='change_reasons')
 
-    tool_lifes: List['ToolLife'] = Relationship(back_populates='change_reason')
+    tool_lifes: List['ToolLife'] = Relationship(back_populates='change_reason', cascade_delete=False)
 
     __table_args__ = (UniqueConstraint('name', 'tool_type_id'),)
 

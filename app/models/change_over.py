@@ -10,13 +10,13 @@ if TYPE_CHECKING:
 
 
 class ChangeOverBase(SQLModel):
-    machine_id: int = Field(foreign_key='machine.id')
-    recipe_id: int = Field(foreign_key='recipe.id')
+    machine_id: int = Field(foreign_key='machine.id', ondelete='CASCADE')
+    recipe_id: int = Field(foreign_key='recipe.id', ondelete='CASCADE')
 
 
 class ChangeOver(ChangeOverBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    performed_by: Optional[int] = Field(foreign_key='user.id')
+    performed_by: Optional[int] = Field(foreign_key='user.id', ondelete='SET NULL')
     timestamps: datetime = Field(default_factory=datetime.now, nullable=False)
     machine: 'Machine' = Relationship(back_populates='change_overs')
     user: 'User' = Relationship(back_populates='performed_change_overs')

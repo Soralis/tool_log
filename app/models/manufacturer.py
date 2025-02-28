@@ -14,7 +14,7 @@ class ManufacturerBase(SQLModel):
 class Manufacturer(ManufacturerBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True, nullable=False)
-    tools: List['Tool'] = Relationship(back_populates='manufacturer', cascade_delete=True)
+    tools: List['Tool'] = Relationship(back_populates='manufacturer', cascade_delete=False)
 
 
 class ManufacturerCreate(ManufacturerBase):

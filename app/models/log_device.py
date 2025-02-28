@@ -10,8 +10,8 @@ if TYPE_CHECKING:
 class Heartbeat(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     timestamp: datetime = Field(sa_column=Column(DateTime(timezone=False), nullable=False))
-    log_device_id: Optional[int] = Field(default=None, foreign_key="logdevice.id")
-    log_device: Optional["LogDevice"] = Relationship(back_populates="heartbeats")
+    log_device_id: Optional[int] = Field(default=None, foreign_key="logdevice.id", ondelete="CASCADE")
+    log_device: "LogDevice" = Relationship(back_populates="heartbeats")
 
     __table_args__ = (Index("ix_heartbeat_log_device_id_timestamp", "log_device_id", "timestamp"),)
 
@@ -27,8 +27,8 @@ class LogDevice(SQLModel, table=True):
     token_expiry: Optional[datetime] = Field(default=None)
     last_seen: Optional[datetime] = Field(default=None)
 
-    machines: List['Machine'] = Relationship(back_populates='log_device')
-    heartbeats: List[Heartbeat] = Relationship(back_populates="log_device")
+    machines: List['Machine'] = Relationship(back_populates='log_device', cascade_delete=False)
+    heartbeats: List[Heartbeat] = Relationship(back_populates="log_device", cascade_delete=True)
 
 
 class LogDeviceSetMachine(SQLModel):
