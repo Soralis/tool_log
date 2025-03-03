@@ -3,7 +3,7 @@ import numpy as np
 import asyncio
 import json
 from app.templates.jinja_functions import templates
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import defaultdict
 from sqlmodel import Session, select
 from app.database_config import get_session
@@ -133,14 +133,21 @@ async def send_tool_data(websocket: WebSocket, db: Session):
     global websocket_filters
     latest_start_date = websocket_filters[websocket].get("latest_start_date")
     latest_end_date = websocket_filters[websocket].get("latest_end_date")
-    latest_selected_operations = websocket_filters[websocket].get("latest_selected_operations")
-    latest_selected_products = websocket_filters[websocket].get("latest_selected_products")
-    websocket_filters[websocket]['last_filter_update'] = datetime.now()
+    selected_operations = websocket_filters[websocket].get("selected_operations")
+    selected_products = websocket_filters[websocket].get("selected_products")
+    last_filter_update = websocket_filters[websocket].get("last_filter_update")
+
+    await asyncio.sleep(3)  # Wait for any additional filters to be sent
+    print(last_filter_update==websocket_filters[websocket].get("last_filter_update"), last_filter_update, websocket_filters[websocket].get("last_filter_update"))
+    if last_filter_update != websocket_filters[websocket].get("last_filter_update"):
+        # Filters have been updated, skip this update
+        return
+    # Filters have not been updated, proceed with sending data
 
     try:
         # Get filtered graphs and data
-        graphs = await get_tool_graphs(db, latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products)
-        data = await get_tool_life_data(db, latest_start_date, latest_end_date, latest_selected_operations, latest_selected_products)
+        graphs = await get_tool_graphs(db, latest_start_date, latest_end_date, selected_operations, selected_products)
+        data = await get_tool_life_data(db, latest_start_date, latest_end_date, selected_operations, selected_products)
 
         # Send both graphs and data
         response = {
@@ -151,6 +158,7 @@ async def send_tool_data(websocket: WebSocket, db: Session):
 
     except RuntimeError as e:
         if "close message has been sent" in str(e):
+            print("Websocket closed")
             return  # Exit if the websocket is closed
         raise
     except Exception as e:
@@ -476,8 +484,8 @@ async def get_tool_details(
 
 async def periodic_data_sender(websocket: WebSocket, db: Session):
     while True:
-        await send_tool_data(websocket, db)
         await asyncio.sleep(30)
+        await send_tool_data(websocket, db)
 
 @router.websocket("/ws/tools")
 async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_session)):
@@ -487,8 +495,8 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
     websocket_filters[websocket] = {
         'latest_start_date': datetime.strptime("2020-01-01", "%Y-%m-%d"),
         'latest_end_date': datetime.today(),
-        'latest_selected_operations': [],
-        'latest_selected_products': [],
+        'selected_operations': [],
+        'selected_products': [],
         'last_filter_update': datetime.fromisoformat("2020-01-01")
     }
 
@@ -504,11 +512,11 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
 
                 websocket_filters[websocket]['latest_start_date'] = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
                 websocket_filters[websocket]['latest_end_date'] = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
-                websocket_filters[websocket]['latest_selected_operations'] = [int(op) for op in filters.get('selectedOperations', [])]
-                websocket_filters[websocket]['latest_selected_products'] = [int(product) for product in filters.get('selectedProducts', [])]
+                websocket_filters[websocket]['selected_operations'] = [int(op) for op in filters.get('selectedOperations', [])]
+                websocket_filters[websocket]['selected_products'] = [int(product) for product in filters.get('selectedProducts', [])]
+                websocket_filters[websocket]['last_filter_update'] = datetime.now()
 
-                if datetime.now() - websocket_filters[websocket]['last_filter_update'] > timedelta(seconds=5):
-                    await send_tool_data(websocket, db)
+                asyncio.create_task(send_tool_data(websocket, db))
 
             except asyncio.TimeoutError:
                 # No message received within the timeout period
