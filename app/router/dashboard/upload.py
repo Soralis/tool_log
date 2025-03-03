@@ -176,7 +176,7 @@ async def upload_tool_consumption(
         machines = {str(machine.cost_center): machine for machine in machines}
 
         tools = session.exec(select(Tool)).all()
-        tools = {tool.number: tool.id for tool in tools}
+        tools = {tool.number.upper(): tool.id for tool in tools}
 
         workpieces = session.exec(select(Workpiece)).all()
         workpieces = {workpiece.description: workpiece.id for workpiece in workpieces}
@@ -200,20 +200,25 @@ async def upload_tool_consumption(
                     machine = machines[cost_center]
                     machine_id = machine.id
 
-                tool_id = tools.get(row['CPN'])
+                tool_id = tools.get(row['CPN'].upper())
                 if tool_id is None:
                     new_tool = Tool(
-                        number=row['CPN'],
+                        number=row['CPN'].upper(),
                         manufacturer_name=row['Description'],
                         name=row['PartDescription2'] if row['PartDescription2'] is not None else row['Description'],
                         manufacturer_id=manufacturer.id,
                         tool_type_id=tool_type.id
                     )
-                    session.add(new_tool)
-                    session.commit()
-                    session.refresh(new_tool)
-                    tool_id = new_tool.id
-                    tools[row['CPN']] = tool_id
+                    try:
+                        session.add(new_tool)
+                        session.commit()
+                        session.refresh(new_tool)
+                        tool_id = new_tool.id
+                        tools[new_tool.number] = tool_id
+                    except Exception as e:
+                        print(e)
+                        tool_id = None
+                        session.rollback()
                                         
                 workpiece_id = None
                 if row.get('Product'):

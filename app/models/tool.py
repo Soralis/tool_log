@@ -225,7 +225,7 @@ class NoteUpdate(NoteCreate):
 class ToolConsumption(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     datetime: dt = Field(index=True)
-    number: str = Field(index=True, unique=True)
+    number: int = Field(index=True, unique=True)
     consumption_type: str = Field(index=True)
     quantity: int
     value: Decimal = Field(max_digits=10, decimal_places=2)
@@ -248,7 +248,7 @@ class ToolConsumption(SQLModel, table=True):
 
 class ToolConsumptionCreate(SQLModel):
     datetime: dt
-    number: str
+    number: int
     consumption_type: str
     quantity: int
     value: Decimal
