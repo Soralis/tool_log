@@ -139,7 +139,7 @@ async def get_device_status(db: Session) -> List[Dict]:
             "Device": ', '.join([machine.name for machine in device.machines]) if device.machines else device.name,
             "IP": device.ip_address,
             "Healthy": is_healthy,
-            "Stability 24h": round(min(stability_24h, 100.0), 2),
+            "Stability 24h": round(min(stability_24h, 190.0), 2),
             "Stability 7d": round(min(stability_7d, 100.0), 2),
             "Stability month": round(min(stability_month, 100.0), 2),
             "Last Seen": last_seen,
