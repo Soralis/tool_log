@@ -339,8 +339,8 @@ async def get_tool_details(
             'settings': record.tool_settings,
             'additional_measurements': record.additional_measurements,
             'change_reason': {
-                'name': record.change_reason.name,
-                'sentiment': record.change_reason.sentiment
+                'name': record.change_reason.name if record.change_reason else "N/A",
+                'sentiment': record.change_reason.sentiment if record.change_reason else "N/A"
             },
         })
 
