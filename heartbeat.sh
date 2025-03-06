@@ -76,7 +76,6 @@ EOF
       echo "No heartbeat for 5 minutes. Rebooting..."
       sudo reboot
     elif [ "$FAILED_PINGS" -eq 2 ]; then
-      echo "0" > "$COUNTER_FILE"
       echo "$(date): No heartbeat for 2.5 minutes. Restarting WIFI Service..." >> /tmp/heartbeat_status.log
       echo "No heartbeat for 2.5 minutes. Restarting WIFI Service..."
       sudo ip link set wlan0 down && sleep 2 && sudo ip link set wlan0 up
