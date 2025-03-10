@@ -3,9 +3,7 @@
 {% block title %}Tool Life Monitoring{% endblock %}
 
 {% block head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
 <style>
     .graph-container {
         height: 200px;
@@ -14,26 +12,26 @@
 {% endblock %}
 
 {% block subinfo %}
-    <div class="flex items-center space-x-8 text-sm font-mono">
-        <div class="flex justify-between">
-            <div class="flex items-center">
-                <div class="w-8 h-4 mr-2 ml-4 border-2 border-[rgb(75,192,192)] bg-[rgb(75,192,192)]/50"></div>
-                <span>Tool Life</span>
-            </div>
-            <div class="flex items-center">
-                <div class="w-8 h-4 mr-2 ml-4 border-t-2 border-dashed border-[rgb(255,99,132)]"></div>
-                <span>Trendline</span>
-            </div>
-            <div class="flex items-center">
-                <div class="w-8 h-4 mr-2 ml-4 border-t-2 border-dashed border-[rgb(255,206,86)]"></div>
-                <span>Mean</span>
-            </div>
-            <div class="flex items-center">
-                <div class="w-8 h-4 mr-2 ml-4 border-2 border-[rgb(255,206,86)] bg-[rgb(255,206,86)]/10"></div>
-                <span>Mean ± Std Dev</span>
-            </div>
+<div class="flex items-center space-x-8 text-sm font-mono">
+    <div class="flex justify-between">
+        <div class="flex items-center">
+            <div class="w-8 h-4 mr-2 ml-4 border-2 border-[rgb(75,192,192)] bg-[rgb(75,192,192)]/50"></div>
+            <span>Tool Life</span>
+        </div>
+        <div class="flex items-center">
+            <div class="w-8 h-4 mr-2 ml-4 border-t-2 border-dashed border-[rgb(255,99,132)]"></div>
+            <span>Trendline</span>
+        </div>
+        <div class="flex items-center">
+            <div class="w-8 h-4 mr-2 ml-4 border-t-2 border-dashed border-[rgb(255,206,86)]"></div>
+            <span>Mean</span>
+        </div>
+        <div class="flex items-center">
+            <div class="w-8 h-4 mr-2 ml-4 border-2 border-[rgb(255,206,86)] bg-[rgb(255,206,86)]/10"></div>
+            <span>Mean ± Std Dev</span>
         </div>
     </div>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -45,18 +43,9 @@
             <div class="bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-700 transition-colors graph-card" 
                 data-graph-id="{{ graph.id }}">
                 <h3 class="text-lg font-medium text-gray-300 mb-2">{{ graph.title }}</h3>
-                <div class="flex">
-                    <div class="flex-1 -mr-16">
-                        {% with graph_id=graph.id, graph_type=graph.type %}
-                            {% include 'dashboard/partials/graph.html.j2' %}
-                        {% endwith %}
-                    </div>
-                    <div class="text-sm font-mono text-gray-400 whitespace-nowrap pl-20 w-44" id="stats_{{ graph.id }}">
-                        <div>Slope: --</div>
-                        <div>Mean: --</div>
-                        <div>σ: ±--</div>
-                    </div>
-                </div>
+                {% with graph_id=graph.id, graph_type=graph.type %}
+                    {% include 'dashboard/partials/graph.html.j2' %}
+                {% endwith %}
             </div>
             {% endfor %}
         </div>
@@ -69,7 +58,6 @@
     </div>
 </div>
 
-<!-- Connection Status -->
 <div id="connection-status" class="fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500/100">
     Connecting...
 </div>
@@ -80,16 +68,11 @@
     import { initializeComponents, cleanup } from '{{ url_for("static", path="js/dashboard/tools.js") }}';
     import { initializeDateRange } from '{{ url_for("static", path="js/dashboard/rangeSlider.js") }}';
 
-    // Initialize components in the correct order
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize date range
-        initializeDateRange();
-        
-        // Initialize page components
         initializeComponents();
+        initializeDateRange();
     });
 
-    // Cleanup on page unload
     window.addEventListener('beforeunload', cleanup);
 </script>
 {% endblock %}
