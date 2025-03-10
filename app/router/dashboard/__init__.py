@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from . import requests, tools, dashboard, upload, orders, monetary
+from . import requests, tools, echart_tools, dashboard, upload, orders, monetary
 
 
 router = APIRouter()
@@ -8,6 +8,7 @@ router = APIRouter()
 router.include_router(dashboard.router)
 router.include_router(requests.router)
 router.include_router(tools.router)
+router.include_router(echart_tools.router)
 router.include_router(upload.router)
 router.include_router(orders.router)
 router.include_router(monetary.router)

@@ -67,5 +67,9 @@ def get_condensed_data(records: List[Any], max_points: int = 100, timestamp_attr
     while len(condensed_data) > max_points and window_idx < len(windows):
         condensed_data = condense_data_points(records, timestamp_attr, value_attr, windows[window_idx])
         window_idx += 1
-    
-    return condensed_data
+
+    condensed_data_list = []
+    for data_point in condensed_data:
+        condensed_data_list.append([data_point[0].isoformat(), data_point[1]])
+
+    return condensed_data_list
