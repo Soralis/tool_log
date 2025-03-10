@@ -19,6 +19,11 @@ router = APIRouter()
 # Global variables to store the latest filter settings
 websocket_filters = {}
 
+def define_machine_colors(machines):
+    num_machines = len(machines)
+    machine_colors = {machine.name: [f"hsl({int(360 * i / num_machines)}, 75%, 50%)", f"hsla({int(360 * i / num_machines)}, 75%, 50%, 0.5)"] for i, machine in enumerate(machines)} if num_machines > 0 else {}
+    return machine_colors
+
 async def get_tool_graphs(db: Session, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None,
                           selected_operations: Optional[list] = None, selected_products: Optional[list] = None) -> List[Dict]:
     # Get all active tools
@@ -69,11 +74,9 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
     tools = db.exec(statement).all()
 
     machines = db.exec(select(Machine).where(Machine.active == True)).all()
-    # sort machines by machine.name
     machines.sort(key=lambda x: x.name)
-    num_machines = len(machines)
-    machine_colors = {machine.name: [f"hsl({int(360 * i / num_machines)}, 75%, 50%)", f"hsla({int(360 * i / num_machines)}, 75%, 50%, 0.5)"] for i, machine in enumerate(machines)} if num_machines > 0 else {}
-    
+    machine_colors = define_machine_colors(machines)
+
     data = {}
     for tool in tools:
         # Build query with date filters
@@ -112,7 +115,6 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
                     condensed_data = get_condensed_data(ordered_records[machine][channel])
 
                     series.append({
-                        "name": "Tool Life",
                         "type": "line",
                         "data": condensed_data,
                         # "smooth": True,
@@ -202,7 +204,7 @@ async def get_tool_details(
         statement = statement.where(ToolLife.timestamp <= end)
     statement = statement.order_by(ToolLife.timestamp.asc())
     records = list(db.exec(statement))
-    records.reverse()  # Chronological order
+    # records.reverse()  # Chronological order
 
     # Define cards for the modal
     details = {
@@ -217,8 +219,40 @@ async def get_tool_details(
             "width": 12,
             "height": 2,
         })
-        return details
-    
+        return details  
+
+    ordered_records = {}
+    # sort by machine
+    for r in records:
+        if r.machine.name not in ordered_records:
+            ordered_records[r.machine.name] = {}
+        if f"Channel {r.machine_channel}" not in ordered_records[r.machine.name]:
+            ordered_records[r.machine.name][f"Channel {r.machine_channel}"] = []
+        ordered_records[r.machine.name][f"Channel {r.machine_channel}"].append(r)
+
+    ### General Graph
+    machines = db.exec(select(Machine).where(Machine.active == True)).all()
+    machines.sort(key=lambda x: x.name)
+    machine_colors = define_machine_colors(machines)
+
+    series = []
+
+    for machine in ordered_records:
+        for channel in ordered_records[machine]:
+            condensed_data = get_condensed_data(ordered_records[machine][channel])
+
+            series.append({
+                # "name": "Tool Life",
+                "type": "line",
+                "data": condensed_data,
+                # "smooth": True,
+                "lineStyle": { "color": machine_colors[machine][0] },
+                "areaStyle": { "color": machine_colors[machine][1] },
+            })
+
+    details['cards'].append(tc.graph_card("", series))
+
+    ### Basic Tool Details
     details['cards'].append(tc.stat_card("Tool Information", [
         ["Type", f"{tool.tool_type.name} ({'perishable' if tool.tool_type.perishable else 'durable'})"],
         ["Description", f"{tool.description}"],
@@ -226,7 +260,9 @@ async def get_tool_details(
         ["CPN", f"{tool.cpn_number}"],
         ["ERP", f"{tool.erp_number}"],
         ["Price", "1000"] #f"{tool.price}"
-    ]))
+    ]))  
+
+
 
     # # Get condensed data points
     # condensed_data = get_condensed_data(records)

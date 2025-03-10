@@ -188,7 +188,6 @@ function handleFilterChange(event) {
             selectedProducts: event.detail?.selectedProducts || 
                 (localStorage.getItem('selectedProducts') ? JSON.parse(localStorage.getItem('selectedProducts')) : [])
         };
-        console.log('Sending filter data to websocket:', filterData);
         ws.send(JSON.stringify(filterData));
     }
 }
