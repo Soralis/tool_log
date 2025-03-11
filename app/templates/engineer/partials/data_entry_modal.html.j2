@@ -212,10 +212,8 @@ function removeListField(button) {
 }
 
 function submitMainForm(form) {
-    console.log("entering submitMainForm")
     const formData = new FormData(form);
     // Add stored referred models to the form data
-    console.log('step 1')
     {% for field_name in children %}
         console.log('checking local storage for: ', '{{ field_name }}_models')
         if ('{{ field_name }}_models' in localStorage) {
@@ -225,7 +223,6 @@ function submitMainForm(form) {
             console.log(`added ${storedModels} to form`)
         }
     {% endfor %}
-    console.log('step 2')
     
     fetch(form.getAttribute('hx-post') || form.getAttribute('hx-put'), {
         method: form.getAttribute('hx-post') ? 'POST' : 'PUT',

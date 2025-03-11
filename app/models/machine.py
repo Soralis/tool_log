@@ -102,6 +102,7 @@ class LineUpdate(LineCreate):
     id: Optional[int] = None
 
 class LineRead(SQLModel):
+    id: int
     name: str
 
 class LineFilter(SQLModel):
