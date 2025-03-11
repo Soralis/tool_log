@@ -13,6 +13,8 @@ from app.templates.jinja_functions import templates
 from app.models import Manufacturer, ManufacturerCreate, ManufacturerRead
 from app.models import Measureable,MeasureableCreate, MeasureableRead
 from app.models import Machine, MachineCreate, MachineRead
+from app.models import Line, LineCreate, LineUpdate, LineRead
+from app.models import Workpiece, WorkpieceCreate, WorkpieceRead
 from app.models import User, UserCreate, UserRead
 from app.models import Shift, ShiftCreate, ShiftRead
 from app.models import Tool, ToolCreate, ToolRead, ToolAttribute, ToolAttributeCreate, ToolAttributeRead
@@ -31,6 +33,7 @@ model_mapping = {
     'changereason': {"model": ChangeReason, "create": ChangeReasonCreate, "read": ChangeReasonRead},
     "manufacturer": {"model": Manufacturer, "create": ManufacturerCreate, "read": ManufacturerRead},
     "machine": {"model": Machine, "create": MachineCreate, "read": MachineRead},
+    "line": {"model": Line, "create": LineCreate, "read": LineRead},
     'measureable':{'model': Measureable, 'create': MeasureableCreate, 'read': MeasureableRead},
     "user": {"model": User, "create": UserCreate, "read": UserRead},
     'tool': {"model": Tool, "create": ToolCreate, "read": ToolRead},
@@ -42,6 +45,7 @@ model_mapping = {
     'tooltype': {"model": ToolType, "create": ToolTypeCreate, "read": ToolTypeRead},
     'recipe': {"model": Recipe, "create": RecipeCreate, "read": RecipeRead},
     'shift': {"model": Shift, "create": ShiftCreate, "read": ShiftRead},
+    'workpiece': {"model": Workpiece, "create": WorkpieceCreate, "read": WorkpieceRead},
 }
 
 def create_generic_router(

@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from .tool import ToolLife, ToolConsumption
     from .recipe import Recipe
     from .change_over import ChangeOver
+    from .workpiece import Workpiece
 
 
 class MeasureableBase(SQLModel):
@@ -45,6 +46,7 @@ class MachineBase(SQLModel):
     manufacturer: Optional[str] = Field(default=None)
     measures_tool_life: bool = Field(default=False)
     channels: int = Field(gt=0)
+    line_id: Optional[int] = Field(default=None, foreign_key='line.id', ondelete='SET NULL')
 
 
 class Machine(MachineBase, table=True):
@@ -58,6 +60,7 @@ class Machine(MachineBase, table=True):
     recipes: List['Recipe'] = Relationship(back_populates='machine', sa_relationship_kwargs={"foreign_keys": "[Recipe.machine_id]"}, cascade_delete=True)
     change_overs: List['ChangeOver'] = Relationship(back_populates='machine', cascade_delete=True)
     tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='machine', cascade_delete=False)
+    line: Optional['Line'] = Relationship(back_populates='machines')
 
     current_recipe_id: Optional[int] = Field(default=None, foreign_key='recipe.id', ondelete='SET NULL')
     current_recipe: 'Recipe' = Relationship(back_populates='machine', sa_relationship_kwargs={"foreign_keys": "[Machine.current_recipe_id]"})
@@ -77,3 +80,31 @@ class MachineRead(SQLModel):
     name: str
     active: bool
     current_recipe: 'Recipe'
+    line: 'LineRead'
+
+
+class LineBase(SQLModel):
+    description: Optional[str] = None
+    name: str = Field(index=True, unique=True)
+
+class Line(LineBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    active: bool = Field(default=True, nullable=False)
+
+    machines: List['Machine'] = Relationship(back_populates='line', cascade_delete=False)
+    workpieces: List['Workpiece'] = Relationship(back_populates='line', cascade_delete=False)
+
+class LineCreate(LineBase):
+    pass
+
+class LineUpdate(LineCreate):
+    active: bool
+    id: Optional[int] = None
+
+class LineRead(SQLModel):
+    name: str
+
+class LineFilter(SQLModel):
+    name: str
+    active: bool
+

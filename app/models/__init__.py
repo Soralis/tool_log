@@ -1,5 +1,8 @@
 from .monitoring import RequestLog, ServiceMetrics
-from .machine import Machine, MachineBase, MachineCreate, MachineUpdate, MachineRead, Measureable, MeasureableBase, MeasureableCreate, MeasureableUpdate, MeasureableRead
+from .machine import (Machine, MachineBase, MachineCreate, MachineUpdate, MachineRead, 
+                      Measureable, MeasureableBase, MeasureableCreate, MeasureableUpdate, MeasureableRead,
+                      Line, LineBase, LineCreate, LineUpdate, LineRead, LineFilter
+)
 from .tool import (
     Tool, ToolBase, ToolCreate, ToolUpdate, ToolRead,
     ToolOrder, ToolOrderBase, ToolOrderCreate, ToolOrderUpdate, ToolOrderRead,
@@ -21,7 +24,7 @@ from .model_connections import RecipeTool, ToolAttributeValue, ToolAttributeValu
 from .user import (User, UserBase, UserCreate, UserUpdate, UserRead, UserRole, Token, PaymentType,
                    Shift, ShiftCreate, ShiftUpdate, ShiftRead, ShiftFilter)
 from .change_over import ChangeOver, ChangeOverBase, ChangeOverCreate, ChangeOverUpdate, ChangeOverRead
-from .workpiece import (Workpiece, WorkpieceBase, WorkpieceCreate, WorkpieceUpdate, WorkPieceRead,
+from .workpiece import (Workpiece, WorkpieceBase, WorkpieceCreate, WorkpieceUpdate, WorkpieceRead,
                         OrderCompletion, OrderCompletionCreate, OrderCompletionUpdate, OrderCompletionRead
                         )
 from .manufacturer import Manufacturer, ManufacturerBase, ManufacturerCreate, ManufacturerUpdate, ManufacturerRead
@@ -34,6 +37,7 @@ __all__ = [
     # Machine
     "Machine", "MachineBase", "MachineCreate", "MachineUpdate", "MachineRead",
     "Measureable", "MeasureableBase", "MeasureableCreate", "MeasureableUpdate", "MeasureableRead",
+    "Line", "LineBase", "LineCreate", "LineUpdate", "LineRead", "LineFilter",
     
     # Tool
     "Tool", "ToolBase", "ToolCreate", "ToolUpdate", "ToolRead",
@@ -64,7 +68,7 @@ __all__ = [
     "ChangeOver", "ChangeOverBase", "ChangeOverCreate", "ChangeOverUpdate", "ChangeOverRead",
     
     # Workpiece
-    "Workpiece", "WorkpieceBase", "WorkpieceCreate", "WorkpieceUpdate", "WorkPieceRead",
+    "Workpiece", "WorkpieceBase", "WorkpieceCreate", "WorkpieceUpdate", "WorkpieceRead",
     "OrderCompletion", "OrderCompletionCreate", "OrderCompletionUpdate", "OrderCompletionRead",
     
     # Manufacturer

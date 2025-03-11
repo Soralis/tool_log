@@ -235,22 +235,29 @@ async def get_tool_details(
     machines.sort(key=lambda x: x.name)
     machine_colors = define_machine_colors(machines)
 
-    series = []
+    general_series = []
+    machine_spec_series = []
 
     for machine in ordered_records:
+        machine_series = []
         for channel in ordered_records[machine]:
             condensed_data = get_condensed_data(ordered_records[machine][channel])
 
-            series.append({
-                # "name": "Tool Life",
+            series = {
                 "type": "line",
                 "data": condensed_data,
-                # "smooth": True,
                 "lineStyle": { "color": machine_colors[machine][0] },
                 "areaStyle": { "color": machine_colors[machine][1] },
-            })
+            }
 
-    details['cards'].append(tc.graph_card("", series))
+            general_series.append(series)
+
+            series['name'] = machine
+            machine_series.append(series)
+        
+        machine_spec_series.append(machine_series)
+
+    details['cards'].append(tc.graph_card("", general_series))
 
     ### Basic Tool Details
     details['cards'].append(tc.stat_card("Tool Information", [
@@ -262,101 +269,8 @@ async def get_tool_details(
         ["Price", "1000"] #f"{tool.price}"
     ]))  
 
-
-
-    # # Get condensed data points
-    # condensed_data = get_condensed_data(records)
-    # timestamps, values = zip(*condensed_data) if condensed_data else ([], [])
-
-    # # Calculate statistics
-    # mean = np.mean(values)
-    # std = np.std(values)
-
-    # # Calculate trendline
-    # x = np.arange(len(values))
-    # slope, intercept, _, _, _ = linregress(x, values)
-
-    # # Calculate daily averages (last 7 days)
-    # daily_data = {}
-    # for record in records:
-    #     date_key = record.timestamp.strftime("%Y-%m-%d")
-    #     if date_key not in daily_data:
-    #         daily_data[date_key] = []
-    #     daily_data[date_key].append(record.reached_life)
-
-    # daily_averages = []
-    # daily_dates = []
-    # for date in sorted(daily_data.keys())[-7:]:
-    #     daily_averages.append(np.mean(daily_data[date]))
-    #     daily_dates.append(datetime.strptime(date, "%Y-%m-%d").strftime("%m/%d"))
-
-    # # Calculate wear rate
-    # wear_rates = []
-    # wear_dates = []
-    # for i in range(1, min(8, len(values))):
-    #     wear_rate = abs(values[i] - values[i - 1])
-    #     wear_rates.append(wear_rate)
-    #     wear_dates.append(timestamps[i].strftime("%m/%d"))
-
-    # # Define scales
-    # scales = {
-    #     "x": {
-    #         "type": "time",
-    #         "time": {
-    #             "unit": "day",
-    #             "displayFormats": {
-    #                 "day": "MMM D"
-    #             }
-    #         }
-    #     }
-    # }
-
-    # ROW 1
-    # details['cards'].append({
-    #     "id": "main_graph",
-    #     "title": "Tool Life Trend",
-    #     "width": 6,  # Full width
-    #     "height": 2,  # 2 units tall
-    #     "type": "graph",
-    #     "data": {
-    #         "type": "line",
-    #         "labels": [timestamp.isoformat() for timestamp in timestamps],
-    #         "scales": scales,
-    #         "datasets": [
-    #             {
-    #                 "label": "Tool Life",
-    #                 "data": values,
-    #                 "borderColor": "rgb(75, 192, 192)",
-    #                 "backgroundColor": "rgba(75, 192, 192, 0.5)",
-    #                 "tension": 0.1,
-    #                 "fill": True
-    #             },
-    #             {
-    #                 "label": "Trendline",
-    #                 "data": [slope * i + intercept for i in x],
-    #                 "borderColor": "rgba(255, 99, 132, 1)",
-    #                 "borderWidth": 2,
-    #                 "borderDash": [5, 5],
-    #                 "fill": False,
-    #                 "pointRadius": 0
-    #             }
-    #         ]
-    #     }
-    # })
-    #
-    # # ROW 3+
-    # machines = defaultdict(lambda: defaultdict(list))
-    # for record in records:
-    #     machines[record.machine.name][record.machine_channel].append({
-    #         'tool_life': record.reached_life,
-    #         'timestamp': record.timestamp,
-    #         'settings': record.tool_settings,
-    #         'additional_measurements': record.additional_measurements,
-    #         'change_reason': {
-    #             'name': record.change_reason.name if record.change_reason else "N/A",
-    #             'sentiment': record.change_reason.sentiment if record.change_reason else "N/A"
-    #         },
-    #     })
+    for machine_spec in machine_spec_series:
+        details['cards'].append(tc.graph_card("", machine_spec))
 
     # # Add a card for each machine with all its channels
     # for machine_name, channels in machines.items():
@@ -492,6 +406,102 @@ async def get_tool_details(
     #                 }
     #             }
     #         }
+    #     })
+
+
+
+    # # Get condensed data points
+    # condensed_data = get_condensed_data(records)
+    # timestamps, values = zip(*condensed_data) if condensed_data else ([], [])
+
+    # # Calculate statistics
+    # mean = np.mean(values)
+    # std = np.std(values)
+
+    # # Calculate trendline
+    # x = np.arange(len(values))
+    # slope, intercept, _, _, _ = linregress(x, values)
+
+    # # Calculate daily averages (last 7 days)
+    # daily_data = {}
+    # for record in records:
+    #     date_key = record.timestamp.strftime("%Y-%m-%d")
+    #     if date_key not in daily_data:
+    #         daily_data[date_key] = []
+    #     daily_data[date_key].append(record.reached_life)
+
+    # daily_averages = []
+    # daily_dates = []
+    # for date in sorted(daily_data.keys())[-7:]:
+    #     daily_averages.append(np.mean(daily_data[date]))
+    #     daily_dates.append(datetime.strptime(date, "%Y-%m-%d").strftime("%m/%d"))
+
+    # # Calculate wear rate
+    # wear_rates = []
+    # wear_dates = []
+    # for i in range(1, min(8, len(values))):
+    #     wear_rate = abs(values[i] - values[i - 1])
+    #     wear_rates.append(wear_rate)
+    #     wear_dates.append(timestamps[i].strftime("%m/%d"))
+
+    # # Define scales
+    # scales = {
+    #     "x": {
+    #         "type": "time",
+    #         "time": {
+    #             "unit": "day",
+    #             "displayFormats": {
+    #                 "day": "MMM D"
+    #             }
+    #         }
+    #     }
+    # }
+
+    # ROW 1
+    # details['cards'].append({
+    #     "id": "main_graph",
+    #     "title": "Tool Life Trend",
+    #     "width": 6,  # Full width
+    #     "height": 2,  # 2 units tall
+    #     "type": "graph",
+    #     "data": {
+    #         "type": "line",
+    #         "labels": [timestamp.isoformat() for timestamp in timestamps],
+    #         "scales": scales,
+    #         "datasets": [
+    #             {
+    #                 "label": "Tool Life",
+    #                 "data": values,
+    #                 "borderColor": "rgb(75, 192, 192)",
+    #                 "backgroundColor": "rgba(75, 192, 192, 0.5)",
+    #                 "tension": 0.1,
+    #                 "fill": True
+    #             },
+    #             {
+    #                 "label": "Trendline",
+    #                 "data": [slope * i + intercept for i in x],
+    #                 "borderColor": "rgba(255, 99, 132, 1)",
+    #                 "borderWidth": 2,
+    #                 "borderDash": [5, 5],
+    #                 "fill": False,
+    #                 "pointRadius": 0
+    #             }
+    #         ]
+    #     }
+    # })
+    #
+    # # ROW 3+
+    # machines = defaultdict(lambda: defaultdict(list))
+    # for record in records:
+    #     machines[record.machine.name][record.machine_channel].append({
+    #         'tool_life': record.reached_life,
+    #         'timestamp': record.timestamp,
+    #         'settings': record.tool_settings,
+    #         'additional_measurements': record.additional_measurements,
+    #         'change_reason': {
+    #             'name': record.change_reason.name if record.change_reason else "N/A",
+    #             'sentiment': record.change_reason.sentiment if record.change_reason else "N/A"
+    #         },
     #     })
 
     return details

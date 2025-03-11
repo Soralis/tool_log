@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from .recipe import Recipe
     from .user import User
     from .tool import ToolConsumption
+    from .machine import Line
 
 
 class WorkpieceBase(SQLModel):
@@ -13,6 +14,7 @@ class WorkpieceBase(SQLModel):
     description: Optional[str] = None
     material: Optional[str] = None
     dimensions: Optional[str] = None
+    line_id: Optional[int] = Field(foreign_key='line.id', ondelete='SET NULL')
 
 
 class Workpiece(WorkpieceBase, table=True):
@@ -22,6 +24,7 @@ class Workpiece(WorkpieceBase, table=True):
     recipes: List['Recipe'] = Relationship(back_populates='workpiece', cascade_delete=True)
     order_completions: List['OrderCompletion'] = Relationship(back_populates='workpiece', cascade_delete=False)
     tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='workpiece', cascade_delete=False)
+    line: Optional['Line'] = Relationship(back_populates='workpieces')
 
 class WorkpieceCreate(WorkpieceBase):
     pass
@@ -32,7 +35,7 @@ class WorkpieceUpdate(WorkpieceCreate):
     active: bool
 
 
-class WorkPieceRead(SQLModel):
+class WorkpieceRead(SQLModel):
     id: int
     name: str
     active: bool

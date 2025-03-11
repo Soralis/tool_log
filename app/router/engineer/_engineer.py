@@ -3,6 +3,7 @@ from app.templates.jinja_functions import templates
 from app.models import User, UserCreate, UserUpdate, UserRead, UserRole, PaymentType
 from app.models import Shift, ShiftCreate, ShiftUpdate, ShiftRead
 from app.models import Machine, MachineCreate, MachineUpdate, MachineRead
+from app.models import Line, LineCreate, LineUpdate, LineRead
 from app.models import Manufacturer, ManufacturerCreate, ManufacturerUpdate, ManufacturerRead
 from app.models import Tool, ToolCreate, ToolUpdate, ToolRead
 from app.models import ToolAttribute, ToolAttributeCreate, ToolAttributeUpdate, ToolAttributeRead
@@ -15,14 +16,14 @@ from app.models import Note, NoteCreate, NoteUpdate, NoteRead
 from app.models import ToolType, ToolTypeCreate, ToolTypeUpdate, ToolTypeRead, Sentiment
 from app.models import ChangeReason, ChangeReasonCreate, ChangeReasonUpdate, ChangeReasonRead
 from app.models import ChangeOver, ChangeOverCreate, ChangeOverUpdate, ChangeOverRead
-from app.models import Workpiece, WorkpieceCreate, WorkpieceUpdate, WorkPieceRead
+from app.models import Workpiece, WorkpieceCreate, WorkpieceUpdate, WorkpieceRead
 from .generic_router import create_generic_router
 from .recipes import router as recipes_router
 from sqlmodel import Session
 from app.database_config import engine
 
 # Generic fixed field callback - generic function to retrieve fixed fields based on a related fixed item.
-def generic_fixed_field_callback(mapping: dict, calling_model, extra: dict = None):
+def fixed_field_callback(mapping: dict, calling_model, extra: dict = None):
     """
     A generic callback factory to supply fixed field options.
     The mapping must be of the form:
@@ -79,11 +80,12 @@ generic_extra_context = {"tool_type_id": 1}  # Placeholder; adjust as needed.
 users_router = create_generic_router(User, UserRead, UserCreate, UserUpdate, "User", {"enum_fields": {"role": UserRole, "payment_type": PaymentType}})
 shift_router = create_generic_router(Shift, ShiftRead, ShiftCreate, ShiftUpdate, "Shift")
 machines_router = create_generic_router(Machine, MachineRead, MachineCreate, MachineUpdate, "Machine")
+lines_router = create_generic_router(Line, LineRead, LineCreate, LineUpdate, "Line")
 manufacturers_router = create_generic_router(Manufacturer, ManufacturerRead, ManufacturerCreate, ManufacturerUpdate, "Manufacturer")
 tool_fixed_mapping = {
     "tool_attributes": {"tool_type_id": (ToolType, "tool_attributes")}
 }
-tools_router = create_generic_router(Tool, ToolRead, ToolCreate, ToolUpdate, "Tool", fixed_field_callback=generic_fixed_field_callback(tool_fixed_mapping, Tool))
+tools_router = create_generic_router(Tool, ToolRead, ToolCreate, ToolUpdate, "Tool", fixed_field_callback=fixed_field_callback(tool_fixed_mapping, Tool))
 tool_attributes_router = create_generic_router(ToolAttribute, ToolAttributeRead, ToolAttributeCreate, ToolAttributeUpdate, "Tool_Attribute")
 # tool_settings_router = create_generic_router(ToolSettings, ToolSettingsCreate, ToolSettingsUpdate, "Tool_Settings")
 tool_type_router = create_generic_router(ToolType, ToolTypeRead, ToolTypeCreate, ToolTypeUpdate, "Tool_Type", {"enum_fields": {"sentiment": Sentiment}})
@@ -94,12 +96,13 @@ change_reason_router = create_generic_router(ChangeReason, ChangeReasonRead, Cha
 tool_orders_router = create_generic_router(ToolOrder, ToolOrderRead, ToolOrderCreate, ToolOrderUpdate, "Tool_Order")
 # recipe_router = create_generic_router(Recipe, RecipeCreate, RecipeUpdate, "Recipe")
 change_over_router = create_generic_router(ChangeOver, ChangeOverRead, ChangeOverCreate, ChangeOverUpdate, "Change_Over")
-workpiece_router = create_generic_router(Workpiece, WorkPieceRead, WorkpieceCreate, WorkpieceUpdate, "Workpiece")
+workpiece_router = create_generic_router(Workpiece, WorkpieceRead, WorkpieceCreate, WorkpieceUpdate, "Workpiece")
 
 # Include the generic routers
 router.include_router(users_router, prefix="/users", tags=["users"])
 router.include_router(shift_router, prefix="/shifts", tags=["shifts"])
 router.include_router(machines_router, prefix="/machines", tags=["machines"])
+router.include_router(lines_router, prefix="/lines", tags=["lines"])
 router.include_router(manufacturers_router, prefix="/manufacturers", tags=["manufacturers"])
 router.include_router(tools_router, prefix="/tools", tags=["tools"])
 router.include_router(tool_attributes_router, prefix="/tool_attributes", tags=["tool_attributes"])
