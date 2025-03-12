@@ -161,6 +161,7 @@ class RecipeManager {
             toolSelect.dispatchEvent(new Event('change'));
 
             document.getElementById(this.prefix + 'ExpectedLife').value = toolData.expected_life;
+            document.getElementById(this.prefix + 'ToolCount').value = toolData.tool_count;
             
             // Store the tool position ID if it exists
             if (toolData.id) {
@@ -253,6 +254,7 @@ class RecipeManager {
                 const newValue = JSON.stringify({
                     id: toolPositionId,
                     tool_id: toolSelect.value,
+                    tool_count: parseInt(e.target.tool_count.value),
                     expected_life: parseInt(e.target.expected_life.value),
                     tool_settings: settings,
                     tool_attributes: selectedTool.attributes
@@ -273,6 +275,7 @@ class RecipeManager {
                     name: positionName,
                     tool_id: toolSelect.value,
                     tool_name: toolName,
+                    tool_count: parseInt(e.target.tool_count.value),
                     expected_life: parseInt(e.target.expected_life.value),
                     tool_settings: settings,
                     tool_attributes: selectedTool.attributes,
@@ -370,6 +373,7 @@ class RecipeManager {
         option.value = JSON.stringify({
             id: toolPosition.id,
             tool_id: toolPosition.tool_id,
+            tool_count: toolPosition.tool_count,
             expected_life: toolPosition.expected_life,
             tool_settings: toolPosition.tool_settings,
             tool_attributes: toolPosition.tool_attributes
@@ -393,7 +397,7 @@ class RecipeManager {
             detailsDiv.innerHTML = `
                 <div class="grid grid-cols-2 max-w-full">
                     <div>
-                        <p>Expected Life: ${data.expected_life}</p>
+                        <p>Expected Life: ${data.expected_life} (${data.tool_count} units)</p>
                         ${Object.entries(data.tool_settings).map(([name, value]) => {
                             const sett = tool.settings.find(a => a.name === name);
                             return `<p class="tool-setting">${name}: ${value} ${sett ? sett.unit : ''}</p>`;
@@ -426,6 +430,7 @@ class RecipeManager {
         const group = button.closest('.tool-position-group');
         const select = group.querySelector('.tool-select');
         const data = JSON.parse(select.value);
+        console.log('222', data)
         
         // Store the current edit index
         this.currentEditIndex = Array.from(select.options).indexOf(select.selectedOptions[0]);
@@ -433,6 +438,7 @@ class RecipeManager {
         this.showToolPositionForm(group.dataset.positionName, {
             id: data.id,
             tool_id: data.tool_id,
+            tool_count: data.tool_count,
             expected_life: data.expected_life,
             tool_settings: data.tool_settings,
             tool_attributes: data.tool_attributes
@@ -466,6 +472,7 @@ class RecipeManager {
                         id: data.id,
                         name: positionName,
                         tool_id: data.tool_id,
+                        tool_count: data.tool_count,
                         expected_life: data.expected_life,
                         tool_settings: data.tool_settings,
                         tool_attributes: data.tool_attributes,
@@ -506,6 +513,7 @@ class RecipeManager {
                         name: tp.name,
                         tool_id: tp.tool_id,
                         tool_name: tool ? tool.name : 'Unknown Tool',
+                        tool_count: tp.tool_count,
                         expected_life: tp.expected_life,
                         tool_settings: tp.tool_settings,
                         tool_attributes: tp.tool_attributes || (tool ? tool.attributes : {}),

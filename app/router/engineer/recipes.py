@@ -4,12 +4,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.exceptions import HTTPException
 from app.templates.jinja_functions import templates
 from sqlmodel import Session, select
-from sqlalchemy.orm import aliased
-from app.models import Recipe, RecipeRead, ToolType, ToolPosition, ToolSetting
+from app.models import Recipe, RecipeRead, ToolPosition
 from app.models import Workpiece
 from app.models import Machine
 from app.models import Tool
-from app.models import Manufacturer
 from app.models import User
 from app.database_config import get_session
 from auth import get_current_operator
@@ -65,16 +63,7 @@ async def get_machines(q: str = "", session: Session = Depends(get_session)):
 
 @router.get("/tools")
 async def get_tools(q: str = "", session: Session = Depends(get_session)):
-    # Create an alias for the ToolSetting table
-    # ToolSettingAlias = aliased(ToolSetting)
 
-    # Create the query
-    # query = (
-    #     select(Tool, ToolType, ToolSettingAlias, Manufacturer)
-    #     .join(ToolType, Tool.tool_type_id == ToolType.id)
-    #     .join(ToolSettingAlias, ToolType.id == ToolSettingAlias.tool_type_id)
-    #     .join(Manufacturer, Tool.manufacturer_id == Manufacturer.id)
-    # )
     query = select(Tool)
 
     # Execute the query
@@ -82,18 +71,7 @@ async def get_tools(q: str = "", session: Session = Depends(get_session)):
 
     # Process the result
     tools_dict = {}
-    # for tool, tool_type, setting, manufacturer in result:
-    #     if tool.id not in tools_dict:
-    #         tools_dict[tool.id] = {
-    #             'name': f'{tool.name} ({manufacturer.name})',
-    #             'type': tool_type.name,  # Add tool type separately
-    #             'settings': []
-    #         }
-        
-    #     tools_dict[tool.id]['settings'].append({
-    #         'name': setting.name,
-    #         'unit': setting.unit
-    #     })
+    
     for tool in result:
         if tool.id not in tools_dict:
             tools_dict[tool.id] = {
@@ -150,6 +128,7 @@ async def get_recipe(recipe_id: int, session: Session = Depends(get_session)):
             "id": tp.id,  # Include the ID
             "name": tp.name,
             "tool_id": tp.tool_id,
+            "tool_count": tp.tool_count,
             "expected_life": tp.expected_life,
             "tool_settings": tp.tool_settings,
             'tool_attributes': tool_attributes,

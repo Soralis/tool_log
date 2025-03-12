@@ -61,6 +61,7 @@ class ToolPosition(SQLModel, table=True):
     recipe: Recipe = Relationship(back_populates='tool_positions')
     tool_id: int = Field(foreign_key='tool.id', ondelete='CASCADE')
     tool: 'Tool' = Relationship(back_populates='tool_positions')
+    tool_count: int
     tool_lifes: List['ToolLife'] = Relationship(back_populates='tool_position', cascade_delete=False)
     tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='tool_position', cascade_delete=False)
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
@@ -76,6 +77,7 @@ class ToolPosition(SQLModel, table=True):
 class ToolPositionCreate(SQLModel):
     selected: bool
     tool_settings: Dict
+    tool_count: int
 
 
 class ToolPositionUpdate(ToolPositionCreate):
@@ -89,3 +91,4 @@ class ToolPositionRead(SQLModel):
     tool: 'Tool'
     machine: 'Machine'
     tool_settings: Dict
+    tool_count: int
