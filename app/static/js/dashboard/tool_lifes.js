@@ -141,7 +141,7 @@ function createChartContainers(graphs) {
 // WebSocket connection and management
 function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/tools`);
+    ws = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/toolLifes`);
     
     ws.onopen = function() {
         statusDiv.classList.add('hidden');

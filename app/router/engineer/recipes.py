@@ -151,11 +151,17 @@ async def create_recipe(
 
     # Create tool positions with active state
     tool_positions = body['tool_positions']
+    tool_ids = []
     for tp in tool_positions:
         tp['tool_id'] = int(tp['tool_id'])
+        tool_ids.append(tp['tool_id'])
         tp['recipe_id'] = db_recipe.id
         db_tp = ToolPosition.model_validate(tp)
         session.add(db_tp)
+    
+    tools = session.exec(select(Tool).where(Tool.id.in_(tool_ids))).all()
+    db_recipe.tools = tools
+    
     session.commit()
 
     return {"message": "Recipe created successfully", "recipe_id": db_recipe.id}
@@ -205,8 +211,11 @@ async def update_recipe(
             session.commit()
     
     # Update or create tool positions
+
+    tool_ids = []
     for tp in body['tool_positions']:
         tp['tool_id'] = int(tp['tool_id'])
+        tool_ids.append(tp['tool_id'])
         tp['recipe_id'] = recipe_id
         
         if tp.get('id'):  # Update existing position
@@ -218,7 +227,10 @@ async def update_recipe(
         else:  # Create new position
             db_tp = ToolPosition.model_validate(tp)
             session.add(db_tp)
-    
+
+    tools = session.exec(select(Tool).where(Tool.id.in_(tool_ids))).all()
+    recipe.tools = tools
+
     session.commit()
     return {"message": "Recipe updated successfully"}
 

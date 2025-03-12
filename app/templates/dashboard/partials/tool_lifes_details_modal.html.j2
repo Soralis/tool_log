@@ -183,7 +183,7 @@ window.openToolModal = async function(toolId, dateRange) {
             start_date: dateRange.startDate || '',
             end_date: dateRange.endDate || ''
         });
-        const response = await fetch(`/dashboard/api/tool/${numericId}/details?${params}`);
+        const response = await fetch(`/dashboard/api/toolLifes/${numericId}/details?${params}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }

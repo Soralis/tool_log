@@ -265,9 +265,6 @@ def create_generic_router(
                 if key in context['relationship_options']:
                     del context['relationship_options'][key]
                 context['fixed_field_options'][key] = value
-
-        # Add this debug print
-        print(f"Update Context: {context}")
         
         return templates.TemplateResponse(
             request=request,
@@ -371,7 +368,6 @@ def create_generic_router(
 
     @router.delete("/{item_id}")
     def delete_item(item_id: int):
-        print('delete item was called')
         statement = select(model).where(model.id == item_id)
         with Session(engine) as session:
             results = session.exec(statement)

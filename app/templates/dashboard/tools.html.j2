@@ -1,78 +1,167 @@
 {% extends "dashboard/base.html.j2" %}
-
-{% block title %}Tool Life Monitoring{% endblock %}
-
-{% block head %}
-<script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
-<style>
-    .graph-container {
-        height: 200px;
-    }
-</style>
-{% endblock %}
-
+{% block title %}Tools{% endblock %}
 {% block subinfo %}
-<div class="flex items-center space-x-8 text-sm font-mono">
-    <div class="flex justify-between">
-        <div class="flex items-center">
-            <div class="w-8 h-4 mr-2 ml-4 border-2 border-[rgb(75,192,192)] bg-[rgb(75,192,192)]/50"></div>
-            <span>Tool Life</span>
-        </div>
-        <div class="flex items-center">
-            <div class="w-8 h-4 mr-2 ml-4 border-t-2 border-dashed border-[rgb(255,99,132)]"></div>
-            <span>Trendline</span>
-        </div>
-        <div class="flex items-center">
-            <div class="w-8 h-4 mr-2 ml-4 border-t-2 border-dashed border-[rgb(255,206,86)]"></div>
-            <span>Mean</span>
-        </div>
-        <div class="flex items-center">
-            <div class="w-8 h-4 mr-2 ml-4 border-2 border-[rgb(255,206,86)] bg-[rgb(255,206,86)]/10"></div>
-            <span>Mean ± Std Dev</span>
-        </div>
-    </div>
-</div>
+<!-- Tabs -->
+  <button id="tab-flat" class="tab-button text-gray-400 hover:text-gray-100 whitespace-nowrap px-4 border-b-2 font-medium border-transparent">Flat List</button>
+  <button id="tab-grouped" class="tab-button text-gray-400 hover:text-gray-100 whitespace-nowrap px-4 border-b-2 font-medium border-transparent">Grouped</button>
+  <button id="tab-placeholder" class="tab-button text-gray-400 hover:text-gray-100 whitespace-nowrap px-4 border-b-2 font-medium border-transparent">Table 3</button>
 {% endblock %}
-
 {% block content %}
-<div class="p-2">
-    <div class="mx-auto">
-        {% include 'dashboard/partials/tool_details_modal.html.j2' %}
-        <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
-            {% for graph in graphs %}
-            <div class="bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-700 transition-colors graph-card" 
-                data-graph-id="{{ graph.id }}">
-                <h3 class="text-lg font-medium text-gray-300 mb-2">{{ graph.title }}</h3>
-                {% with graph_id=graph.id, graph_type=graph.type %}
-                    {% include 'dashboard/partials/graph.html.j2' %}
-                {% endwith %}
-            </div>
-            {% endfor %}
-        </div>
-
-        {% if not graphs %}
-        <div class="text-center py-12">
-            <p class="text-gray-400 text-lg">No tool life data available. Add tools and record tool life measurements to see graphs.</p>
-        </div>
-        {% endif %}
+<div class="w-full px-4 py-6">
+  <!-- Tab Contents -->
+  <div id="content-flat" class="tab-content">
+    <table class="w-full divide-y divide-gray-700">
+      <thead>
+        <tr>
+          <th class="px-4 py-2 text-left">Line</th>
+          <th class="px-4 py-2 text-left">Name</th>
+          <th class="px-4 py-2 text-left">Type</th>
+          <th class="px-4 py-2 text-left">Number</th>
+          <th class="px-4 py-2 text-left">Manufacturer</th>
+          <th class="px-4 py-2 text-left">Weekly Consumption</th>
+          <th class="px-4 py-2 text-left">Inventory</th>
+          <th class="px-4 py-2 text-left">Order Lead Time</th>
+        </tr>
+      </thead>
+      <tbody id="flat-tools-body">
+        <!-- Flat list of tools will be populated here -->
+      </tbody>
+    </table>
+  </div>
+  
+  <div id="content-grouped" class="tab-content hidden">
+    <!-- Grouped table -->
+    <div id="grouped-tools">
+      <!-- Grouped tools will be rendered here -->
     </div>
+  </div>
+  
+  <div id="content-placeholder" class="tab-content hidden">
+    <p class="text-gray-400">Table 3 content placeholder.</p>
+  </div>
 </div>
 
-<div id="connection-status" class="fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500/100">
-    Connecting...
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script type="module">
-    import { initializeComponents, cleanup } from '{{ url_for("static", path="js/dashboard/tools.js") }}';
-    import { initializeDateRange } from '{{ url_for("static", path="js/dashboard/rangeSlider.js") }}';
-
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeComponents();
-        initializeDateRange();
+<script>
+  // Basic tab switching
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.addEventListener('click', () => {
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('border-indigo-500', 'text-indigo-500'));
+      button.classList.add('border-indigo-500', 'text-indigo-500');
+      
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+      if(button.id === 'tab-flat'){
+        document.getElementById('content-flat').classList.remove('hidden');
+      }
+      if(button.id === 'tab-grouped'){
+        document.getElementById('content-grouped').classList.remove('hidden');
+      }
+      if(button.id === 'tab-placeholder'){
+        document.getElementById('content-placeholder').classList.remove('hidden');
+      }
     });
-
-    window.addEventListener('beforeunload', cleanup);
+  });
+  
+  // Fetch tool data from the external API with filters
+  async function fetchToolsData(){
+    try {
+      const selectedOperations = localStorage.getItem('selectedOperations') || "";
+      const selectedProducts = localStorage.getItem('selectedProducts') || "";
+      // Fetch data from the API
+      const response = await fetch(`http://${window.location.host}/dashboard/tools/api/filtered?selected_operations=${selectedOperations}&selected_products=${selectedProducts}`);
+      const data = await response.json();
+      populateToolsData(data);
+    } catch (error) {
+      console.error('Error fetching filtered tools data:', error);
+    }
+  }
+  
+  function populateToolsData(data){
+    // Populate flat table
+    const flatBody = document.getElementById('flat-tools-body');
+    flatBody.innerHTML = '';
+    data.flat_tools.forEach(tool => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="px-4 py-2 border-b border-gray-700">${tool.line || ''}</td>
+        <td class="px-4 py-2 border-b border-gray-700">${tool.name || ''}</td>
+        <td class="px-4 py-2 border-b border-gray-700">${tool.type || ''}</td>
+        <td class="px-4 py-2 border-b border-gray-700">${tool.number || ''}</td>
+        <td class="px-4 py-2 border-b border-gray-700">${tool.manufacturer || ''}</td>
+        <td class="px-4 py-2 border-b border-gray-700">${tool.weekly_consumption || ''}</td>
+        <td class="px-4 py-2 border-b border-gray-700">${tool.inventory || ''}</td>
+        <td class="px-4 py-2 border-b border-gray-700">${tool.order_lead_time || ''}</td>
+      `;
+      flatBody.appendChild(tr);
+    });
+    
+    // Populate grouped table with product spanning all its operations
+    const groupedDiv = document.getElementById('grouped-tools');
+    groupedDiv.innerHTML = '';
+    const table = document.createElement('table');
+    table.classList.add('w-full', 'divide-y', 'divide-gray-700');
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th class="px-4 py-2 text-left">Product</th>
+        <th class="px-4 py-2 text-left">Operation</th>
+        <th class="px-4 py-2 text-left">Name</th>
+        <th class="px-4 py-2 text-left">Type</th>
+        <th class="px-4 py-2 text-left">Number</th>
+        <th class="px-4 py-2 text-left">Manufacturer</th>
+        <th class="px-4 py-2 text-left">Weekly Consumption</th>
+        <th class="px-4 py-2 text-left">Inventory</th>
+        <th class="px-4 py-2 text-left">Order Lead Time</th>
+      </tr>
+    `;
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    for (const product in data.grouped_tools) {
+      // Calculate total rows for the current product across all operations
+      let productRowCount = 0;
+      for (const operation in data.grouped_tools[product]) {
+        productRowCount += data.grouped_tools[product][operation].length;
+      }
+      let productCellInserted = false;
+      for (const operation in data.grouped_tools[product]) {
+        const toolsGroup = data.grouped_tools[product][operation];
+        let operationCellInserted = false;
+        for (let i = 0; i < toolsGroup.length; i++) {
+          const tool = toolsGroup[i];
+          const tr = document.createElement('tr');
+          if (!productCellInserted) {
+            const tdProduct = document.createElement('td');
+            tdProduct.className = "px-4 py-2 border-b border-gray-700";
+            tdProduct.rowSpan = productRowCount;
+            tdProduct.textContent = product;
+            tr.appendChild(tdProduct);
+            productCellInserted = true;
+          }
+          if (!operationCellInserted) {
+            const tdOperation = document.createElement('td');
+            tdOperation.className = "px-4 py-2 border-b border-gray-700";
+            tdOperation.rowSpan = toolsGroup.length;
+            tdOperation.textContent = operation;
+            tr.appendChild(tdOperation);
+            operationCellInserted = true;
+          }
+          tr.innerHTML += `
+            <td class="px-4 py-2 border-b border-gray-700">${tool.name || ''}</td>
+            <td class="px-4 py-2 border-b border-gray-700">${tool.type || ''}</td>
+            <td class="px-4 py-2 border-b border-gray-700">${tool.number || ''}</td>
+            <td class="px-4 py-2 border-b border-gray-700">${tool.manufacturer || ''}</td>
+            <td class="px-4 py-2 border-b border-gray-700">${tool.weekly_consumption || ''}</td>
+            <td class="px-4 py-2 border-b border-gray-700">${tool.inventory || ''}</td>
+            <td class="px-4 py-2 border-b border-gray-700">${tool.order_lead_time || ''}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      }
+    }
+    table.appendChild(tbody);
+    groupedDiv.appendChild(table);
+  }
+  
+  // Initial fetch from the API
+  fetchToolsData();
 </script>
 {% endblock %}
