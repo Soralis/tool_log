@@ -299,7 +299,7 @@ def create_generic_router(
                 parts = field_name.split('__')
                 if not parts[1] in fixed_fields:
                     fixed_fields[parts[1]] = []
-                fixed_fields[parts[1]].append({f'{parts[1].rstrip('s')}_id':parts[2], 'value': json.loads(value)})
+                fixed_fields[parts[1]].append({f'{parts[1].rstrip('s')}_id':parts[2], 'value': value})
 
         return form_dict, existing_relations, new_relations, fixed_fields
     

@@ -166,8 +166,6 @@ async def upload_tool_consumption(
     if df is None:
         return {"filename": file.filename, "type": "tool_consumption", "error": "Failed to read file"}
 
-    print(df.head(10))
-
     with Session(engine) as session:
         users = session.exec(select(User)).all()
         users = {user.number: user.id for user in users}
@@ -187,6 +185,7 @@ async def upload_tool_consumption(
         # Prepare all valid records
         records = []
         result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
+        latest_tool_prices = {}
         for _, row in df.iterrows():
             try:
                 user_id = None
@@ -251,6 +250,7 @@ async def upload_tool_consumption(
                     'tool_position_id': tool_position_id,
                     'workpiece_id': workpiece_id,
                 })
+                latest_tool_prices[tool_id] = float(row['SellPrice']) if row.get('SellPrice') else 0.0
             except Exception as e:
                 print(e)
 
@@ -261,6 +261,13 @@ async def upload_tool_consumption(
         # Insert all records in a single operation, ignoring duplicates
         if records:
             result = await write_to_db(records, ToolConsumption, ToolConsumptionCreate, session, result)
+
+        updated_tools = session.exec(select(Tool).where(Tool.id.in_(latest_tool_prices.keys())))
+        for tool in updated_tools:
+            tool.price = float(latest_tool_prices[tool.id])
+        session.commit()
+        
+
 
     return {"filename": file.filename, "type": "tool_consumption", 'result': result}
 

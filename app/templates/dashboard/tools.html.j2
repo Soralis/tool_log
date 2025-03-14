@@ -3,13 +3,13 @@
 {% block subinfo %}
 <!-- Tabs -->
   <button id="tab-flat" class="tab-button text-gray-400 hover:text-gray-100 whitespace-nowrap px-4 border-b-2 font-medium border-transparent">Flat List</button>
-  <button id="tab-grouped" class="tab-button text-gray-400 hover:text-gray-100 whitespace-nowrap px-4 border-b-2 font-medium border-transparent">Grouped</button>
+  <button id="tab-grouped" class="tab-button text-gray-400 hover:text-gray-100 whitespace-nowrap px-4 border-b-2 border-indigo-500 text-indigo-500 font-medium border-transparent">Grouped</button>
   <button id="tab-placeholder" class="tab-button text-gray-400 hover:text-gray-100 whitespace-nowrap px-4 border-b-2 font-medium border-transparent">Table 3</button>
 {% endblock %}
 {% block content %}
 <div class="w-full px-4 py-6">
   <!-- Tab Contents -->
-  <div id="content-flat" class="tab-content">
+  <div id="content-flat" class="tab-content hidden">
     <table class="w-full divide-y divide-gray-700">
       <thead>
         <tr>
@@ -21,6 +21,7 @@
           <th class="px-4 py-2 text-left">Weekly Consumption</th>
           <th class="px-4 py-2 text-left">Inventory</th>
           <th class="px-4 py-2 text-left">Order Lead Time</th>
+          <th class="px-4 py-2 text-left">Last Price</th>
         </tr>
       </thead>
       <tbody id="flat-tools-body">
@@ -29,7 +30,7 @@
     </table>
   </div>
   
-  <div id="content-grouped" class="tab-content hidden">
+  <div id="content-grouped" class="tab-content">
     <!-- Grouped table -->
     <div id="grouped-tools">
       <!-- Grouped tools will be rendered here -->
@@ -42,6 +43,7 @@
 </div>
 
 <script>
+  let current_tab = 'cpu'
   // Basic tab switching
   document.querySelectorAll('.tab-button').forEach(button => {
     button.addEventListener('click', () => {
@@ -51,9 +53,13 @@
       document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
       if(button.id === 'tab-flat'){
         document.getElementById('content-flat').classList.remove('hidden');
+        current_tab = 'unique_tools'
+        fetchToolsData()
       }
       if(button.id === 'tab-grouped'){
         document.getElementById('content-grouped').classList.remove('hidden');
+        current_tab = 'cpu'
+        fetchToolsData()
       }
       if(button.id === 'tab-placeholder'){
         document.getElementById('content-placeholder').classList.remove('hidden');
@@ -62,89 +68,38 @@
   });
   
   // Fetch tool data from the external API with filters
-  async function fetchToolsData(){
+  async function fetchToolsData(target){
     try {
       const selectedOperations = localStorage.getItem('selectedOperations') || "";
       const selectedProducts = localStorage.getItem('selectedProducts') || "";
+      const startDate = localStorage.getItem('startDate') || "";
+      let endDate = localStorage.getItem('endDate') || "";
+      if (endDate == null || "null") {
+        endDate = new Date().toISOString();
+      }
+
       // Fetch data from the API
-      const response = await fetch(`http://${window.location.host}/dashboard/tools/api/filtered?selected_operations=${selectedOperations}&selected_products=${selectedProducts}`);
+      const response = await fetch(`http://${window.location.host}/dashboard/tools/api/${current_tab}?selected_operations=${selectedOperations}&selected_products=${selectedProducts}&start_date=${startDate}&end_date=${endDate}`);
+      // Handle the response and populate the tables
       const data = await response.json();
-      populateToolsData(data);
+      populateToolsData(current_tab, data);
     } catch (error) {
-      console.error('Error fetching filtered tools data:', error);
+      console.error(`Error fetching filtered ${current_tab} data:`, error);
     }
   }
   
-  function populateToolsData(data){
-    // Populate flat table
-    const flatBody = document.getElementById('flat-tools-body');
-    flatBody.innerHTML = '';
-    data.flat_tools.forEach(tool => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="px-4 py-2 border-b border-gray-700">${tool.line || ''}</td>
-        <td class="px-4 py-2 border-b border-gray-700">${tool.name || ''}</td>
-        <td class="px-4 py-2 border-b border-gray-700">${tool.type || ''}</td>
-        <td class="px-4 py-2 border-b border-gray-700">${tool.number || ''}</td>
-        <td class="px-4 py-2 border-b border-gray-700">${tool.manufacturer || ''}</td>
-        <td class="px-4 py-2 border-b border-gray-700">${tool.weekly_consumption || ''}</td>
-        <td class="px-4 py-2 border-b border-gray-700">${tool.inventory || ''}</td>
-        <td class="px-4 py-2 border-b border-gray-700">${tool.order_lead_time || ''}</td>
-      `;
-      flatBody.appendChild(tr);
-    });
-    
-    // Populate grouped table with product spanning all its operations
-    const groupedDiv = document.getElementById('grouped-tools');
-    groupedDiv.innerHTML = '';
-    const table = document.createElement('table');
-    table.classList.add('w-full', 'divide-y', 'divide-gray-700');
-    const thead = document.createElement('thead');
-    thead.innerHTML = `
-      <tr>
-        <th class="px-4 py-2 text-left">Product</th>
-        <th class="px-4 py-2 text-left">Operation</th>
-        <th class="px-4 py-2 text-left">Name</th>
-        <th class="px-4 py-2 text-left">Type</th>
-        <th class="px-4 py-2 text-left">Number</th>
-        <th class="px-4 py-2 text-left">Manufacturer</th>
-        <th class="px-4 py-2 text-left">Weekly Consumption</th>
-        <th class="px-4 py-2 text-left">Inventory</th>
-        <th class="px-4 py-2 text-left">Order Lead Time</th>
-      </tr>
-    `;
-    table.appendChild(thead);
-    const tbody = document.createElement('tbody');
-    for (const product in data.grouped_tools) {
-      // Calculate total rows for the current product across all operations
-      let productRowCount = 0;
-      for (const operation in data.grouped_tools[product]) {
-        productRowCount += data.grouped_tools[product][operation].length;
-      }
-      let productCellInserted = false;
-      for (const operation in data.grouped_tools[product]) {
-        const toolsGroup = data.grouped_tools[product][operation];
-        let operationCellInserted = false;
-        for (let i = 0; i < toolsGroup.length; i++) {
-          const tool = toolsGroup[i];
+  function populateToolsData(target, data){
+    switch(target) {
+      case 'unique_tools':
+        // Populate flat tool data
+        const flatBody = document.getElementById('flat-tools-body');
+        flatBody.innerHTML = '';
+        const toolsList = Array.isArray(data) ? data : Object.values(data);
+        toolsList.forEach(tool => {
           const tr = document.createElement('tr');
-          if (!productCellInserted) {
-            const tdProduct = document.createElement('td');
-            tdProduct.className = "px-4 py-2 border-b border-gray-700";
-            tdProduct.rowSpan = productRowCount;
-            tdProduct.textContent = product;
-            tr.appendChild(tdProduct);
-            productCellInserted = true;
-          }
-          if (!operationCellInserted) {
-            const tdOperation = document.createElement('td');
-            tdOperation.className = "px-4 py-2 border-b border-gray-700";
-            tdOperation.rowSpan = toolsGroup.length;
-            tdOperation.textContent = operation;
-            tr.appendChild(tdOperation);
-            operationCellInserted = true;
-          }
-          tr.innerHTML += `
+          if(tool.selected) { tr.classList.add('bg-yellow-200'); }
+          tr.innerHTML = `
+            <td class="px-4 py-2 border-b border-gray-700">${tool.line || ''}</td>
             <td class="px-4 py-2 border-b border-gray-700">${tool.name || ''}</td>
             <td class="px-4 py-2 border-b border-gray-700">${tool.type || ''}</td>
             <td class="px-4 py-2 border-b border-gray-700">${tool.number || ''}</td>
@@ -152,16 +107,179 @@
             <td class="px-4 py-2 border-b border-gray-700">${tool.weekly_consumption || ''}</td>
             <td class="px-4 py-2 border-b border-gray-700">${tool.inventory || ''}</td>
             <td class="px-4 py-2 border-b border-gray-700">${tool.order_lead_time || ''}</td>
+            <td class="px-4 py-2 border-b border-gray-700">${tool.price || ''}</td>
           `;
-          tbody.appendChild(tr);
+          flatBody.appendChild(tr);
+        })
+        break;
+        
+      case 'cpu':
+        // Populate grouped/cpu table based on the new backend data structure.
+        // This handles both top-level products and nested products within a machine.
+        const groupedDiv = document.getElementById('grouped-tools');
+        groupedDiv.innerHTML = '';
+        const table = document.createElement('table');
+        table.classList.add('w-full', 'divide-y', 'divide-gray-700');
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+          <tr>
+            <th class="px-4 py-2 text-left">Product</th>
+            <th class="px-4 py-2 text-left">Operation</th>
+            <th class="px-4 py-2 text-left">Position</th>
+            <th class="px-4 py-2 text-left">Name</th>
+            <th class="px-4 py-2 text-left">Type</th>
+            <th class="px-4 py-2 text-left">Number</th>
+            <th class="px-4 py-2 text-left">Manufacturer</th>
+            <th class="px-4 py-2 text-left">Weekly Consumption</th>
+            <th class="px-4 py-2 text-left">Inventory</th>
+            <th class="px-4 py-2 text-left">Order Lead Time</th>
+            <th class="px-4 py-2 text-left">Last Price</th>
+          </tr>
+        `;
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        
+        // Helper function to process a product entry.
+        function processProduct(productName, productData) {
+          let rows = [];
+          if (productData.products) {
+            // If nested products, process each sub-product.
+            for (const subProduct in productData.products) {
+              rows = rows.concat(processProduct(subProduct, productData.products[subProduct]));
+            }
+          } else if (productData.operations) {
+            // Build rows from the operations.
+            for (const opKey in productData.operations) {
+              const operation = productData.operations[opKey];
+              for (const pos in operation.tool_positions) {
+                const toolsArray = operation.tool_positions[pos];
+                toolsArray.forEach(tool => {
+                  rows.push({
+                    product: productName,
+                    operation: opKey,
+                    position: pos,
+                    name: tool.tool_name || '',
+                    type: tool.type || '',
+                    number: tool.number || '',
+                    manufacturer: tool.manufacturer || '',
+                    weekly_consumption: tool.weekly_consumption || '',
+                    inventory: (tool.inventory !== undefined && tool.inventory !== null) ? tool.inventory : '',
+                    order_lead_time: tool.order_lead_time || '',
+                    last_price: tool.last_price || '',
+                    selected: tool.selected,
+                    stop_order: tool.stop_order || false,
+                    active: tool.active || true,
+                    id: tool.id || ''
+                  });
+                });
+              }
+            }
+          }
+          return rows;
         }
-      }
+        
+        let allRows = [];
+        // Process each top-level key in the response.
+        for (const key in data) {
+          allRows = allRows.concat(processProduct(key, data[key]));
+        }
+        
+        // Group rows by product to enable rowSpan.
+        const rowsByProduct = {};
+        allRows.forEach(row => {
+          if (!rowsByProduct[row.product]) {
+            rowsByProduct[row.product] = [];
+          }
+          rowsByProduct[row.product].push(row);
+        });
+        
+        // Create table rows with hierarchical grouping by product, then operation, then position.
+        const products = {};
+        allRows.forEach(row => {
+          if(!products[row.product]) {
+            products[row.product] = {};
+          }
+          if(!products[row.product][row.operation]) {
+            products[row.product][row.operation] = {};
+          }
+          if(!products[row.product][row.operation][row.position]) {
+            products[row.product][row.operation][row.position] = [];
+          }
+          products[row.product][row.operation][row.position].push(row);
+        });
+        
+        for (const product in products) {
+          let productRowCount = 0;
+          for (const operation in products[product]) {
+            for (const position in products[product][operation]) {
+              productRowCount += products[product][operation][position].length;
+            }
+          }
+          let firstProductRow = true;
+          for (const operation in products[product]) {
+            let operationRowCount = 0;
+            for (const position in products[product][operation]) {
+              operationRowCount += products[product][operation][position].length;
+            }
+            let firstOperationRow = true;
+            for (const position in products[product][operation]) {
+              const rowsForPosition = products[product][operation][position];
+              let firstPositionRow = true;
+              rowsForPosition.forEach(row => {
+                const tr = document.createElement('tr');
+                if (firstProductRow) {
+                  const tdProduct = document.createElement('td');
+                  tdProduct.className = "px-4 py-2 border-b border-gray-700";
+                  tdProduct.rowSpan = productRowCount;
+                  tdProduct.textContent = product;
+                  tr.appendChild(tdProduct);
+                  firstProductRow = false;
+                }
+                if (firstOperationRow) {
+                  const tdOperation = document.createElement('td');
+                  tdOperation.className = "px-4 py-2 border-b border-gray-700";
+                  tdOperation.rowSpan = operationRowCount;
+                  tdOperation.textContent = operation;
+                  tr.appendChild(tdOperation);
+                  firstOperationRow = false;
+                }
+                if (firstPositionRow) {
+                  const tdPosition = document.createElement('td');
+                  tdPosition.className = "px-4 py-2 border-b border-gray-700";
+                  tdPosition.rowSpan = rowsForPosition.length;
+                  tdPosition.textContent = position;
+                  tr.appendChild(tdPosition);
+                  firstPositionRow = false;
+                }
+                tr.innerHTML += `
+                  <td class="px-4 py-2 border-b border-gray-700${row.selected ? ' text-green-500' : ''}">${row.name}</td>
+                  <td class="px-4 py-2 border-b border-gray-700">${row.type}</td>
+                  <td class="px-4 py-2 border-b border-gray-700">${row.number}</td>
+                  <td class="px-4 py-2 border-b border-gray-700">${row.manufacturer}</td>
+                  <td class="px-4 py-2 border-b border-gray-700">${row.weekly_consumption}</td>
+                  <td class="px-4 py-2 border-b border-gray-700">${row.inventory}</td>
+                  <td class="px-4 py-2 border-b border-gray-700${row.stop_order ? ' text-red-500' : ''}">${row.stop_order ? 'ORDER STOP' : row.order_lead_time}</td>
+                  <td class="px-4 py-2 border-b border-gray-700">${row.last_price}</td>
+                `;
+                tbody.appendChild(tr);
+              });
+            }
+          }
+        }
+        
+        table.appendChild(tbody);
+        groupedDiv.appendChild(table);
+        break;
+      default:
+        console.error(`Unknown target: ${target}`);
     }
-    table.appendChild(tbody);
-    groupedDiv.appendChild(table);
   }
   
   // Initial fetch from the API
   fetchToolsData();
+
+  // Listen for filter changes
+  document.addEventListener('filterChanged', fetchToolsData);
+  document.addEventListener('dateRangeChanged', fetchToolsData);
 </script>
 {% endblock %}

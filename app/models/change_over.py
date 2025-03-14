@@ -17,7 +17,7 @@ class ChangeOverBase(SQLModel):
 class ChangeOver(ChangeOverBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     performed_by: Optional[int] = Field(foreign_key='user.id', ondelete='SET NULL')
-    timestamps: datetime = Field(default_factory=datetime.now, nullable=False)
+    timestamps: datetime = Field(default_factory=datetime.now, nullable=False, index=True)
     machine: 'Machine' = Relationship(back_populates='change_overs')
     user: 'User' = Relationship(back_populates='performed_change_overs')
     recipe: 'Recipe' = Relationship(back_populates='change_overs')

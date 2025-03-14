@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from contextlib import asynccontextmanager
+from fastapi_tailwind import tailwind
 
 from app.templates.jinja_functions import templates
 from app.database_config import init_db, get_session
@@ -17,8 +19,51 @@ from auth import authenticate_or_create_device, authenticate_operator, require_r
 from starlette.middleware.base import BaseHTTPMiddleware
 from datetime import datetime, timedelta
 
+static_files = StaticFiles(directory = "app/static")
 
-app = FastAPI()
+# Initialize service metrics on startup
+# @app.on_event("startup")
+# async def initialize_metrics():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db = next(get_session())
+    try:
+        schedule_tasks()
+        scheduler.start()
+
+        # Delete any existing metrics to ensure a fresh start
+        statement = select(ServiceMetrics)
+        existing_metrics = db.exec(statement).first()
+        if existing_metrics:
+            db.delete(existing_metrics)
+            db.commit()
+        
+        # Create new metrics with server start time
+        metrics = ServiceMetrics(
+            start_time=SERVER_START_TIME,
+            total_requests=0,
+            total_errors=0,
+            avg_response_time=0,
+            last_updated=datetime.now()
+        )
+        db.add(metrics)
+        db.commit()
+    finally:
+        db.close()
+
+    process = tailwind.compile(
+        static_files.directory + "/css/style.css",
+        tailwind_stylesheet_path = "app/static/css/input.css"
+    )
+
+    yield # The code after this is called on shutdown.
+
+    process.terminate() # We must terminate the compiler on shutdown to
+    # prevent multiple compilers running in development mode or when watch is enabled.
+
+app = FastAPI(
+    lifespan = lifespan
+)
 
 # Add CORS middleware
 app.add_middleware(
@@ -59,34 +104,6 @@ async def monitoring_middleware(request: Request, call_next):
 
 # Store server start time
 SERVER_START_TIME = datetime.now()
-
-# Initialize service metrics on startup
-@app.on_event("startup")
-async def initialize_metrics():
-    db = next(get_session())
-    try:
-        schedule_tasks()
-        scheduler.start()
-
-        # Delete any existing metrics to ensure a fresh start
-        statement = select(ServiceMetrics)
-        existing_metrics = db.exec(statement).first()
-        if existing_metrics:
-            db.delete(existing_metrics)
-            db.commit()
-        
-        # Create new metrics with server start time
-        metrics = ServiceMetrics(
-            start_time=SERVER_START_TIME,
-            total_requests=0,
-            total_errors=0,
-            avg_response_time=0,
-            last_updated=datetime.now()
-        )
-        db.add(metrics)
-        db.commit()
-    finally:
-        db.close()
 
 # Include dashboard router without authentication
 app.include_router(

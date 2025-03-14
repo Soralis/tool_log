@@ -36,6 +36,7 @@ class Tool(ToolBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     manufacturer: 'Manufacturer' = Relationship(back_populates='tools')
     inventory: Optional[int] = Field(default=0)
+    price: Decimal = Field(default=0.0, ge=0)
     stop_order: bool = Field(default=False)
     tool_type: 'ToolType' = Relationship(back_populates='tools')
     active: bool = Field(default=True, nullable=False)

@@ -295,6 +295,22 @@ standard = [
 ]
 
 [[package]]
+name = "fastapi-tailwind"
+version = "2.0.2a1"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6a/b1/f6a8825cb66bc5c7fbdbf548ad9c0238b805757c2e96fa20c3719f8774f7/fastapi_tailwind-2.0.2a1-py3-none-macosx_10_9_arm64.whl", hash = "sha256:c56a3ad11ca8891b50f8f164b5f92be6941df6bbae55d6302c4b11f880398d10", size = 35272122 },
+    { url = "https://files.pythonhosted.org/packages/45/2d/3eaf42c386c6b73cf25de2ab41342577a700d53b7fe362d66649f85b17b8/fastapi_tailwind-2.0.2a1-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:95fc8bbf5cbe83a3913d1bf32eb43c8c2839267d59730e0adc02f5ad00f9d008", size = 37987531 },
+    { url = "https://files.pythonhosted.org/packages/30/fe/8fd050afed61642dd20b70f26ad71c0a789cada84e7f849ea6a7c9ce3b8a/fastapi_tailwind-2.0.2a1-py3-none-macosx_11_0_arm64.whl", hash = "sha256:1310ad633021241dfaaa07dd243ec93668b9a2fa14859b703f520f5447062430", size = 35272122 },
+    { url = "https://files.pythonhosted.org/packages/de/78/ecd49548f40c0f41f07335fe7e55b578b0734b5b1768b01822221ff3f481/fastapi_tailwind-2.0.2a1-py3-none-macosx_11_0_x86_64.whl", hash = "sha256:ac7ee3c9458a6955489876c2f1fee7ec0733580d671e48732fcf035c3c6e56ce", size = 37987531 },
+    { url = "https://files.pythonhosted.org/packages/5b/32/5ed927412549b89505ec166f46b3a4bc6f273be68ebbc29d86ed545feff9/fastapi_tailwind-2.0.2a1-py3-none-manylinux2014_aarch64.whl", hash = "sha256:fc838325277049b67c9f91b6967571090aaea8a88790e567ffe4549eb7b9cfce", size = 50903232 },
+    { url = "https://files.pythonhosted.org/packages/1d/a0/c86470b29c2884a0bf5ce8a8deb8f2a39aa2f0dc31d768f25d91c3aaf6de/fastapi_tailwind-2.0.2a1-py3-none-manylinux2014_x86_64.whl", hash = "sha256:d4a686d17d993678424ea2778d0886786168b5536444406c81c6318d022e195e", size = 52322848 },
+    { url = "https://files.pythonhosted.org/packages/da/7a/c06ef9b40025764aa884cb7d5a67edd76dcb237eee5d8033ecce12e43715/fastapi_tailwind-2.0.2a1-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:118b5f6abe6d17fee89c82b176817e913fc77d93439acec498e1651c9eb6079a", size = 51829098 },
+    { url = "https://files.pythonhosted.org/packages/49/a6/7f1e9a706e8b4243fb7b42dd6d176cd32c6a43f4a444f2240e006e98e346/fastapi_tailwind-2.0.2a1-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:2e890c407d06511f7994f2fef05f9bddef60e1a2c103783d07eb09c4489877e3", size = 53406468 },
+    { url = "https://files.pythonhosted.org/packages/61/ab/bcfc6641d53abc3ead712f4fffa5af1116741f32e4c89af0198476780e7d/fastapi_tailwind-2.0.2a1-py3-none-win_amd64.whl", hash = "sha256:b2e9c0422d8fb56ed70ce8c74413ab3e3807cb88042093ad77252708315ec81c", size = 53537340 },
+]
+
+[[package]]
 name = "fonttools"
 version = "4.55.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1025,6 +1041,7 @@ dependencies = [
     { name = "alembic" },
     { name = "apscheduler" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "fastapi-tailwind" },
     { name = "numpy" },
     { name = "openpyxl" },
     { name = "passlib", extra = ["bcrypt"] },
@@ -1045,6 +1062,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.13.3" },
     { name = "apscheduler", specifier = ">=3.11.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.2" },
+    { name = "fastapi-tailwind" },
     { name = "numpy", specifier = ">=2.2.1" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
