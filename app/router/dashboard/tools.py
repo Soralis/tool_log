@@ -82,6 +82,7 @@ async def get_unique_tool_data(
             'weekly_consumption': round(weekly_consumption,1),
             'inventory': f"{tool.inventory} ({round(tool.inventory/weekly_consumption, 1) if weekly_consumption and weekly_consumption > 0 else "∞"} Weeks)" if tool.inventory else "N/A",
             'order_lead_time': "21 Weeks",
+            'stop_order': tool.stop_order,
             'price': round(tool.price, 2)
         }
         tools[tool.id] = tool_dict
