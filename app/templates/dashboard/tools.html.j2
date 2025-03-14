@@ -40,75 +40,114 @@
       </tbody>
     </table>
   </div>
-  
+
   <div id="content-grouped" class="tab-content">
     <!-- Grouped table -->
     <div id="grouped-tools">
-      <!-- Grouped tools will be rendered here -->
+      <!-- Grouped tools table will be rendered here -->
     </div>
   </div>
-  
+
   <div id="content-placeholder" class="tab-content hidden">
     <p class="text-gray-400">Table 3 content placeholder.</p>
   </div>
 </div>
 
 <script>
-  let current_tab = 'cpu'
+  let current_tab = 'cpu';
+  // Global variable for grouped table filtering data
+  let allGroupedRows = [];
+
+  // Create grouped table header. This header is created once.
+  function createGroupedTableHeader() {
+    const table = document.createElement('table');
+    table.classList.add('w-full', 'divide-y', 'divide-gray-700');
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th class="px-4 py-2 text-left">Product</th>
+        <th class="px-4 py-2 text-left">Operation</th>
+        <th class="px-4 py-2 text-left">Position</th>
+        <th class="px-4 py-2 text-left">Name</th>
+        <th class="px-4 py-2 text-left">Type</th>
+        <th class="px-4 py-2 text-left">Number</th>
+        <th class="px-4 py-2 text-left">Manufacturer</th>
+        <th class="px-4 py-2 text-left">Weekly Consumption</th>
+        <th class="px-4 py-2 text-left">Inventory</th>
+        <th class="px-4 py-2 text-left">Order Lead Time</th>
+        <th class="px-4 py-2 text-left">Last Price</th>
+      </tr>
+      <tr id="grouped-tools-filters">
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
+      </tr>
+    `;
+    table.appendChild(thead);
+    // Create tbody container (to be updated without disturbing header)
+    const tbody = document.createElement('tbody');
+    tbody.id = "grouped-tools-body";
+    table.appendChild(tbody);
+    return table;
+  }
+
   // Basic tab switching
   document.querySelectorAll('.tab-button').forEach(button => {
     button.addEventListener('click', () => {
       document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('border-indigo-500', 'text-indigo-500'));
       button.classList.add('border-indigo-500', 'text-indigo-500');
-      
       document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
       if(button.id === 'tab-flat'){
         document.getElementById('content-flat').classList.remove('hidden');
-        current_tab = 'unique_tools'
-        fetchToolsData()
+        current_tab = 'unique_tools';
+        fetchToolsData();
       }
       if(button.id === 'tab-grouped'){
         document.getElementById('content-grouped').classList.remove('hidden');
-        current_tab = 'cpu'
-        fetchToolsData()
+        current_tab = 'cpu';
+        fetchToolsData();
       }
       if(button.id === 'tab-placeholder'){
         document.getElementById('content-placeholder').classList.remove('hidden');
       }
     });
   });
-  
-  // Fetch tool data from the external API with filters
-  async function fetchToolsData(target){
+
+  // Fetch tool data with filters from the API
+  async function fetchToolsData(){
     try {
       const selectedOperations = localStorage.getItem('selectedOperations') || "";
       const selectedProducts = localStorage.getItem('selectedProducts') || "";
       const startDate = localStorage.getItem('startDate') || "";
       let endDate = localStorage.getItem('endDate') || "";
-      if (endDate == null || "null") {
+      if (endDate == null || endDate === "null") {
         endDate = new Date().toISOString();
       }
-
-      // Fetch data from the API
       const response = await fetch(`http://${window.location.host}/dashboard/tools/api/${current_tab}?selected_operations=${selectedOperations}&selected_products=${selectedProducts}&start_date=${startDate}&end_date=${endDate}`);
-      // Handle the response and populate the tables
       const data = await response.json();
       populateToolsData(current_tab, data);
     } catch (error) {
       console.error(`Error fetching filtered ${current_tab} data:`, error);
     }
   }
-  
+
   function populateToolsData(target, data){
     switch(target) {
       case 'unique_tools':
-        // Populate flat tool data
         const flatBody = document.getElementById('flat-tools-body');
         flatBody.innerHTML = '';
         const toolsList = Array.isArray(data) ? data : Object.values(data);
         toolsList.forEach(tool => {
           const tr = document.createElement('tr');
-          if(tool.selected) { tr.classList.add('bg-yellow-200'); }
+          if(tool.selected){ tr.classList.add('bg-yellow-200'); }
           tr.innerHTML = `
             <td class="px-4 py-2 border-b border-gray-700">${tool.line || ''}</td>
             <td class="px-4 py-2 border-b border-gray-700">${tool.name || ''}</td>
@@ -120,50 +159,30 @@
             <td class="px-4 py-2 border-b border-gray-700${tool.stop_order ? ' text-red-500' : ''}">${tool.stop_order ? 'ORDER STOP' : tool.order_lead_time}</td>
             <td class="px-4 py-2 border-b border-gray-700">${tool.price || ''}</td>
           `;
-            flatBody.appendChild(tr);
-          });
-          filterFlatTools();
+          flatBody.appendChild(tr);
+        });
+        filterFlatTools();
         break;
-        
       case 'cpu':
-        // Populate grouped/cpu table based on the new backend data structure.
-        // This handles both top-level products and nested products within a machine.
         const groupedDiv = document.getElementById('grouped-tools');
-        groupedDiv.innerHTML = '';
-        const table = document.createElement('table');
-        table.classList.add('w-full', 'divide-y', 'divide-gray-700');
-        const thead = document.createElement('thead');
-        thead.innerHTML = `
-          <tr>
-            <th class="px-4 py-2 text-left">Product</th>
-            <th class="px-4 py-2 text-left">Operation</th>
-            <th class="px-4 py-2 text-left">Position</th>
-            <th class="px-4 py-2 text-left">Name</th>
-            <th class="px-4 py-2 text-left">Type</th>
-            <th class="px-4 py-2 text-left">Number</th>
-            <th class="px-4 py-2 text-left">Manufacturer</th>
-            <th class="px-4 py-2 text-left">Weekly Consumption</th>
-            <th class="px-4 py-2 text-left">Inventory</th>
-            <th class="px-4 py-2 text-left">Order Lead Time</th>
-            <th class="px-4 py-2 text-left">Last Price</th>
-          </tr>
-        `;
-        table.appendChild(thead);
-        const tbody = document.createElement('tbody');
-        
-        // Helper function to process a product entry.
+        let table = groupedDiv.querySelector('table');
+        if(!table){
+          table = createGroupedTableHeader();
+          groupedDiv.appendChild(table);
+        }
+        let tbody = table.querySelector('tbody#grouped-tools-body');
+        tbody.innerHTML = '';
+        let allRows = [];
         function processProduct(productName, productData) {
           let rows = [];
-          if (productData.products) {
-            // If nested products, process each sub-product.
-            for (const subProduct in productData.products) {
-              rows = rows.concat(processProduct(subProduct, productData.products[subProduct]));
+          if(productData.products){
+            for(const subProd in productData.products){
+              rows = rows.concat(processProduct(subProd, productData.products[subProd]));
             }
-          } else if (productData.operations) {
-            // Build rows from the operations.
-            for (const opKey in productData.operations) {
+          } else if(productData.operations){
+            for(const opKey in productData.operations){
               const operation = productData.operations[opKey];
-              for (const pos in operation.tool_positions) {
+              for(const pos in operation.tool_positions){
                 const toolsArray = operation.tool_positions[pos];
                 toolsArray.forEach(tool => {
                   rows.push({
@@ -189,133 +208,167 @@
           }
           return rows;
         }
-        
-        let allRows = [];
-        // Process each top-level key in the response.
-        for (const key in data) {
+        for(const key in data){
           allRows = allRows.concat(processProduct(key, data[key]));
         }
-        
-        // Group rows by product to enable rowSpan.
-        const rowsByProduct = {};
-        allRows.forEach(row => {
-          if (!rowsByProduct[row.product]) {
-            rowsByProduct[row.product] = [];
+        allGroupedRows = allRows;
+        // Check if any filter is active. Use flat rendering if true, merged if false.
+        const headerInputs = table.querySelectorAll('#grouped-tools-filters .group-filter-input');
+        let filtersActive = false;
+        headerInputs.forEach(input => {
+          if(input.value.trim() !== ""){
+            filtersActive = true;
           }
-          rowsByProduct[row.product].push(row);
         });
-        
-        // Create table rows with hierarchical grouping by product, then operation, then position.
-        const products = {};
-        allRows.forEach(row => {
-          if(!products[row.product]) {
-            products[row.product] = {};
-          }
-          if(!products[row.product][row.operation]) {
-            products[row.product][row.operation] = {};
-          }
-          if(!products[row.product][row.operation][row.position]) {
-            products[row.product][row.operation][row.position] = [];
-          }
-          products[row.product][row.operation][row.position].push(row);
-        });
-        
-        for (const product in products) {
-          let productRowCount = 0;
-          for (const operation in products[product]) {
-            for (const position in products[product][operation]) {
-              productRowCount += products[product][operation][position].length;
+        if(filtersActive){
+          allRows.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="px-4 py-2 border-b border-gray-700">${row.product}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.operation}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.position}</td>
+              <td class="px-4 py-2 border-b border-gray-700${row.selected ? ' text-green-500' : ''}">${row.name}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.type}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.number}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.manufacturer}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.weekly_consumption}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.inventory}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.order_lead_time}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.last_price}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else {
+          const products = {};
+          allRows.forEach(row => {
+            if(!products[row.product]){ products[row.product] = {}; }
+            if(!products[row.product][row.operation]){ products[row.product][row.operation] = {}; }
+            if(!products[row.product][row.operation][row.position]){ products[row.product][row.operation][row.position] = []; }
+            products[row.product][row.operation][row.position].push(row);
+          });
+          for(const product in products){
+            let productRowCount = 0;
+            for(const operation in products[product]){
+              for(const position in products[product][operation]){
+                productRowCount += products[product][operation][position].length;
+              }
+            }
+            let firstProductRow = true;
+            for(const operation in products[product]){
+              let operationRowCount = 0;
+              for(const position in products[product][operation]){
+                operationRowCount += products[product][operation][position].length;
+              }
+              let firstOperationRow = true;
+              for(const position in products[product][operation]){
+                const rowsForPosition = products[product][operation][position];
+                let firstPositionRow = true;
+                rowsForPosition.forEach(row => {
+                  const tr = document.createElement('tr');
+                  if(firstProductRow){
+                    const tdProduct = document.createElement('td');
+                    tdProduct.className = "px-4 py-2 border-b border-gray-700";
+                    tdProduct.rowSpan = productRowCount;
+                    tdProduct.textContent = product;
+                    tr.appendChild(tdProduct);
+                    firstProductRow = false;
+                  }
+                  if(firstOperationRow){
+                    const tdOperation = document.createElement('td');
+                    tdOperation.className = "px-4 py-2 border-b border-gray-700";
+                    tdOperation.rowSpan = operationRowCount;
+                    tdOperation.textContent = operation;
+                    tr.appendChild(tdOperation);
+                    firstOperationRow = false;
+                  }
+                  if(firstPositionRow){
+                    const tdPosition = document.createElement('td');
+                    tdPosition.className = "px-4 py-2 border-b border-gray-700";
+                    tdPosition.rowSpan = rowsForPosition.length;
+                    tdPosition.textContent = position;
+                    tr.appendChild(tdPosition);
+                    firstPositionRow = false;
+                  }
+                  tr.innerHTML += `
+                    <td class="px-4 py-2 border-b border-gray-700${row.selected ? ' text-green-500' : ''}">${row.name}</td>
+                    <td class="px-4 py-2 border-b border-gray-700">${row.type}</td>
+                    <td class="px-4 py-2 border-b border-gray-700">${row.number}</td>
+                    <td class="px-4 py-2 border-b border-gray-700">${row.manufacturer}</td>
+                    <td class="px-4 py-2 border-b border-gray-700">${row.weekly_consumption}</td>
+                    <td class="px-4 py-2 border-b border-gray-700">${row.inventory}</td>
+                    <td class="px-4 py-2 border-b border-gray-700${row.stop_order ? ' text-red-500' : ''}">${row.stop_order ? 'ORDER STOP' : row.order_lead_time}</td>
+                    <td class="px-4 py-2 border-b border-gray-700">${row.last_price}</td>
+                  `;
+                  tbody.appendChild(tr);
+                });
+              }
             }
           }
-          let firstProductRow = true;
-          for (const operation in products[product]) {
-            let operationRowCount = 0;
-            for (const position in products[product][operation]) {
-              operationRowCount += products[product][operation][position].length;
-            }
-            let firstOperationRow = true;
-            for (const position in products[product][operation]) {
-              const rowsForPosition = products[product][operation][position];
-              let firstPositionRow = true;
-              rowsForPosition.forEach(row => {
-                const tr = document.createElement('tr');
-                if (firstProductRow) {
-                  const tdProduct = document.createElement('td');
-                  tdProduct.className = "px-4 py-2 border-b border-gray-700";
-                  tdProduct.rowSpan = productRowCount;
-                  tdProduct.textContent = product;
-                  tr.appendChild(tdProduct);
-                  firstProductRow = false;
-                }
-                if (firstOperationRow) {
-                  const tdOperation = document.createElement('td');
-                  tdOperation.className = "px-4 py-2 border-b border-gray-700";
-                  tdOperation.rowSpan = operationRowCount;
-                  tdOperation.textContent = operation;
-                  tr.appendChild(tdOperation);
-                  firstOperationRow = false;
-                }
-                if (firstPositionRow) {
-                  const tdPosition = document.createElement('td');
-                  tdPosition.className = "px-4 py-2 border-b border-gray-700";
-                  tdPosition.rowSpan = rowsForPosition.length;
-                  tdPosition.textContent = position;
-                  tr.appendChild(tdPosition);
-                  firstPositionRow = false;
-                }
-                tr.innerHTML += `
-                  <td class="px-4 py-2 border-b border-gray-700${row.selected ? ' text-green-500' : ''}">${row.name}</td>
-                  <td class="px-4 py-2 border-b border-gray-700">${row.type}</td>
-                  <td class="px-4 py-2 border-b border-gray-700">${row.number}</td>
-                  <td class="px-4 py-2 border-b border-gray-700">${row.manufacturer}</td>
-                  <td class="px-4 py-2 border-b border-gray-700">${row.weekly_consumption}</td>
-                  <td class="px-4 py-2 border-b border-gray-700">${row.inventory}</td>
-                  <td class="px-4 py-2 border-b border-gray-700${row.stop_order ? ' text-red-500' : ''}">${row.stop_order ? 'ORDER STOP' : row.order_lead_time}</td>
-                  <td class="px-4 py-2 border-b border-gray-700">${row.last_price}</td>
-                `;
-                tbody.appendChild(tr);
-              });
-            }
-          }
-        }
-        
-        table.appendChild(tbody);
-        groupedDiv.appendChild(table);
-        break;
-      default:
-        console.error(`Unknown target: ${target}`);
-    }
-  }
-  
-  // Initial fetch from the API
-  fetchToolsData();
-
-  // Listen for filter changes
-  document.addEventListener('filterChanged', fetchToolsData);
-  document.addEventListener('dateRangeChanged', fetchToolsData);
-
-function filterFlatTools() {
-  const filterInputs = document.querySelectorAll('#flat-tools-filters .filter-input');
-  const rows = document.querySelectorAll('#flat-tools-body tr');
-  rows.forEach(row => {
-    const cells = row.querySelectorAll('td');
-    let visible = true;
-    filterInputs.forEach((input, index) => {
-      const filterValue = input.value.toLowerCase();
-      if (filterValue) {
-        const cellText = cells[index] ? cells[index].textContent.toLowerCase() : '';
-        if (!cellText.includes(filterValue)) {
-          visible = false;
         }
       }
+  }
+  
+  function filterFlatTools() {
+    const filterInputs = document.querySelectorAll('#flat-tools-filters .filter-input');
+    const rows = document.querySelectorAll('#flat-tools-body tr');
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      let visible = true;
+      filterInputs.forEach((input, index) => {
+        const filterValue = input.value.toLowerCase();
+        if(filterValue) {
+          const cellText = cells[index] ? cells[index].textContent.toLowerCase() : '';
+          if(!cellText.includes(filterValue)){ visible = false; }
+        }
+      });
+      row.style.display = visible ? '' : 'none';
     });
-    row.style.display = visible ? '' : 'none';
+  }
+  
+  function filterGroupedTools() {
+    const filteredRows = allGroupedRows.filter(row => {
+      let include = true;
+      groupedFilters.forEach((filterValue, index) => {
+        if(filterValue.trim() !== ""){
+          const cellValues = [
+            row.product,
+            row.operation,
+            row.position,
+            row.name,
+            row.type,
+            row.number,
+            row.manufacturer,
+            row.weekly_consumption,
+            row.inventory,
+            row.order_lead_time,
+            row.last_price
+          ];
+          const cellText = cellValues[index] ? cellValues[index].toString().toLowerCase() : '';
+          if(!cellText.includes(filterValue.toLowerCase())){ include = false; }
+        }
+      });
+      return include;
+    });
+    renderGroupedTable(filteredRows);
+  }
+  
+  document.querySelectorAll('#flat-tools-filters .filter-input').forEach(input => {
+    input.addEventListener('input', filterFlatTools);
   });
-}
-
-document.querySelectorAll('#flat-tools-filters .filter-input').forEach(input => {
-  input.addEventListener('input', filterFlatTools);
-});
-
+  
+  // Set up filter listeners for grouped table only once (header persists)
+  document.addEventListener('DOMContentLoaded', () => {
+    const groupInputs = document.querySelectorAll('#grouped-tools-filters .group-filter-input');
+    groupInputs.forEach((input, index) => {
+      input.addEventListener('input', (e) => {
+        groupedFilters[index] = e.target.value;
+        filterGroupedTools();
+      });
+    });
+  });
+  
+  fetchToolsData();
+  document.addEventListener('filterChanged', fetchToolsData);
+  document.addEventListener('dateRangeChanged', fetchToolsData);
 </script>
 {% endblock %}

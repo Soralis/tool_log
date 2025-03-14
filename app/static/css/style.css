@@ -677,6 +677,9 @@
   .ml-4 {
     margin-left: calc(var(--spacing) * 4);
   }
+  .\!table {
+    display: table !important;
+  }
   .block {
     display: block;
   }
