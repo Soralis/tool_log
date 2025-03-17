@@ -22,7 +22,7 @@ In the OS Customization edit the default settings
         - Use Password Authentication
 
 ### Identify IP Address
-(OPTIONAL - FOR REMOTE SETUP)
+(OPTIONAL - FOR REMOTE SETUP.)
 After Installation, log in and identify the Devices IP Address with 
 ```bash
 ifconfig
