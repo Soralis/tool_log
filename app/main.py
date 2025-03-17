@@ -19,6 +19,8 @@ from auth import authenticate_or_create_device, authenticate_operator, require_r
 from starlette.middleware.base import BaseHTTPMiddleware
 from datetime import datetime, timedelta
 
+from . import event_listener # keep, as its necessary to register the event listeners
+
 static_files = StaticFiles(directory = "app/static")
 
 # Initialize service metrics on startup

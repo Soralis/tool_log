@@ -58,6 +58,10 @@ async def get_tools(tool_type_id: int = None, session: Session = Depends(get_ses
 async def orders_dashboard(request: Request, session: Session = Depends(get_session)):
     query = select(ToolOrder).options(selectinload(ToolOrder.tool).selectinload(Tool.tool_type))
     orders = session.exec(query).all()
+    for order in orders:
+        order.delivered = order.calculate_delivered_amount()
+        
+    session.commit()
     return templates.TemplateResponse("dashboard/orders.html.j2", {"request": request, "orders": orders})
 
 
@@ -82,7 +86,7 @@ def prepare_toolOrder(form_data:dict, tool_order:ToolOrder, session: Session):
             raise HTTPException(status_code=400, detail="If both gross price AND tool price are given, gross price must be equal to tool price * quantity")
 
     tool_order.tool_id= tool_id
-    tool_order.order_number= form_data.get("order_number")
+    tool_order.number= form_data.get("order_number")
     tool_order.quantity= quantity
     tool_order.gross_price= gross_price
     tool_order.tool_price= tool_price
@@ -169,7 +173,7 @@ async def order_details(request: Request, order_id: int, session: Session = Depe
     
     order_data = {
         "id": order.id,
-        "order_number": order.order_number,
+        "order_number": order.number,
         "quantity": order.quantity,
         "gross_price": order.gross_price,
         "tool_price": order.tool_price,

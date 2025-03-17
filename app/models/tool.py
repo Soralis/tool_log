@@ -73,7 +73,9 @@ class ToolRead(SQLModel):
 class ToolOrderBase(SQLModel):
     tool_id: int = Field(foreign_key='tool.id', ondelete='CASCADE')
     quantity: int
-    order_number: str = Field(unique=True, index=True)
+    number: str = Field(index=True)
+    suffix: str
+    line: str
     order_date: dt = Field(default_factory=dt.now, nullable=False)
     estimated_delivery_date: Optional[dt] = Field(default=None)
     gross_price: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=2)
@@ -89,9 +91,21 @@ class ToolOrder(ToolOrderBase, table=True):
     fulfilled: bool = Field(default=False, nullable=False)
     deliveries: List['OrderDelivery'] = Relationship(back_populates='order', cascade_delete=True)
     delivered: int = Field(default=0)
+        
     user_id: Optional[int] = Field(foreign_key='user.id', ondelete='SET NULL')
     user: 'User' = Relationship(back_populates='tool_orders')
     notes: List['Note'] = Relationship(back_populates='tool_order', cascade_delete=True)
+
+    __table_args__ = (UniqueConstraint('number', 'suffix', 'line'),)
+        
+    def calculate_delivered_amount(self) -> int:
+        delivered = sum(delivery.quantity for delivery in self.deliveries)
+        self.delivered = delivered
+        if delivered == self.quantity:
+            self.fulfilled = True
+        else:
+            self.fulfilled = False
+        return delivered
 
 
 class ToolOrderCreate(ToolOrderBase):
@@ -116,6 +130,8 @@ class OrderDelivery(OrderDeliveryBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     order: ToolOrder = Relationship(back_populates='deliveries')
     notes: List['Note'] = Relationship(back_populates='order_delivery', cascade_delete=True)
+
+    __table_args__ = (UniqueConstraint('order_id', 'delivery_date', 'quantity'),)
 
 class OrderDeliveryCreate(OrderDeliveryBase):
     pass

@@ -6,9 +6,11 @@ from sqlalchemy.dialects.postgresql import insert
 import io
 import openpyxl
 import pandas as pd
+from datetime import datetime as dt
 
-from app.models import OrderCompletion, OrderCompletionCreate, User, Workpiece, ToolConsumption, ToolConsumptionCreate, Tool, Machine, Manufacturer, ToolType
-
+from app.models import (OrderCompletion, OrderCompletionCreate, User, Workpiece, 
+                        ToolConsumption, ToolConsumptionCreate, Tool, Machine, Manufacturer, 
+                        ToolType, ToolOrder, ToolOrderCreate, OrderDelivery, OrderDeliveryCreate)
 from app.database_config import engine
 from app.templates.jinja_functions import templates
 
@@ -324,14 +326,186 @@ async def upload_parts_produced(
 
 @router.post("/tool-orders")
 async def upload_tool_orders(
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    sheet_names: str = Form(None),
+    header_row: int = Form(None)
 ):
     """Handle tool orders file upload"""
     print(f'Processing tool orders file: {file.filename}')
-    df: pd.DataFrame = pd.read_csv(file.file)
+
+    df = await read_excel(file, sheet_names, header_row)
+
     if df is None:
-        return {"filename": file.filename, "type": "tool_orders", "error": "Unsupported file type"}
-    print(df.head())
-    result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
-    # TODO: Implement tool orders processing logic here
-    return {"filename": file.filename, "type": "tool_orders", "result": result}
+        return {"filename": file.filename, "type": "tool_order", "error": "Failed to read file"}
+
+    with Session(engine) as session:
+        tools = session.exec(select(Tool)).all()
+        tools = {tool.number.upper(): tool.id for tool in tools}
+        
+        manufacturers = session.exec(select(Manufacturer)).all()
+        manufacturers = {int(manufacturer.number): manufacturer.id for manufacturer in manufacturers if manufacturer.number}
+
+        unknown_tool_type = session.exec(select(ToolType).where(ToolType.name=='Undefined')).first()
+        
+        # Prepare all valid records
+        records = []
+        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
+
+        for _, row in df.iterrows():
+            try:
+                tool_id = tools.get(str(row.get('custpart', '')).upper())
+                manufacturer_id = manufacturers.get(row.get('VendorNumber'))
+
+                if not manufacturer_id:
+                    new_manufacturer = Manufacturer(
+                        name=row['VendorName'],
+                        number=row['VendorNumber'],
+                    )
+                    try:
+                        session.add(new_manufacturer)
+                        session.commit()
+                        session.refresh(new_manufacturer)
+                        manufacturer_id = new_manufacturer.id
+                        manufacturers[int(new_manufacturer.number)] = manufacturer_id
+                    except Exception as e:
+                        print(e)
+                        manufacturer_id = manufacturers['000000'] # default value if manufacturer is not found
+                        result['bad_data'] += 1
+                        session.rollback()
+
+                if not tool_id:
+                    new_tool = Tool(
+                        number=str(row['custpart']).upper(),
+                        manufacturer_name=f"{row['c_description']} - {row['Textbox18']}",
+                        name=f"{row['c_description']} - {row['Textbox18']}",
+                        manufacturer_id=manufacturer_id,
+                        tool_type_id=unknown_tool_type.id
+                    )
+                    try:
+                        session.add(new_tool)
+                        session.commit()
+                        session.refresh(new_tool)
+                        tool_id = new_tool.id
+                        tools[new_tool.number] = tool_id
+                    except Exception as e:
+                        print(e)
+                        tool_id = None
+                        result['bad_data'] += 1
+                        session.rollback()
+                        continue
+
+                records.append({
+                    'tool_id': tool_id,
+                    'quantity': row['OrderQty'],
+                    'number': str(row['PONumber']),
+                    'suffix': str(row['POSuffix']),
+                    'line': str(row['POLine']),
+                    'order_date': row['OrderDate'],
+                    'estimated_delivery_date': row['DueDate'],
+                    'tool_price': float(row.get('OpenCost', 0)),
+                    'gross_price': float(row.get('TotalCost', 0)),
+                })
+            except Exception as e:
+                print(e)
+
+            if len(records) > 100:
+                result = await write_to_db(records, ToolOrder, ToolOrderCreate, session, result)
+                records = []
+        
+        # Insert all records in a single operation, ignoring duplicates
+        if records:
+            result = await write_to_db(records, ToolOrder, ToolOrderCreate, session, result)
+
+    return {"filename": file.filename, "type": "tool_consumption", 'result': result}
+
+
+@router.post("/tool-delivery")
+async def upload_tool_deliveries(
+    file: UploadFile = File(...),
+    sheet_names: str = Form(None),
+    header_row: int = Form(None)
+):
+    """Handle tool deliveries file upload"""
+    print(f'Processing tool deliveries file: {file.filename}')
+
+    df = await read_excel(file, sheet_names, header_row)
+
+    if df is None:
+        return {"filename": file.filename, "type": "tool_delivery", "error": "Failed to read file"}
+
+    with Session(engine) as session:
+        orders = session.exec(select(ToolOrder)).all()
+        orders = {f'{order.number}-{order.suffix}-{order.line}': order.id for order in orders}
+        
+        tools = session.exec(select(Tool)).all()
+        tools = {tool.number: tool.id for tool in tools}
+
+        unknown_manufacturer = session.query(Manufacturer).filter(Manufacturer.name == 'Undefined').first()
+        unknown_tool_type = session.query(ToolType).filter(ToolType.name == 'Undefined').first()
+
+        # Prepare all valid records
+        records = []
+        delivered_quantities = {}
+        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
+
+        for _, row in df.iterrows():
+            try:
+                order_id = orders.get(f"{row.get('Textbox28', '')}-{row.get('POLine', '')}")
+
+                if not order_id:
+                    try:
+                        tool_id=tools.get(str(row['custpart2']).upper())
+                        if not tool_id:
+                            new_tool = Tool(
+                                name=f"{row['PartDescription21']} - {row['PartDescription11']}",
+                                number=str(row['custpart2']).upper(),
+                                tool_type_id=unknown_tool_type.id,
+                                manufacturer_id=unknown_manufacturer.id
+                            )
+                            try:
+                                session.add(new_tool)
+                                session.commit()
+                                session.refresh(new_tool)
+                                tool_id = new_tool.id
+                                tools[new_tool.number] = tool_id
+                            except Exception as e:
+                                result['bad_data'] += 1
+                                continue
+                    
+                        new_order = ToolOrder(
+                            tool_id=tool_id,
+                            number=row['Textbox28'].split('-')[0],
+                            suffix=row['Textbox28'].split('-')[1],
+                            line=str(row['POLine']),
+                            quantity=row['OrderQty1'],
+                            order_date=row['OrderDate1'],
+                            estimated_delivery_date=row['DueDate'],
+                        )
+                        session.add(new_order)
+                        session.commit()
+                        session.refresh(new_order)
+                        order_id = new_order.id
+                        orders[f"{new_order.number}-{new_order.suffix}-{new_order.line}"] = order_id
+                    except Exception as e:
+                        print(e)
+                        result['bad_data'] += 1
+                        continue
+
+                records.append({
+                    'order_id': order_id,
+                    'quantity': row['ReceivedQty'],
+                    'delivery_date': row['ReceiptDate'],
+                })
+            except Exception as e:
+                print(e)
+
+            if len(records) > 100:
+                result = await write_to_db(records, OrderDelivery, OrderDeliveryCreate, session, result)
+                records = []
+
+        
+        # Insert all records in a single operation, ignoring duplicates
+        if records:
+            result = await write_to_db(records, OrderDelivery, OrderDeliveryCreate, session, result)
+
+    return {"filename": file.filename, "type": "tool_consumption", 'result': result}

@@ -154,7 +154,7 @@ async def get_cpu(
             tp = return_data[line.name]['products'][product.name]['operations'][machine.name]['tool_positions'][tool_position.name]
 
             consumptions = db.exec(select(ToolConsumption)
-                 .where(ToolConsumption.tool_position_id == tool_position.id)
+                 .where(ToolConsumption.tool_id == tool_position.tool.id)
                  .where(ToolConsumption.datetime >= start_date)
                  .where(ToolConsumption.datetime <= end_date)
                  ).all()

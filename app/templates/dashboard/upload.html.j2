@@ -70,10 +70,7 @@
         Where do I get the data?
       </button>
       <ul id="orderInstructions" class="list-disc list-inside text-gray-200 mb-4 hidden">
-        <li>Get Access to the IXP Tooling Orders and Inventory List from Vallen</li>
-        <li>https://vallenna-my.sharepoint.com/personal/tom_schott_vallen_com/Lists/IXP%20Tooling%20Orders%20and%20Inventory/AllItems.aspx?env=WebViewList</li>
-        <li>Click 'Export'</li>
-        <li>Click 'Export to CSV'</li>
+        <li>Ask Tom Schott from Vallen for the received PO excel list</li>
         <li>And then ...</li>
       </ul>
       <button 
@@ -81,6 +78,29 @@
         class="bg-teal-700 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
       >
         Upload Tool Orders
+      </button>
+    </div>
+
+    <!-- Order Delivery Upload Button -->
+    <div class="p-6 bg-slate-800 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-3">Order Deliveries</h2>
+      <p class="text-gray-200 mb-4">Upload csv file containing Tool Order Deliveries.</p>
+      <button
+        onclick="toggleInstructions('delivery')"
+        class="text-gray-200 hover:text-teal-500 mb-2 flex items-center"
+      >
+        <span id="deliveryArrow" class="mr-2">▶</span>
+        Where do I get the data?
+      </button>
+      <ul id="deliveryInstructions" class="list-disc list-inside text-gray-200 mb-4 hidden">
+        <li>Ask Tom Schott from Vallen for the received PO excel list</li>
+        <li>And then ...</li>
+      </ul>
+      <button 
+        onclick="openUploadModal('tool-delivery', 'Tool Order Delivery Data')"
+        class="bg-teal-700 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+      >
+        Upload Tool Order Deliveries
       </button>
     </div>
   </div>
