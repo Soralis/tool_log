@@ -29,6 +29,7 @@ export function initializeGraph(containerId, chartType) {
 // Function to update an existing EChart instance with new configuration (option)
 // The newOption is expected to be a complete ECharts option object provided by the backend.
 function updateChart(chartInstance, newOption, chartId) {
+    console.log(chartInstance)
     // Add better date formatting to the x-axis
     if (newOption && newOption.xAxis && newOption.xAxis.axisLabel) {
         newOption.xAxis.axisLabel.formatter = function(value) {
@@ -60,28 +61,22 @@ function handleWebSocketMessage(event) {
     const response = JSON.parse(event.data);
     const { graphs, data } = response;
     
-    // If no graphs are present, clear out any existing charts
-    if (!graphs || graphs.length === 0) {
-        Object.values(window.echartsInstances).forEach(instance => instance.dispose());
-        window.echartsInstances = {};
-        return;
-    }
-    
     // First, make sure all chart containers exist in the DOM
     createChartContainers(graphs);
     
     // Iterate over each graph received from the backend
     graphs.forEach(graph => {
-        let chartInstance = window.echartsInstances[graph.id];
+        // let chartInstance = window.echartsInstances[graph.id];
         
         // If the chart instance doesn't exist, create it
-        if (!chartInstance) {
-            initializeGraph(graph.id, graph.type);
-            chartInstance = window.echartsInstances[graph.id];
-        }
+        // if (!chartInstance) {
+        initializeGraph(graph.id, graph.type);
+        let chartInstance = window.echartsInstances[graph.id];
+        // }
         
         // Update the chart with the data
         if (chartInstance && data[graph.id]) {
+            console.log('updateeeng')
             updateChart(chartInstance, data[graph.id], graph.id);
         }
     });
@@ -91,7 +86,7 @@ function handleWebSocketMessage(event) {
 
 // Function to create chart containers if they don't already exist
 function createChartContainers(graphs) {
-    // Target the main grid container specifically, not any grid in filter modals
+    // Target the main grid container specifically
     const graphCardsContainer = document.querySelector('.p-2 > .mx-auto > .grid');
     if (!graphCardsContainer) {
         console.error('Main chart grid container not found!');
@@ -102,37 +97,37 @@ function createChartContainers(graphs) {
     const newCards = graphs.map(graph => {
         // Try to find an existing graph card by its data-graph-id
         let existingCard = document.querySelector(`.graph-card[data-graph-id="${graph.id}"]`);
-        if (!existingCard) {
-            // Create a new graph card if it doesn't exist
-            const graphCard = document.createElement('div');
-            graphCard.className = 'bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-700 transition-colors graph-card';
-            graphCard.setAttribute('data-graph-id', graph.id);
-            
-            // Add title
-            const title = document.createElement('h3');
-            title.className = 'text-lg font-medium text-gray-300 mb-2';
-            title.textContent = graph.title;
-            graphCard.appendChild(title);
-            
-            // Add flex container
-            const flexDiv = document.createElement('div');
-            flexDiv.className = 'flex';
-            
-            // Add chart container
-            const chartContainer = document.createElement('div');
-            chartContainer.className = 'flex-1';
-            
-            const graphContainer = document.createElement('div');
-            graphContainer.className = 'graph-container';
-            graphContainer.id = graph.id;
-            graphContainer.setAttribute('data-type', graph.type || 'line');
-            
-            chartContainer.appendChild(graphContainer);
-            flexDiv.appendChild(chartContainer);
-            graphCard.appendChild(flexDiv);
-            return graphCard;
-        }
-        return existingCard;
+
+        if (existingCard) {return existingCard;}
+
+        // Create a new graph card if it doesn't exist
+        const graphCard = document.createElement('div');
+        graphCard.className = 'bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-700 transition-colors graph-card';
+        graphCard.setAttribute('data-graph-id', graph.id);
+        
+        // Add title
+        const title = document.createElement('h3');
+        title.className = 'text-lg font-medium text-gray-300 mb-2';
+        title.textContent = graph.title;
+        graphCard.appendChild(title);
+        
+        // Add flex container
+        const flexDiv = document.createElement('div');
+        flexDiv.className = 'flex';
+        
+        // Add chart container
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'flex-1';
+        
+        const graphContainer = document.createElement('div');
+        graphContainer.className = 'graph-container';
+        graphContainer.id = graph.id;
+        graphContainer.setAttribute('data-type', graph.type || 'line');
+        
+        chartContainer.appendChild(graphContainer);
+        flexDiv.appendChild(chartContainer);
+        graphCard.appendChild(flexDiv);
+        return graphCard;
     });
     
     // Clear the existing container and append cards in the correct order.
