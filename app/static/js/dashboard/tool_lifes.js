@@ -98,43 +98,47 @@ function createChartContainers(graphs) {
         return;
     }
     
-    // Get existing container IDs
-    const existingContainers = Array.from(document.querySelectorAll('.graph-container')).map(el => el.id);
+    // Rebuild the graph cards container in the same order as the graphs received from the server
+    const newCards = graphs.map(graph => {
+        // Try to find an existing graph card by its data-graph-id
+        let existingCard = document.querySelector(`.graph-card[data-graph-id="${graph.id}"]`);
+        if (!existingCard) {
+            // Create a new graph card if it doesn't exist
+            const graphCard = document.createElement('div');
+            graphCard.className = 'bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-700 transition-colors graph-card';
+            graphCard.setAttribute('data-graph-id', graph.id);
+            
+            // Add title
+            const title = document.createElement('h3');
+            title.className = 'text-lg font-medium text-gray-300 mb-2';
+            title.textContent = graph.title;
+            graphCard.appendChild(title);
+            
+            // Add flex container
+            const flexDiv = document.createElement('div');
+            flexDiv.className = 'flex';
+            
+            // Add chart container
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'flex-1';
+            
+            const graphContainer = document.createElement('div');
+            graphContainer.className = 'graph-container';
+            graphContainer.id = graph.id;
+            graphContainer.setAttribute('data-type', graph.type || 'line');
+            
+            chartContainer.appendChild(graphContainer);
+            flexDiv.appendChild(chartContainer);
+            graphCard.appendChild(flexDiv);
+            return graphCard;
+        }
+        return existingCard;
+    });
     
-    // Create containers for graphs that don't have one
-    graphs.forEach(graph => {
-        if (existingContainers.includes(graph.id)) return;
-        
-        // Create the graph card
-        const graphCard = document.createElement('div');
-        graphCard.className = 'bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-700 transition-colors graph-card';
-        graphCard.setAttribute('data-graph-id', graph.id);
-        
-        // Add title
-        const title = document.createElement('h3');
-        title.className = 'text-lg font-medium text-gray-300 mb-2';
-        title.textContent = graph.title;
-        graphCard.appendChild(title);
-        
-        // Add flex container
-        const flexDiv = document.createElement('div');
-        flexDiv.className = 'flex';
-        
-        // Add chart container
-        const chartContainer = document.createElement('div');
-        chartContainer.className = 'flex-1';
-        
-        const graphContainer = document.createElement('div');
-        graphContainer.className = 'graph-container';
-        graphContainer.id = graph.id;
-        graphContainer.setAttribute('data-type', graph.type || 'line');
-        
-        chartContainer.appendChild(graphContainer);
-        flexDiv.appendChild(chartContainer);
-        graphCard.appendChild(flexDiv);
-        
-        // Add to DOM
-        graphCardsContainer.appendChild(graphCard);
+    // Clear the existing container and append cards in the correct order.
+    graphCardsContainer.innerHTML = '';
+    newCards.forEach(card => {
+        graphCardsContainer.appendChild(card);
     });
 }
 

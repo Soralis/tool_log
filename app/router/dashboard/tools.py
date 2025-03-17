@@ -152,6 +152,20 @@ async def get_cpu(
             if tool_position.name not in return_data[line.name]['products'][product.name]['operations'][machine.name]['tool_positions']:
                 return_data[line.name]['products'][product.name]['operations'][machine.name]['tool_positions'][tool_position.name] = []
             tp = return_data[line.name]['products'][product.name]['operations'][machine.name]['tool_positions'][tool_position.name]
+
+            consumptions = db.exec(select(ToolConsumption)
+                 .where(ToolConsumption.tool_position_id == tool_position.id)
+                 .where(ToolConsumption.datetime >= start_date)
+                 .where(ToolConsumption.datetime <= end_date)
+                 ).all()
+            if consumptions:
+                first_date = min([c.datetime.date() for c in consumptions])
+                last_date = max([c.datetime.date() for c in consumptions])
+                total_quantity = sum([c.quantity for c in consumptions])
+                weeks = ((last_date - first_date).days // 7) + 1
+                weekly = total_quantity / weeks if weeks > 0 else total_quantity
+            else:
+                weekly = 0
             
             tool_dict = {
                 'tool_id': tool_position.tool_id,
@@ -162,7 +176,7 @@ async def get_cpu(
                 'number': tool_position.tool.number,
                 'type': tool_position.tool.tool_type.name,
                 'manufacturer': tool_position.tool.manufacturer.name,
-                'weekly_consumption': 'NOT CALCULATED',
+                'weekly_consumption': round(weekly, 1),
                 'inventory': tool_position.tool.inventory,
                 'order_lead_time': '21 weeks',
                 'last_price': round(tool_position.tool.price, 2),
