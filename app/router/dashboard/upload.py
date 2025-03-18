@@ -440,12 +440,11 @@ async def upload_tool_deliveries(
         tools = session.exec(select(Tool)).all()
         tools = {tool.number: tool.id for tool in tools}
 
-        unknown_manufacturer = session.query(Manufacturer).filter(Manufacturer.name == 'Undefined').first()
-        unknown_tool_type = session.query(ToolType).filter(ToolType.name == 'Undefined').first()
+        unknown_manufacturer = session.exec(select(Manufacturer).where(Manufacturer.name == 'Undefined')).first()
+        unknown_tool_type = session.exec(select(ToolType).where(ToolType.name == 'Undefined')).first()
 
         # Prepare all valid records
         records = []
-        delivered_quantities = {}
         result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
 
         for _, row in df.iterrows():
@@ -470,6 +469,7 @@ async def upload_tool_deliveries(
                                 tools[new_tool.number] = tool_id
                             except Exception as e:
                                 result['bad_data'] += 1
+                                session.rollback()
                                 continue
                     
                         new_order = ToolOrder(
@@ -489,6 +489,7 @@ async def upload_tool_deliveries(
                     except Exception as e:
                         print(e)
                         result['bad_data'] += 1
+                        session.rollback()
                         continue
 
                 records.append({
@@ -507,5 +508,42 @@ async def upload_tool_deliveries(
         # Insert all records in a single operation, ignoring duplicates
         if records:
             result = await write_to_db(records, OrderDelivery, OrderDeliveryCreate, session, result)
+
+    return {"filename": file.filename, "type": "tool_consumption", 'result': result}
+
+
+@router.post("/tool-inventory")
+async def upload_tool_inventory(
+    file: UploadFile = File(...),
+    sheet_names: str = Form(None),
+    header_row: int = Form(None)
+):
+    """Handle tool inventory file upload"""
+    print(f'Processing tool inventory file: {file.filename}')
+
+    df = await read_excel(file, sheet_names, header_row)
+
+    if df is None:
+        return {"filename": file.filename, "type": "tool_delivery", "error": "Failed to read file"}
+
+    with Session(engine) as session:      
+        tools = session.exec(select(Tool)).all()
+        tools = {tool.number: tool for tool in tools}
+
+        # Prepare all valid records
+        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
+
+        for _, row in df.iterrows():
+            tool = tools.get(row.get('Part Number', ''))
+
+            if not tool:
+                result['bad_data'] += 1
+                continue
+
+            tool.inventory = row.get('Total', 0)
+            result['inserted'] += 1
+            result['total_records'] += 1
+            
+        session.commit()
 
     return {"filename": file.filename, "type": "tool_consumption", 'result': result}

@@ -58,10 +58,6 @@ async def get_tools(tool_type_id: int = None, session: Session = Depends(get_ses
 async def orders_dashboard(request: Request, session: Session = Depends(get_session)):
     query = select(ToolOrder).options(selectinload(ToolOrder.tool).selectinload(Tool.tool_type))
     orders = session.exec(query).all()
-    for order in orders:
-        order.delivered = order.calculate_delivered_amount()
-        
-    session.commit()
     return templates.TemplateResponse("dashboard/orders.html.j2", {"request": request, "orders": orders})
 
 

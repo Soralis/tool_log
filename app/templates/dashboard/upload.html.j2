@@ -103,6 +103,29 @@
         Upload Tool Order Deliveries
       </button>
     </div>
+
+    <!-- Tool Inventory Upload Button -->
+    <div class="p-6 bg-slate-800 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-3">Tool Inventory</h2>
+      <p class="text-gray-200 mb-4">Upload csv file containing Tool Inventory.</p>
+      <button
+        onclick="toggleInstructions('inventory')"
+        class="text-gray-200 hover:text-teal-500 mb-2 flex items-center"
+      >
+        <span id="inventoryArrow" class="mr-2">▶</span>
+        Where do I get the data?
+      </button>
+      <ul id="inventoryInstructions" class="list-disc list-inside text-gray-200 mb-4 hidden">
+        <li>Ask Tom Schott from Vallen for the CC excel list</li>
+        <li>And then ...</li>
+      </ul>
+      <button 
+        onclick="openUploadModal('tool-inventory', 'Tool Inventory Data')"
+        class="bg-teal-700 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+      >
+        Upload Tool Inventory
+      </button>
+    </div>
   </div>
 
   <!-- Upload Modal -->
