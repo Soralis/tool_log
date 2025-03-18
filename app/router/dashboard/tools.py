@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Query
-from sqlmodel import Session, select, and_, exists
+from sqlmodel import Session, select, and_, exists, desc
 from sqlalchemy.orm import selectinload
 from typing import Dict
 from datetime import datetime
@@ -171,12 +171,15 @@ async def get_cpu(
             tool_orders = tool_position.tool.tool_orders
             order_deliveries = db.exec(select(OrderDelivery)
                  .where(OrderDelivery.order_id.in_([o.id for o in tool_orders]))
+                 .order_by(desc(OrderDelivery.delivery_date))
+                 .limit(10)
                  ).all()
             if order_deliveries:
-                delivery_durations = [round((od.delivery_date - od.order.order_date).days / 7, 2) for od in order_deliveries if (od.delivery_date - od.order.order_date).days > 0 ]
-                avg_delivery_duration = ceil(sum(delivery_durations) / len(order_deliveries))
+                delivery_durations = [ (ceil((od.delivery_date - od.order.order_date).days / 7), od.quantity) for od in order_deliveries ]
+                # find longest delivery_duration in weeks and corresponding quantity
+                longest_delivery_duration = max(delivery_durations, key=lambda item: item[0])
             else:
-                avg_delivery_duration = 14
+                longest_delivery_duration = (14, 0)
             
             tool_dict = {
                 'tool_id': tool_position.tool_id,
@@ -189,7 +192,8 @@ async def get_cpu(
                 'manufacturer': tool_position.tool.manufacturer.name,
                 'weekly_consumption': round(weekly, 1),
                 'inventory': tool_position.tool.inventory if tool_position.tool.inventory else 0,
-                'order_lead_time': avg_delivery_duration,
+                'order_lead_time': longest_delivery_duration[0],
+                'longest_order_size': longest_delivery_duration[1],
                 'last_price': round(tool_position.tool.price, 2),
             }
             tp.append(tool_dict)
