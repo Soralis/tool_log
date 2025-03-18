@@ -9,8 +9,6 @@ from app.models import LogDevice
 from app.models import User, UserRole
 from dotenv import dotenv_values
 
-
-
 env = dotenv_values('.env')
 
 def create_token(data: dict):
