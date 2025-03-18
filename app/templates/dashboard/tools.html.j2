@@ -57,6 +57,7 @@
   let current_tab = 'cpu';
   // Global variable for grouped table filtering data
   let allGroupedRows = [];
+  let groupedFilters = [];
 
   // Create grouped table header. This header is created once.
   function createGroupedTableHeader() {
@@ -138,7 +139,120 @@
       console.error(`Error fetching filtered ${current_tab} data:`, error);
     }
   }
+        
+  function bindGroupedFilterListeners() {
+    // Reset groupedFilters array
+    groupedFilters = [];
+    const groupInputs = document.querySelectorAll('#grouped-tools-filters .group-filter-input');
+    groupInputs.forEach((input, index) => {
+      input.addEventListener('input', (e) => {
+        groupedFilters[index] = e.target.value;
+        filterGroupedTools();
+      });
+    });
+  }
 
+  // New function: renderGroupedTableMerged() groups rows by product, operation, and position and applies rowSpan merging.
+  function renderGroupedTableMerged(rows) {
+    const tbody = document.querySelector('#grouped-tools table tbody#grouped-tools-body');
+    tbody.innerHTML = "";
+    // Group rows by product -> operation -> position
+    const products = {};
+    rows.forEach(row => {
+      if(!products[row.product]){ products[row.product] = {}; }
+      if(!products[row.product][row.operation]){ products[row.product][row.operation] = {}; }
+      if(!products[row.product][row.operation][row.position]){ products[row.product][row.operation][row.position] = []; }
+      products[row.product][row.operation][row.position].push(row);
+    });
+    for(const product in products){
+      let productRowCount = 0;
+      for(const operation in products[product]){
+        for(const position in products[product][operation]){
+          productRowCount += products[product][operation][position].length;
+        }
+      }
+      let firstProductRow = true;
+      for(const operation in products[product]){
+        let operationRowCount = 0;
+        for(const position in products[product][operation]){
+          operationRowCount += products[product][operation][position].length;
+        }
+        let firstOperationRow = true;
+        for(const position in products[product][operation]){
+          const rowsForPosition = products[product][operation][position];
+          let firstPositionRow = true;
+          rowsForPosition.forEach(row => {
+            const tr = document.createElement('tr');
+            if(firstProductRow){
+              const tdProduct = document.createElement('td');
+              tdProduct.className = "px-4 py-2 border-b border-gray-700";
+              tdProduct.rowSpan = productRowCount;
+              tdProduct.textContent = product;
+              tr.appendChild(tdProduct);
+              firstProductRow = false;
+            }
+            if(firstOperationRow){
+              const tdOperation = document.createElement('td');
+              tdOperation.className = "px-4 py-2 border-b border-gray-700";
+              tdOperation.rowSpan = operationRowCount;
+              tdOperation.textContent = operation;
+              tr.appendChild(tdOperation);
+              firstOperationRow = false;
+            }
+            if(firstPositionRow){
+              const tdPosition = document.createElement('td');
+              tdPosition.className = "px-4 py-2 border-b border-gray-700";
+              tdPosition.rowSpan = rowsForPosition.length;
+              tdPosition.textContent = row.position;
+              tr.appendChild(tdPosition);
+              firstPositionRow = false;
+            }
+            tr.innerHTML += `
+              <td class="px-4 py-2 border-b border-gray-700${row.selected ? ' text-green-500' : ''}">${row.name}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.type}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.number}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.manufacturer}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.weekly_consumption}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.inventory}</td>
+              <td class="px-4 py-2 border-b border-gray-700${row.stop_order ? ' text-red-500' : ''}">${row.stop_order ? 'ORDER STOP' : row.order_lead_time}</td>
+              <td class="px-4 py-2 border-b border-gray-700">${row.last_price}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      }
+    }
+  }
+
+  // Updated filterGroupedTools() to use the merged renderer.
+  function filterGroupedTools() {
+    const filteredRows = allGroupedRows.filter(row => {
+      let include = true;
+      groupedFilters.forEach((filterValue, index) => {
+        if(filterValue.trim() !== ""){
+          const cellValues = [
+            row.product,
+            row.operation,
+            row.position,
+            row.name,
+            row.type,
+            row.number,
+            row.manufacturer,
+            row.weekly_consumption,
+            row.inventory,
+            row.order_lead_time,
+            row.last_price
+          ];
+          const cellText = cellValues[index] ? cellValues[index].toString().toLowerCase() : '';
+          if(!cellText.includes(filterValue.toLowerCase())){ include = false; }
+        }
+      });
+      return include;
+    });
+    renderGroupedTableMerged(filteredRows);
+  }
+
+  // Original populateToolsData() CPU branch now always groups (with merging) the results.
   function populateToolsData(target, data){
     switch(target) {
       case 'unique_tools':
@@ -163,6 +277,7 @@
         });
         filterFlatTools();
         break;
+        
       case 'cpu':
         const groupedDiv = document.getElementById('grouped-tools');
         let table = groupedDiv.querySelector('table');
@@ -212,7 +327,9 @@
           allRows = allRows.concat(processProduct(key, data[key]));
         }
         allGroupedRows = allRows;
-        // Check if any filter is active. Use flat rendering if true, merged if false.
+        // Always apply grouping merge, whether filters are active or not.
+        let filteredRows = allRows;
+        // Check if any filter is active:
         const headerInputs = table.querySelectorAll('#grouped-tools-filters .group-filter-input');
         let filtersActive = false;
         headerInputs.forEach(input => {
@@ -221,91 +338,34 @@
           }
         });
         if(filtersActive){
-          allRows.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td class="px-4 py-2 border-b border-gray-700">${row.product}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.operation}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.position}</td>
-              <td class="px-4 py-2 border-b border-gray-700${row.selected ? ' text-green-500' : ''}">${row.name}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.type}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.number}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.manufacturer}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.weekly_consumption}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.inventory}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.order_lead_time}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.last_price}</td>
-            `;
-            tbody.appendChild(tr);
+          filteredRows = allRows.filter(row => {
+            let include = true;
+            groupedFilters.forEach((filterValue, index) => {
+              if(filterValue.trim() !== ""){
+                const cellValues = [
+                  row.product,
+                  row.operation,
+                  row.position,
+                  row.name,
+                  row.type,
+                  row.number,
+                  row.manufacturer,
+                  row.weekly_consumption,
+                  row.inventory,
+                  row.order_lead_time,
+                  row.last_price
+                ];
+                const cellText = cellValues[index] ? cellValues[index].toString().toLowerCase() : '';
+                if(!cellText.includes(filterValue.toLowerCase())){ include = false; }
+              }
+            });
+            return include;
           });
-        } else {
-          const products = {};
-          allRows.forEach(row => {
-            if(!products[row.product]){ products[row.product] = {}; }
-            if(!products[row.product][row.operation]){ products[row.product][row.operation] = {}; }
-            if(!products[row.product][row.operation][row.position]){ products[row.product][row.operation][row.position] = []; }
-            products[row.product][row.operation][row.position].push(row);
-          });
-          for(const product in products){
-            let productRowCount = 0;
-            for(const operation in products[product]){
-              for(const position in products[product][operation]){
-                productRowCount += products[product][operation][position].length;
-              }
-            }
-            let firstProductRow = true;
-            for(const operation in products[product]){
-              let operationRowCount = 0;
-              for(const position in products[product][operation]){
-                operationRowCount += products[product][operation][position].length;
-              }
-              let firstOperationRow = true;
-              for(const position in products[product][operation]){
-                const rowsForPosition = products[product][operation][position];
-                let firstPositionRow = true;
-                rowsForPosition.forEach(row => {
-                  const tr = document.createElement('tr');
-                  if(firstProductRow){
-                    const tdProduct = document.createElement('td');
-                    tdProduct.className = "px-4 py-2 border-b border-gray-700";
-                    tdProduct.rowSpan = productRowCount;
-                    tdProduct.textContent = product;
-                    tr.appendChild(tdProduct);
-                    firstProductRow = false;
-                  }
-                  if(firstOperationRow){
-                    const tdOperation = document.createElement('td');
-                    tdOperation.className = "px-4 py-2 border-b border-gray-700";
-                    tdOperation.rowSpan = operationRowCount;
-                    tdOperation.textContent = operation;
-                    tr.appendChild(tdOperation);
-                    firstOperationRow = false;
-                  }
-                  if(firstPositionRow){
-                    const tdPosition = document.createElement('td');
-                    tdPosition.className = "px-4 py-2 border-b border-gray-700";
-                    tdPosition.rowSpan = rowsForPosition.length;
-                    tdPosition.textContent = position;
-                    tr.appendChild(tdPosition);
-                    firstPositionRow = false;
-                  }
-                  tr.innerHTML += `
-                    <td class="px-4 py-2 border-b border-gray-700${row.selected ? ' text-green-500' : ''}">${row.name}</td>
-                    <td class="px-4 py-2 border-b border-gray-700">${row.type}</td>
-                    <td class="px-4 py-2 border-b border-gray-700">${row.number}</td>
-                    <td class="px-4 py-2 border-b border-gray-700">${row.manufacturer}</td>
-                    <td class="px-4 py-2 border-b border-gray-700">${row.weekly_consumption}</td>
-                    <td class="px-4 py-2 border-b border-gray-700">${row.inventory}</td>
-                    <td class="px-4 py-2 border-b border-gray-700${row.stop_order ? ' text-red-500' : ''}">${row.stop_order ? 'ORDER STOP' : row.order_lead_time}</td>
-                    <td class="px-4 py-2 border-b border-gray-700">${row.last_price}</td>
-                  `;
-                  tbody.appendChild(tr);
-                });
-              }
-            }
-          }
         }
-      }
+        renderGroupedTableMerged(filteredRows);
+        bindGroupedFilterListeners();
+        break;
+    }
   }
   
   function filterFlatTools() {
@@ -325,6 +385,7 @@
     });
   }
   
+  // Updated filterGroupedTools to call renderGroupedTableMerged.
   function filterGroupedTools() {
     const filteredRows = allGroupedRows.filter(row => {
       let include = true;
@@ -349,23 +410,14 @@
       });
       return include;
     });
-    renderGroupedTable(filteredRows);
+    renderGroupedTableMerged(filteredRows);
   }
   
   document.querySelectorAll('#flat-tools-filters .filter-input').forEach(input => {
     input.addEventListener('input', filterFlatTools);
   });
   
-  // Set up filter listeners for grouped table only once (header persists)
-  document.addEventListener('DOMContentLoaded', () => {
-    const groupInputs = document.querySelectorAll('#grouped-tools-filters .group-filter-input');
-    groupInputs.forEach((input, index) => {
-      input.addEventListener('input', (e) => {
-        groupedFilters[index] = e.target.value;
-        filterGroupedTools();
-      });
-    });
-  });
+  bindGroupedFilterListeners();
   
   fetchToolsData();
   document.addEventListener('filterChanged', fetchToolsData);
