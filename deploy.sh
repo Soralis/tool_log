@@ -160,5 +160,4 @@ sudo systemctl enable "$NEW_SERVICE"
 sudo systemctl stop $ACTIVE_SERVICE
 sudo systemctl disable "$ACTIVE_SERVICE"
 
-
 echo "Deployment to $NEW_SERVICE successful. Old service $ACTIVE_SERVICE stopped."
