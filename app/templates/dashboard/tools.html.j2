@@ -213,8 +213,8 @@
               <td class="px-4 py-2 border-b border-gray-700">${row.number}</td>
               <td class="px-4 py-2 border-b border-gray-700">${row.manufacturer}</td>
               <td class="px-4 py-2 border-b border-gray-700">${row.weekly_consumption}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.inventory}</td>
-              <td class="px-4 py-2 border-b border-gray-700${row.stop_order ? ' text-red-500' : ''}">${row.stop_order ? 'ORDER STOP' : row.order_lead_time}</td>
+              <td class="px-4 py-2 border-b border-gray-700 ${row.inventory_weeks <= 1.5 * row.order_lead_time ? row.inventory_weeks <= row.order_lead_time ? 'text-red-500' : 'text-orange-500' : ''}">${row.inventory} (${row.inventory_weeks} Weeks)</td>
+              <td class="px-4 py-2 border-b border-gray-700${row.stop_order ? ' text-red-500' : ''}">${row.stop_order ? 'ORDER STOP' : `${row.order_lead_time} Weeks`}</td>
               <td class="px-4 py-2 border-b border-gray-700">${row.last_price}</td>
             `;
             tbody.appendChild(tr);
@@ -300,7 +300,15 @@
               for(const pos in operation.tool_positions){
                 const toolsArray = operation.tool_positions[pos];
                 toolsArray.forEach(tool => {
+                  let inventory_weeks = (
+                    tool.inventory !== undefined 
+                    && tool.inventory !== null 
+                    && tool.weekly_consumption !== undefined 
+                    && tool.weekly_consumption !== null 
+                    && tool.weekly_consumption != '0') ? Math.floor(tool.inventory / tool.weekly_consumption) : 999;
+
                   rows.push({
+                    inventory_weeks: inventory_weeks,
                     product: productName,
                     operation: opKey,
                     position: pos,
@@ -308,8 +316,8 @@
                     type: tool.type || '',
                     number: tool.number || '',
                     manufacturer: tool.manufacturer || '',
-                    weekly_consumption: tool.weekly_consumption || '',
-                    inventory: (tool.inventory !== undefined && tool.inventory !== null) ? tool.inventory : '',
+                    weekly_consumption: tool.weekly_consumption || 0,
+                    inventory: tool.inventory || 0,
                     order_lead_time: tool.order_lead_time || '',
                     last_price: tool.last_price || '',
                     selected: tool.selected,

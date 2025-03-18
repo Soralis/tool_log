@@ -1344,6 +1344,9 @@
   .text-indigo-500 {
     color: var(--color-indigo-500);
   }
+  .text-orange-500 {
+    color: var(--color-orange-500);
+  }
   .text-red-400 {
     color: var(--color-red-400);
   }

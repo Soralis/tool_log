@@ -3,12 +3,13 @@ from sqlmodel import Session, select, and_, exists
 from sqlalchemy.orm import selectinload
 from typing import Dict
 from datetime import datetime
+from math import ceil
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
 from app.models import (Tool, RecipeTool, Recipe, ToolType, 
                         ToolConsumption, Workpiece, Machine, ChangeOver,
-                        ToolPosition, Line)
+                        ToolPosition, Line, OrderDelivery)
 
 
 router = APIRouter(
@@ -81,7 +82,7 @@ async def get_unique_tool_data(
             'line': tool.recipes[0].workpiece.line.name if tool.recipes else "Unknown",
             'weekly_consumption': round(weekly_consumption,1),
             'inventory': f"{tool.inventory} ({round(tool.inventory/weekly_consumption, 1) if weekly_consumption and weekly_consumption > 0 else "∞"} Weeks)" if tool.inventory else "N/A",
-            'order_lead_time': "21 Weeks",
+            'order_lead_time': 15,
             'stop_order': tool.stop_order,
             'price': round(tool.price, 2)
         }
@@ -166,6 +167,16 @@ async def get_cpu(
                 weekly = total_quantity / weeks if weeks > 0 else total_quantity
             else:
                 weekly = 0
+
+            tool_orders = tool_position.tool.tool_orders
+            order_deliveries = db.exec(select(OrderDelivery)
+                 .where(OrderDelivery.order_id.in_([o.id for o in tool_orders]))
+                 ).all()
+            if order_deliveries:
+                delivery_durations = [round((od.delivery_date - od.order.order_date).days / 7, 2) for od in order_deliveries if (od.delivery_date - od.order.order_date).days > 0 ]
+                avg_delivery_duration = ceil(sum(delivery_durations) / len(order_deliveries))
+            else:
+                avg_delivery_duration = 14
             
             tool_dict = {
                 'tool_id': tool_position.tool_id,
@@ -177,10 +188,9 @@ async def get_cpu(
                 'type': tool_position.tool.tool_type.name,
                 'manufacturer': tool_position.tool.manufacturer.name,
                 'weekly_consumption': round(weekly, 1),
-                'inventory': tool_position.tool.inventory,
-                'order_lead_time': '21 weeks',
+                'inventory': tool_position.tool.inventory if tool_position.tool.inventory else 0,
+                'order_lead_time': avg_delivery_duration,
                 'last_price': round(tool_position.tool.price, 2),
             }
             tp.append(tool_dict)
-    print(return_data)
     return return_data
