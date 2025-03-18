@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, Query
 from sqlmodel import Session, select, and_, exists
 from sqlalchemy.orm import selectinload
-from typing import Dict, Optional
+from typing import Dict
 from datetime import datetime
 
 from app.templates.jinja_functions import templates
