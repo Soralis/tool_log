@@ -162,5 +162,3 @@ sudo systemctl disable "$ACTIVE_SERVICE"
 
 
 echo "Deployment to $NEW_SERVICE successful. Old service $ACTIVE_SERVICE stopped."
-
-# Optionally, clean up old code or logs
