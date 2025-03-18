@@ -176,7 +176,7 @@ async def upload_tool_consumption(
         machines = {str(machine.cost_center): machine for machine in machines}
 
         tools = session.exec(select(Tool)).all()
-        tools = {tool.number.upper(): tool.id for tool in tools}
+        tools = {tool.number.upper(): tool for tool in tools}
 
         workpieces = session.exec(select(Workpiece)).all()
         workpieces = {workpiece.description: workpiece.id for workpiece in workpieces}
@@ -187,7 +187,6 @@ async def upload_tool_consumption(
         # Prepare all valid records
         records = []
         result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
-        latest_tool_prices = {}
         for _, row in df.iterrows():
             try:
                 user_id = None
@@ -201,8 +200,8 @@ async def upload_tool_consumption(
                     machine = machines[cost_center]
                     machine_id = machine.id
 
-                tool_id = tools.get(row['CPN'].upper())
-                if tool_id is None:
+                tool = tools.get(row['CPN'].upper())
+                if tool is None:
                     new_tool = Tool(
                         number=row['CPN'].upper(),
                         manufacturer_name=row['Description'],
@@ -214,11 +213,10 @@ async def upload_tool_consumption(
                         session.add(new_tool)
                         session.commit()
                         session.refresh(new_tool)
-                        tool_id = new_tool.id
-                        tools[new_tool.number] = tool_id
+                        tools[new_tool.number] = new_tool
                     except Exception as e:
                         print(e)
-                        tool_id = None
+                        tool = None
                         session.rollback()
                                         
                 workpiece_id = None
@@ -227,12 +225,12 @@ async def upload_tool_consumption(
 
                 recipe_id, tool_position_id = None, None
 
-                if machine and tool_id and workpiece_id:
+                if machine and tool and workpiece_id:
                     for recipe in machine.recipes:
                         if recipe.workpiece_id == workpiece_id:
                             recipe_id = recipe.id
                             for tool_position in recipe.tool_positions:
-                                if tool_position.tool_id == tool_id:
+                                if tool_position.tool_id == tool.id:
                                     tool_position_id = tool_position.id
                                     break
                             if recipe_id:
@@ -247,12 +245,13 @@ async def upload_tool_consumption(
                     'price': float(row['SellPrice']) if row.get('SellPrice') else 0.0,
                     'user_id': user_id,
                     'machine_id': machine_id,
-                    'tool_id': tool_id,
+                    'tool_id': tool.id,
                     'recipe_id': recipe_id,
                     'tool_position_id': tool_position_id,
                     'workpiece_id': workpiece_id,
                 })
-                latest_tool_prices[tool_id] = float(row['SellPrice']) if row.get('SellPrice') else 0.0
+                tool.price = float(row['SellPrice']) if row.get('SellPrice') else 0.0
+                tool.inventory -= row['IssuedQuantity']
             except Exception as e:
                 print(e)
 
@@ -264,12 +263,8 @@ async def upload_tool_consumption(
         if records:
             result = await write_to_db(records, ToolConsumption, ToolConsumptionCreate, session, result)
 
-        updated_tools = session.exec(select(Tool).where(Tool.id.in_(latest_tool_prices.keys())))
-        for tool in updated_tools:
-            tool.price = float(latest_tool_prices[tool.id])
         session.commit()
         
-
 
     return {"filename": file.filename, "type": "tool_consumption", 'result': result}
 
