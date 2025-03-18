@@ -174,7 +174,7 @@ async def get_cpu(
                  .order_by(desc(OrderDelivery.delivery_date))
                  .limit(10)
                  ).all()
-            if order_deliveries:
+            if order_deliveries and len(order_deliveries) > 5:
                 delivery_durations = [ (ceil((od.delivery_date - od.order.order_date).days / 7), od.quantity) for od in order_deliveries ]
                 # find longest delivery_duration in weeks and corresponding quantity
                 longest_delivery_duration = max(delivery_durations, key=lambda item: item[0])
