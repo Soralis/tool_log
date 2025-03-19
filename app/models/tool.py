@@ -166,7 +166,7 @@ class ToolLife(ToolLifeBase, table=True):
     change_reason_id: Optional[int] = Field(foreign_key='changereason.id', ondelete='SET NULL')
     tool_position_id: Optional[int] = Field(foreign_key='toolposition.id', ondelete='SET NULL')
 
-    >: 'User' = Relationship(back_populates='tool_lifes')
+    creator: 'User' = Relationship(back_populates='tool_lifes')
     machine: 'Machine' = Relationship(back_populates='tool_lifes')
     tool: Tool = Relationship(back_populates='tool_lifes')
     recipe: 'Recipe' = Relationship(back_populates='tool_lifes')
