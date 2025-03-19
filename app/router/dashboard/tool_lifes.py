@@ -1,6 +1,7 @@
 from fastapi import APIRouter, WebSocket, Request, Depends, HTTPException
 import asyncio
 import json
+from collections import defaultdict
 from app.templates.jinja_functions import templates
 from datetime import datetime
 from sqlmodel import Session, select
@@ -200,8 +201,8 @@ async def get_tool_details(
     if end:
         statement = statement.where(ToolLife.timestamp <= end)
     statement = statement.order_by(ToolLife.timestamp.asc())
-    records = list(db.exec(statement))
-    # records.reverse()  # Chronological order
+    tool_life_records = db.exec(statement).all()
+    # tool_life_records.reverse()  # Chronological order
 
     # Define cards for the modal
     details = {
@@ -209,7 +210,7 @@ async def get_tool_details(
         "cards": []
     }
 
-    if not records:
+    if not tool_life_records:
         details['cards'].append({
             "id": "no_data",
             "title": f"No Data Available for the timeframe from {start} to {end}.",
@@ -218,14 +219,16 @@ async def get_tool_details(
         })
         return details  
 
-    ordered_records = {}
+    ordered_tool_life_records = {}
+    tool_lifes = []
     # sort by machine
-    for r in records:
-        if r.machine.name not in ordered_records:
-            ordered_records[r.machine.name] = {}
-        if f"Channel {r.machine_channel}" not in ordered_records[r.machine.name]:
-            ordered_records[r.machine.name][f"Channel {r.machine_channel}"] = []
-        ordered_records[r.machine.name][f"Channel {r.machine_channel}"].append(r)
+    for r in tool_life_records:
+        tool_lifes.append(r.reached_life)
+        if r.machine.name not in ordered_tool_life_records:
+            ordered_tool_life_records[r.machine.name] = {}
+        if f"Channel {r.machine_channel}" not in ordered_tool_life_records[r.machine.name]:
+            ordered_tool_life_records[r.machine.name][f"Channel {r.machine_channel}"] = []
+        ordered_tool_life_records[r.machine.name][f"Channel {r.machine_channel}"].append(r)
 
     ### General Graph
     machines = db.exec(select(Machine).where(Machine.active == True)).all()
@@ -235,10 +238,14 @@ async def get_tool_details(
     general_series = []
     machine_spec_series = []
 
-    for machine in ordered_records:
+    for machine in ordered_tool_life_records:
         machine_series = []
-        for channel in ordered_records[machine]:
-            condensed_data = get_condensed_data(ordered_records[machine][channel])
+        stats = {}
+        operators_life = defaultdict(list)
+        lifes = []
+
+        for channel in ordered_tool_life_records[machine]:
+            condensed_data = get_condensed_data(ordered_tool_life_records[machine][channel])
 
             series = {
                 "type": "line",
@@ -247,27 +254,69 @@ async def get_tool_details(
                 "areaStyle": { "color": machine_colors[machine][1] },
             }
 
+            stats['expected_life'] = ordered_tool_life_records[machine][channel][0].tool_position.expected_life if ordered_tool_life_records[machine][channel] else 1
+
+            for t_life in ordered_tool_life_records[machine][channel]:
+                t_life: ToolLife
+                lifes.append(t_life.reached_life)
+                operators_life[t_life.creator.name].append(t_life.reached_life)
+
             general_series.append(series)
 
             series['name'] = machine
             machine_series.append(series)
         
-        machine_spec_series.append(machine_series)
+        ranking = []
+        for operator in operators_life:
+            log_count = len(operators_life[operator])
+            avg_life = round(sum(operators_life[operator]) / log_count) if log_count > 0 else 0
+            ranking.append({'operator': operator,
+                        'avg_life': avg_life,
+                        'log_count': log_count})
+        ranking.sort(key=lambda x: x['avg_life'], reverse=True)
+        print(ranking)
+        stats['ranking'] = ranking
+        stats['avg_life'] = round(sum(lifes) / len(lifes)) if len(lifes) > 0 else 0
+
+        machine_spec_series.append({'title': machine, 'data':machine_series, 'stats': stats})
 
     details['cards'].append(tc.graph_card("", general_series))
+
+    ### Tool statistics overall
+    avg_life = round(sum(tool_lifes) / len(tool_lifes))
+    target_life = 1000
+
+    details['cards'].append(tc.stat_card("Tool Statistics", [
+        ["Average Life", avg_life],
+        ["Target Life", target_life],
+        ["CPU", f"${round(tool.price / avg_life, 2)}"],
+        ["Target CPU", f"${round(tool.price / target_life, 2)}"]
+    ]))  
 
     ### Basic Tool Details
     details['cards'].append(tc.stat_card("Tool Information", [
         ["Type", f"{tool.tool_type.name} ({'perishable' if tool.tool_type.perishable else 'durable'})"],
-        ["Description", f"{tool.description}"],
-        ["Manufacturer", f"{tool.manufacturer.name}"],
-        ["CPN", f"{tool.cpn_number}"],
-        ["ERP", f"{tool.erp_number}"],
-        ["Price", "1000"] #f"{tool.price}"
+        ["Description", tool.description],
+        ["Manufacturer", tool.manufacturer.name],
+        ["CPN", tool.cpn_number],
+        ["ERP", tool.erp_number],
+        ["Price", tool.price]
     ]))  
 
+    ### Machine specific stats and graphs
     for machine_spec in machine_spec_series:
-        details['cards'].append(tc.graph_card("", machine_spec))
+        details['cards'].append(tc.graph_card(machine_spec['title'], machine_spec['data']))
+        stats = machine_spec['stats']
+        best_operators_text = "<br>".join([f"{o['operator']}: {o['avg_life']} ({o['log_count']})" for o in stats['ranking'][:3]])
+        worst_operators_text = "<br>".join([f"{o['operator']}: {o['avg_life']} ({o['log_count']})" for o in stats['ranking'][-3:]])
+        details['cards'].append(tc.stat_card("Tool Statistics", [
+            ["Average Life", stats['avg_life']],
+            ["Target Life", stats['expected_life']],
+            ["CPU", f"${round(tool.price / stats['avg_life'], 2)}"],
+            ["Target CPU", f"${round(tool.price / stats['expected_life'], 2)}"],
+            ["Best 3 Operators", best_operators_text],
+            ["Worst 3 Operators", worst_operators_text]
+        ])) 
 
     # # Add a card for each machine with all its channels
     # for machine_name, channels in machines.items():

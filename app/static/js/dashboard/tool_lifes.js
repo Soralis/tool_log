@@ -29,7 +29,6 @@ export function initializeGraph(containerId, chartType) {
 // Function to update an existing EChart instance with new configuration (option)
 // The newOption is expected to be a complete ECharts option object provided by the backend.
 function updateChart(chartInstance, newOption, chartId) {
-    console.log(chartInstance)
     // Add better date formatting to the x-axis
     if (newOption && newOption.xAxis && newOption.xAxis.axisLabel) {
         newOption.xAxis.axisLabel.formatter = function(value) {
@@ -76,7 +75,6 @@ function handleWebSocketMessage(event) {
         
         // Update the chart with the data
         if (chartInstance && data[graph.id]) {
-            console.log('updateeeng')
             updateChart(chartInstance, data[graph.id], graph.id);
         }
     });
