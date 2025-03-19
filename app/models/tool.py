@@ -151,7 +151,6 @@ class ToolLifeBase(SQLModel):
     reached_life: int
     machine_channel: int
 
-
 class ToolLife(ToolLifeBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     timestamp: dt = Field(default_factory=dt.now, nullable=False)
