@@ -190,7 +190,7 @@ async def get_cpu(
                 avg_tool_life = sum([t.reached_life for t in tool_lifes]) / len(tool_lifes) if len(tool_lifes) > 0 else 0
                 cost_per_unit = float(tool_position.tool.price) / avg_tool_life if avg_tool_life > 0 else 0
             else:
-                cost_per_unit = 999
+                cost_per_unit = 0
             
             # offset = timedelta(days=0)
             # order_completions = db.exec(select(OrderCompletion)
