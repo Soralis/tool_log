@@ -2,14 +2,15 @@ from fastapi import APIRouter, Depends, Request, Query
 from sqlmodel import Session, select, and_, exists, desc
 from sqlalchemy.orm import selectinload
 from typing import Dict
-from datetime import datetime
+from datetime import datetime, timedelta
 from math import ceil
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
 from app.models import (Tool, RecipeTool, Recipe, ToolType, 
                         ToolConsumption, Workpiece, Machine, ChangeOver,
-                        ToolPosition, Line, OrderDelivery)
+                        ToolPosition, Line, OrderDelivery, ToolLife,
+                        OrderCompletion)
 
 
 router = APIRouter(
@@ -166,6 +167,7 @@ async def get_cpu(
                 weeks = ((last_date - first_date).days // 7) + 1
                 weekly = total_quantity / weeks if weeks > 0 else total_quantity
             else:
+                total_quantity = 0
                 weekly = 0
 
             tool_orders = tool_position.tool.tool_orders
@@ -180,6 +182,28 @@ async def get_cpu(
                 longest_delivery_duration = max(delivery_durations, key=lambda item: item[0])
             else:
                 longest_delivery_duration = (14, 0)
+
+            tool_lifes = [tl for tl in tool_position.tool_lifes if tl.timestamp.date() >= start_date and tl.timestamp.date() <= end_date]
+            percent_consumptions_recorded = round(100 * len(tool_lifes) / total_quantity) if total_quantity else 0
+
+            if tool_lifes:
+                avg_tool_life = sum([t.reached_life for t in tool_lifes]) / len(tool_lifes) if len(tool_lifes) > 0 else 0
+                cost_per_unit = float(tool_position.tool.price) / avg_tool_life if avg_tool_life > 0 else 0
+            else:
+                cost_per_unit = 999
+            
+            # offset = timedelta(days=0)
+            # order_completions = db.exec(select(OrderCompletion)
+            #      .where(OrderCompletion.workpiece_id == recipe.workpiece_id)
+            #      .where(OrderCompletion.date >= start_date + offset)
+            #      .where(OrderCompletion.date <= end_date + offset)
+            #      ).all()
+            # if order_completions:
+            #     total_value = sum([oc.value for oc in order_completions])
+            # else:
+            #     total_value = 0
+
+            # cost_per_unit = total_value / total_quantity if total_quantity > 0 else 0
             
             tool_dict = {
                 'tool_id': tool_position.tool_id,
@@ -194,7 +218,9 @@ async def get_cpu(
                 'inventory': tool_position.tool.inventory if tool_position.tool.inventory else 0,
                 'order_lead_time': longest_delivery_duration[0],
                 'longest_order_size': longest_delivery_duration[1],
-                'last_price': round(tool_position.tool.price, 2),
+                # 'last_price': round(tool_position.tool.price, 2),
+                'cost_per_unit': round(cost_per_unit, 2),
+                'percent_consumptions_recorded': percent_consumptions_recorded,
             }
             tp.append(tool_dict)
     return return_data
