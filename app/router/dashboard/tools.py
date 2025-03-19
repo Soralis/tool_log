@@ -184,7 +184,7 @@ async def get_cpu(
                 longest_delivery_duration = (14, 0)
 
             tool_lifes = [tl for tl in tool_position.tool_lifes if tl.timestamp.date() >= start_date and tl.timestamp.date() <= end_date]
-            percent_consumptions_recorded = round(100 * len(tool_lifes) / total_quantity) if total_quantity else 0
+            percent_consumptions_recorded = round(100 * len(tool_lifes) / total_quantity) if total_quantity else 100
 
             if tool_lifes:
                 avg_tool_life = sum([t.reached_life for t in tool_lifes]) / len(tool_lifes) if len(tool_lifes) > 0 else 0
