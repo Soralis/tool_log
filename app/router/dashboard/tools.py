@@ -131,8 +131,13 @@ async def get_cpu(
     db_recipes = db.exec(statement).all()
 
     return_data = {}
+    operations_total = {}
     for recipe in db_recipes:
+        tool_positions_total = {}
         for tool_position in recipe.tool_positions:
+            if tool_position.name not in tool_positions_total:
+                tool_positions_total[tool_position.name] = {}
+
             line = recipe.machine.line
             if line.name not in return_data:
                 return_data[line.name] = {
@@ -152,8 +157,8 @@ async def get_cpu(
                     'tool_positions': {}
                 }
             if tool_position.name not in return_data[line.name]['products'][product.name]['operations'][machine.name]['tool_positions']:
-                return_data[line.name]['products'][product.name]['operations'][machine.name]['tool_positions'][tool_position.name] = []
-            tp = return_data[line.name]['products'][product.name]['operations'][machine.name]['tool_positions'][tool_position.name]
+                return_data[line.name]['products'][product.name]['operations'][machine.name]['tool_positions'][tool_position.name] = {'tools': []}
+            tp = return_data[line.name]['products'][product.name]['operations'][machine.name]['tool_positions'][tool_position.name]['tools']
 
             consumptions = db.exec(select(ToolConsumption)
                  .where(ToolConsumption.tool_id == tool_position.tool.id)
@@ -169,6 +174,8 @@ async def get_cpu(
             else:
                 total_quantity = 0
                 weekly = 0
+            tool_positions_total[tool_position.name][tool_position.tool.name] = {}
+            tool_positions_total[tool_position.name][tool_position.tool.name]["total_quantity"] = total_quantity
 
             tool_orders = tool_position.tool.tool_orders
             order_deliveries = db.exec(select(OrderDelivery)
@@ -188,9 +195,11 @@ async def get_cpu(
 
             if tool_lifes:
                 avg_tool_life = sum([t.reached_life for t in tool_lifes]) / len(tool_lifes) if len(tool_lifes) > 0 else 0
-                cost_per_unit = float(tool_position.tool.price) / avg_tool_life if avg_tool_life > 0 else 0
+                cost_per_piece = float(tool_position.tool.price) / avg_tool_life if avg_tool_life > 0 else 0
             else:
-                cost_per_unit = 0
+                cost_per_piece = 0
+            
+            tool_positions_total[tool_position.name][tool_position.tool.name]["cost_per_piece"] = cost_per_piece
             
             # offset = timedelta(days=0)
             # order_completions = db.exec(select(OrderCompletion)
@@ -203,7 +212,7 @@ async def get_cpu(
             # else:
             #     total_value = 0
 
-            # cost_per_unit = total_value / total_quantity if total_quantity > 0 else 0
+            # cost_per_piece = total_value / total_quantity if total_quantity > 0 else 0
             
             tool_dict = {
                 'tool_id': tool_position.tool_id,
@@ -219,8 +228,26 @@ async def get_cpu(
                 'order_lead_time': longest_delivery_duration[0],
                 'longest_order_size': longest_delivery_duration[1],
                 # 'last_price': round(tool_position.tool.price, 2),
-                'cost_per_unit': round(cost_per_unit, 2),
+                'cost_per_piece': round(cost_per_piece, 2),
                 'percent_consumptions_recorded': percent_consumptions_recorded,
             }
             tp.append(tool_dict)
+        
+        for position in tool_positions_total:
+            total_quantity = sum([p['total_quantity'] for p in tool_positions_total[position].values()])
+            cumulated_cost_per_piece = sum([p['total_quantity'] * p['cost_per_piece'] for p in tool_positions_total[position].values()])
+            return_data[line.name]['products'][product.name]['operations'][machine.name]['tool_positions'][position]['cost_per_piece'] = round(cumulated_cost_per_piece / total_quantity, 2) if total_quantity > 0 else 0
+
+    for line in return_data.values():
+        for product in line["products"].values():
+            product_cpp = 0
+            for machine in product["operations"].values():
+                machine_cpp = 0
+                for tool_position in machine['tool_positions'].values():
+                    machine_cpp += tool_position['cost_per_piece']
+                machine['cost_per_piece'] = round(machine_cpp, 2)
+                product_cpp += machine_cpp
+            product['cost_per_piece'] = round(product_cpp, 2)
+    
+    print('Got called')
     return return_data

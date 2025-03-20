@@ -188,7 +188,7 @@
               const tdProduct = document.createElement('td');
               tdProduct.className = "px-4 py-2 border-b border-gray-700";
               tdProduct.rowSpan = productRowCount;
-              tdProduct.textContent = product;
+              tdProduct.innerHTML = `${product}<br>$ ${row.product_cpp}`;
               tr.appendChild(tdProduct);
               firstProductRow = false;
             }
@@ -196,7 +196,7 @@
               const tdOperation = document.createElement('td');
               tdOperation.className = "px-4 py-2 border-b border-gray-700";
               tdOperation.rowSpan = operationRowCount;
-              tdOperation.textContent = operation;
+              tdOperation.innerHTML = `${operation}<br>$ ${row.operation_cpp}`;
               tr.appendChild(tdOperation);
               firstOperationRow = false;
             }
@@ -204,7 +204,7 @@
               const tdPosition = document.createElement('td');
               tdPosition.className = "px-4 py-2 border-b border-gray-700";
               tdPosition.rowSpan = rowsForPosition.length;
-              tdPosition.textContent = row.position;
+              tdPosition.innerHTML = `${row.position}<br>$ ${row.position_cpp}`;
               tr.appendChild(tdPosition);
               firstPositionRow = false;
             }
@@ -217,7 +217,7 @@
               <td class="px-4 py-2 border-b border-gray-700 ${row.inventory_weeks <= 1.5 * row.order_lead_time ? row.inventory_weeks <= row.order_lead_time ? 'text-red-500' : 'text-orange-500' : ''}">${row.inventory} (${row.inventory_weeks} Weeks)</td>
               <td class="px-4 py-2 border-b border-gray-700${row.stop_order ? ' text-red-500' : ''}">${row.stop_order ? 'ORDER STOP' : `${row.order_lead_time} Weeks (${row.order_size} units)`}</td>
               {# <td class="px-4 py-2 border-b border-gray-700">${row.last_price}</td> #}
-              <td class="px-4 py-2 border-b border-gray-700">$${row.cost_per_unit} (${row.percent_consumptions_recorded}%)</td>
+              <td class="px-4 py-2 border-b border-gray-700">$${row.cost_per_piece} (${row.percent_consumptions_recorded}%)</td>
             `;
             tbody.appendChild(tr);
           });
@@ -245,7 +245,7 @@
             row.order_lead_time,
             {# row.last_price, #}
             row.percent_consumptions_recorded,
-            row.cost_per_unit,
+            row.cost_per_piece,
           ];
           const cellText = cellValues[index] ? cellValues[index].toString().toLowerCase() : '';
           if(!cellText.includes(filterValue.toLowerCase())){ include = false; }
@@ -299,10 +299,13 @@
               rows = rows.concat(processProduct(subProd, productData.products[subProd]));
             }
           } else if(productData.operations){
+            const product_cpp = productData.cost_per_piece
             for(const opKey in productData.operations){
               const operation = productData.operations[opKey];
+              const operation_cpp = operation.cost_per_piece
               for(const pos in operation.tool_positions){
-                const toolsArray = operation.tool_positions[pos];
+                const pos_cpp = operation.tool_positions[pos].cost_per_piece
+                const toolsArray = operation.tool_positions[pos].tools;
                 toolsArray.forEach(tool => {
                   let inventory_weeks = (
                     tool.inventory !== undefined 
@@ -314,8 +317,11 @@
                   rows.push({
                     inventory_weeks: inventory_weeks,
                     product: productName,
+                    product_cpp: product_cpp,
                     operation: opKey,
+                    operation_cpp: operation_cpp,
                     position: pos,
+                    position_cpp: pos_cpp, 
                     name: tool.tool_name || '',
                     type: tool.type || '',
                     number: tool.number || '',
@@ -325,7 +331,7 @@
                     order_lead_time: tool.order_lead_time || '',
                     order_size: tool.longest_order_size || 0,
                     {# last_price: tool.last_price || '', #}
-                    cost_per_unit: tool.cost_per_unit || '-',
+                    cost_per_piece: tool.cost_per_piece || '-',
                     percent_consumptions_recorded: tool.percent_consumptions_recorded || 0,
                     selected: tool.selected,
                     stop_order: tool.stop_order || false,
