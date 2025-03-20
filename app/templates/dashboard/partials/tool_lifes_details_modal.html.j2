@@ -28,6 +28,11 @@
         </div>
     </div>
 </div>
+<div class="hidden">
+    <h1>We need to include all classes we might just build for the tailwind css JIT to include it in the style.css</h1>
+    <div class="col-span-1 col-span-2 col-span-3 col-span-4 col-span-5 col-span-6 col-span-7 col-span-8 col-span-9 col-span-10 col-span-11 col-span-12">
+    </div>
+</div>
 
 <script>
 // Store active charts
@@ -96,6 +101,7 @@ document.addEventListener('DOMContentLoaded', initModal);
 function createCard(card) {
     const cardElement = document.createElement('div');
     cardElement.id = card.id;
+    console.log(`col-span-${card.width} row-span-${card.height}`)
     cardElement.className = `col-span-${card.width} row-span-${card.height} bg-gray-800 rounded-lg p-4`;
     
     // Add card title
@@ -107,14 +113,14 @@ function createCard(card) {
     // Add card content based on type
     const contentElement = document.createElement('div');
     if (card.type === 'graph') {
-        // Setup card container to fully utilize grid space
+         // Setup card container to fully utilize grid space
         cardElement.style.display = 'flex';
         cardElement.style.flexDirection = 'column';
         cardElement.style.height = '100%';
         // Allow the graph container to expand and fill remaining space
         contentElement.style.flex = '1';
-        contentElement.style.width = '100%';
-        contentElement.style.height = '100%';
+        {# contentElement.style.width = '100%';
+        contentElement.style.height = '100%'; #}
         // Append content element to card container
         cardElement.appendChild(contentElement);
         
