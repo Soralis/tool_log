@@ -287,8 +287,8 @@ async def get_tool_details(
     details['cards'].append(tc.stat_card("Tool Statistics", [
         ["Average Life", avg_life],
         ["Target Life", target_life],
-        ["CPU", f"${round(tool.price / avg_life, 2)}"],
-        ["Target CPU", f"${round(tool.price / target_life, 2)}"]
+        ["CPU", f"${round(tool.price / tool.max_uses / avg_life, 2)}"],
+        ["Target CPU", f"${round(tool.price / tool.max_uses / target_life, 2)}"]
     ]))  
 
     ### Basic Tool Details
@@ -310,8 +310,8 @@ async def get_tool_details(
         details['cards'].append(tc.stat_card("Tool Statistics", [
             ["Average Life", stats['avg_life']],
             ["Target Life", stats['expected_life']],
-            ["CPU", f"${round(tool.price / stats['avg_life'], 2)}"],
-            ["Target CPU", f"${round(tool.price / stats['expected_life'], 2)}"],
+            ["CPU", f"${round(tool.price / tool.max_uses / stats['avg_life'], 2)}"],
+            ["Target CPU", f"${round(tool.price / tool.max_uses / stats['expected_life'], 2)}"],
             ["Best 3 Operators", best_operators_text],
             ["Worst 3 Operators", worst_operators_text]
         ])) 
