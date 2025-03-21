@@ -195,7 +195,7 @@ async def get_cpu(
 
             if tool_lifes:
                 avg_tool_life = sum([t.reached_life for t in tool_lifes]) / len(tool_lifes) if len(tool_lifes) > 0 else 0
-                cost_per_piece = (float(tool_position.tool.price) / tool_position.tool.max_uses) / avg_tool_life if avg_tool_life > 0 else 0
+                cost_per_piece = (tool_position.tool_count * float(tool_position.tool.price) / tool_position.tool.max_uses) / avg_tool_life if avg_tool_life > 0 else 0
             else:
                 cost_per_piece = 0
             
