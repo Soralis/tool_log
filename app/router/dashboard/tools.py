@@ -249,5 +249,4 @@ async def get_cpu(
                 product_cpp += machine_cpp
             product['cost_per_piece'] = round(product_cpp, 2)
     
-    print('Got called')
     return return_data

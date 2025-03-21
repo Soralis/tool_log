@@ -138,7 +138,6 @@ async def send_tool_data(websocket: WebSocket, db: Session):
     last_filter_update = websocket_filters[websocket].get("last_filter_update")
 
     await asyncio.sleep(1)  # Wait for any additional filters to be sent
-    print(last_filter_update==websocket_filters[websocket].get("last_filter_update"), last_filter_update, websocket_filters[websocket].get("last_filter_update"))
     if last_filter_update != websocket_filters[websocket].get("last_filter_update"):
         # Filters have been updated, skip this update
         return
@@ -259,7 +258,7 @@ async def get_tool_details(
             for t_life in ordered_tool_life_records[machine][channel]:
                 t_life: ToolLife
                 lifes.append(t_life.reached_life)
-                operators_life[t_life.creator.name].append(t_life.reached_life)
+                operators_life[t_life.user.name].append(t_life.reached_life)
 
             general_series.append(series)
 
@@ -274,7 +273,6 @@ async def get_tool_details(
                         'avg_life': avg_life,
                         'log_count': log_count})
         ranking.sort(key=lambda x: x['avg_life'], reverse=True)
-        print(ranking)
         stats['ranking'] = ranking
         stats['avg_life'] = round(sum(lifes) / len(lifes)) if len(lifes) > 0 else 0
 
@@ -560,9 +558,7 @@ async def periodic_data_sender(websocket: WebSocket, db: Session):
 @router.websocket("/ws/toolLifes")
 async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_session)):
     global websocket_filters
-    print('got socket request')
     await websocket.accept()
-    print('accepted it')
 
     websocket_filters[websocket] = {
         'latest_start_date': datetime.strptime("2020-01-01", "%Y-%m-%d"),

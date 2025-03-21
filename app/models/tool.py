@@ -65,8 +65,8 @@ class ToolRead(SQLModel):
     name: str
     inventory: int
     stop_order: bool
-    manufacturer: 'Manufacturer'
-    tool_type: 'ToolType'
+    manufacturer__name: str
+    tool_type__name: str
     active: bool
 
 
@@ -118,8 +118,22 @@ class ToolOrderUpdate(ToolOrderCreate):
     batch_number: Optional[str] = Field(default=None)
 
 
-class ToolOrderRead(ToolOrderUpdate):
-    pass
+class ToolOrderRead(SQLModel):
+    id: int
+    tool__name: str
+    quantity: int
+    gross_price: Decimal
+    order_date: dt
+
+    # Define default ordering attributes within the model
+    _order_by: str = "order_date"
+    _descending: bool = True
+
+
+class ToolOrderFilter(SQLModel):
+    fulfilled: bool
+    tool_id: int
+
 
 class OrderDeliveryBase(SQLModel):
     order_id: int = Field(foreign_key='toolorder.id', ondelete='CASCADE')
@@ -158,16 +172,16 @@ class ToolLife(ToolLifeBase, table=True):
     additional_measurements: Dict = Field(default_factory=dict, sa_column=Column(JSON))
 
     # tool_order_id: Optional[int] = Field(foreign_key='toolorder.id')
-    created_by: Optional[int] = Field(foreign_key='user.id', ondelete='SET NULL')
+    user_id: Optional[int] = Field(foreign_key='user.id', ondelete='SET NULL')
     machine_id: Optional[int] = Field(foreign_key='machine.id', ondelete='SET NULL')
     tool_id: int = Field(foreign_key='tool.id', ondelete='CASCADE')
     recipe_id: Optional[int] = Field(foreign_key='recipe.id', ondelete='SET NULL')
     change_reason_id: Optional[int] = Field(foreign_key='changereason.id', ondelete='SET NULL')
     tool_position_id: Optional[int] = Field(foreign_key='toolposition.id', ondelete='SET NULL')
 
-    creator: 'User' = Relationship(back_populates='tool_lifes')
+    user: 'User' = Relationship(back_populates='tool_lifes')
     machine: 'Machine' = Relationship(back_populates='tool_lifes')
-    tool: Tool = Relationship(back_populates='tool_lifes')
+    tool: 'Tool' = Relationship(back_populates='tool_lifes')
     recipe: 'Recipe' = Relationship(back_populates='tool_lifes')
     # tool_order: ToolOrder = Relationship(back_populates='tool_lifes')
     change_reason: 'ChangeReason' = Relationship(back_populates='tool_lifes')
@@ -178,22 +192,28 @@ class ToolLife(ToolLifeBase, table=True):
 class ToolLifeCreate(ToolLifeBase):
     notes: List['Note'] = []
 
-
 class ToolLifeUpdate(ToolLifeCreate):
     id: int
-
+    tool_position_id: int
 
 class ToolLifeRead(SQLModel):
     id: int
-    name: str
-    tool: Tool
+    tool__name: str
+    reached_life: int
+    tool_position__name: str
+    recipe__name: str
+    timestamp: dt
+
+    # Define default ordering attributes within the model
+    _order_by: str = "timestamp"
+    _descending: bool = True
+
 
 class ToolLifeFilter(SQLModel):
-    machine: 'Machine'
-    tool: 'Tool'
-    tool_type: 'ToolType'
+    machine_id: int
+    tool_id: int
     timestamp: dt
-    creator: 'User'
+    user_id: int
 
 class NoteBase(SQLModel):
     note: str

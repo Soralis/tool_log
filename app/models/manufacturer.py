@@ -28,3 +28,7 @@ class ManufacturerUpdate(ManufacturerCreate):
 class ManufacturerRead(SQLModel):
     id: int
     name: str
+
+class ManufacturerFilter(SQLModel):
+    name: str
+    active: bool

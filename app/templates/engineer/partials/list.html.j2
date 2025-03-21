@@ -1,17 +1,18 @@
 <ul class="touch-friendly-list" id="itemList">
-    {% for item in items|sort(attribute='name') %}
+    {% for item in items %}
         <li id="{{ item_type }}-{{ item.id }}" class="list-item{% if not item.active %} inactive{% endif %}"
                         hx-get="/engineer/{{ item_type.lower() }}s/{{ item.id }}/info"
                         hx-target="#infoContainer"
                         hx-trigger="click"
                         onclick="openModal('info')">
             <div class="item-content">
-                <strong>{{ item.name }}</strong>
-                {% for field in read_model.__fields__ %}
-                    {% if field not in ['id', 'active', 'name'] %}
-                        <span class="item-detail">{{ item|getattr_filter(field) }},</span>
-                    {% endif %}
-                {% endfor %}
+                <span class="item-detail">
+                    {% for field in item %}
+                        {% if field != 'id' and field != 'active' %}
+                                {{ item[field] }} - 
+                        {% endif %}
+                    {% endfor %}
+                </span>
             </div>
             <div class="item-actions">
                 <button class="action-button delete-button overlay-button"
@@ -27,3 +28,10 @@
         </li>
     {% endfor %}
 </ul>
+{% if has_more %}
+<div 
+    hx-get="/engineer/{{ item_type.lower() }}s/list?offset={{ next_offset }}&limit={{ limit }}" 
+    hx-trigger="revealed" 
+    hx-swap="afterend">
+</div>
+{% endif %}

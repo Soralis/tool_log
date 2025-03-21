@@ -52,6 +52,13 @@ class RecipeRead(SQLModel):
     active: bool
 
 
+class RecipeFilter(SQLModel):
+    name: str
+    machine_id: int
+    workpiece_id: int
+    active: bool
+
+
 class ToolPosition(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True, nullable=False)
@@ -87,8 +94,11 @@ class ToolPositionRead(SQLModel):
     id: int
     name: str
     selected: bool
-    recipe: Recipe
-    tool: 'Tool'
-    machine: 'Machine'
+    # recipe: Recipe
+    # tool: 'Tool'
+    # machine: 'Machine'
+    recipe__name: str
+    tool__name: str
+    machine__name: str
     tool_settings: Dict
     tool_count: int

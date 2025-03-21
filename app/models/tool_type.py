@@ -36,6 +36,7 @@ class ToolTypeUpdate(ToolTypeCreate):
 
 class ToolTypeRead(ToolTypeBase):
     id: int
+    active: bool
 
 
 class ToolAttributeBase(SQLModel):
@@ -122,4 +123,13 @@ class ChangeReasonUpdate(ChangeReasonCreate):
 
 class ChangeReasonRead(ChangeReasonBase):
     id: int
+    tool_type__name: str
+
+
+class ChangeReasonFilter(SQLModel):
+    name: str
+    active: bool
+    tool_type_id: int = None
+    sentiment: Sentiment = None
+
 

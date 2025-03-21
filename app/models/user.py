@@ -44,7 +44,7 @@ class User(UserBase, table=True):
     token: Optional[str] = Field(default=None, max_length=255)
     token_expiry: Optional[datetime] = Field(default=None)
 
-    tool_lifes: List['ToolLife'] = Relationship(back_populates='creator', cascade_delete=False)
+    tool_lifes: List['ToolLife'] = Relationship(back_populates='user', cascade_delete=False)
     performed_change_overs: List['ChangeOver'] = Relationship(back_populates='user', cascade_delete=False)
     tool_orders: List['ToolOrder'] = Relationship(back_populates='user', cascade_delete=False)
     notes: List['Note'] = Relationship(back_populates='user', cascade_delete=False)
@@ -71,6 +71,11 @@ class UserRead(SQLModel):
     active: bool
 
 
+class UserFilter(SQLModel):
+    role: UserRole
+    active: bool
+
+
 class Shift(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(unique=True)
@@ -91,6 +96,9 @@ class ShiftUpdate(ShiftCreate):
 
 class ShiftRead(ShiftUpdate):
     pass
+
+# Define default ordering attributes within the model
+    _order_by: str = 'number'
 
 class ShiftFilter(ShiftRead):
     pass

@@ -35,9 +35,7 @@ def field_types(thing):
     return type_mapping.get(thing, "text")  # Default to "text" if the type is not found
 
 def getattr_filter(obj, attr):
-    print(obj, attr)
     result = getattr(obj, attr,'')
-    print(result)
     if not isinstance(result, str):
         result = getattr(result, 'name','')
     return result

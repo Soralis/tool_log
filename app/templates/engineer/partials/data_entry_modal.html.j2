@@ -98,9 +98,6 @@
                                     </div>
                                     <input type="hidden" name="{{ field_name }}[]" value="{{ child['id'] }}">
                                     <div class="btn-group">
-                                        {# <button type="button"
-                                            class="btn-list-action btn-edit"
-                                            onclick="openReferredModelModal('{{ field_name }}', '{{ field_name.capitalize()|replace('_id', ' ')|replace('_', ' ') }}', '{{ 'createModal' if not item else 'infoModal' }}', {{ child|get_fked }})">✎</button> #}
                                         <button type="button" class="btn-list-action btn-remove" onclick="removeListField(this)">🗑</button>
                                     </div>
                                 </div>

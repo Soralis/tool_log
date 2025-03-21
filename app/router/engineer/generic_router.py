@@ -3,7 +3,7 @@ from datetime import datetime, time
 from fastapi import APIRouter, Request, HTTPException, status, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import ValidationError
-from sqlmodel import Session, select, inspect, SQLModel, func, inspect as sql_inspect
+from sqlmodel import Session, select, inspect, SQLModel, func
 from sqlalchemy import Integer, String, Boolean, Float, DateTime
 from sqlalchemy.orm import joinedload, RelationshipProperty
 from sqlalchemy.sql import sqltypes
@@ -13,13 +13,14 @@ from app.templates.jinja_functions import templates
 from app.models import Manufacturer, ManufacturerCreate, ManufacturerRead
 from app.models import Measureable,MeasureableCreate, MeasureableRead
 from app.models import Machine, MachineCreate, MachineRead
-from app.models import Line, LineCreate, LineUpdate, LineRead
+from app.models import Line, LineCreate, LineRead
 from app.models import Workpiece, WorkpieceCreate, WorkpieceRead
 from app.models import User, UserCreate, UserRead
 from app.models import Shift, ShiftCreate, ShiftRead
 from app.models import Tool, ToolCreate, ToolRead, ToolAttribute, ToolAttributeCreate, ToolAttributeRead
-from app.models import ToolAttributeValue, ToolAttributeValueCreate, ToolAttributeValueUpdate, ToolAttributeValueRead
+from app.models import ToolAttributeValue, ToolAttributeValueCreate, ToolAttributeValueRead
 from app.models import ToolLife, ToolLifeCreate, ToolLifeRead
+from app.models import ToolPosition, ToolPositionCreate, ToolPositionRead
 from app.models import Note, NoteCreate, NoteRead
 from app.models import ToolType, ToolTypeCreate, ToolTypeRead
 from app.models import ToolSetting, ToolSettingCreate, ToolSettingRead
@@ -43,6 +44,7 @@ model_mapping = {
     'toolattributevalue': {"model": ToolAttributeValue, "create": ToolAttributeValueCreate, "read": ToolAttributeValueRead},
     'toolsetting': {"model": ToolSetting, "create": ToolSettingCreate, "read": ToolSettingRead},
     'tooltype': {"model": ToolType, "create": ToolTypeCreate, "read": ToolTypeRead},
+    'toolposition': {"model": ToolPosition, "create": ToolPositionCreate, "read": ToolPositionRead},
     'recipe': {"model": Recipe, "create": RecipeCreate, "read": RecipeRead},
     'shift': {"model": Shift, "create": ShiftCreate, "read": ShiftRead},
     'workpiece': {"model": Workpiece, "create": WorkpieceCreate, "read": WorkpieceRead},
@@ -53,6 +55,7 @@ def create_generic_router(
     read_model: Type[SQLModel],
     create_model: Type[SQLModel],
     update_model: Type[SQLModel],
+    filter_model: Type[SQLModel],
     item_type: str,
     extra_context: Dict[str, Any] = None,
     fixed_field_callback: Optional[Callable[[], List[Dict[str, Any]]]] = None
@@ -111,7 +114,7 @@ def create_generic_router(
                             # Get the model info and read model
                             related_model_info = model_mapping.get(related_model_name.lower())
                             if related_model_info:
-                                related_read_model = related_model_info['read']
+                                related_read_model = related_model_info['model'] # read
                                 relations[field_name[:-3]] = [
                                     {field: getattr(item, field) for field in related_read_model.model_fields.keys()}
                                     for item in related_items
@@ -158,7 +161,7 @@ def create_generic_router(
     @router.get("/filter")
     async def get_filter(request: Request):
         with Session(engine) as session:
-            filter_options = get_filter_options(model, session)  # You'll need to implement this function
+            filter_options = get_filter_options(filter_model, session)
         return templates.TemplateResponse(
             request=request,
             name="engineer/partials/filter.html.j2",
@@ -183,6 +186,9 @@ def create_generic_router(
         
         filters = request.query_params
         statement = select(model).options(*get_joinedload_options(model, read_model))
+        offset = int(request.query_params.get("offset", 0))
+        limit = int(request.query_params.get("limit", 10))
+        statement = statement.offset(offset).limit(limit)
 
         # Apply filters to the statement
         def get_column_type(model, key):
@@ -193,7 +199,7 @@ def create_generic_router(
                 String: str,
                 Boolean: bool,
                 Float: float,
-                DateTime: lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
+                DateTime: lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S.%f').date()
             }
             
             for sql_type, python_type in type_mapping.items():
@@ -204,45 +210,99 @@ def create_generic_router(
             return str
         
         for key, value in filters.items():
-            if value and key != 'with_filter':
+            if value and key not in ['with_filter', 'offset', 'limit']:
                 statement = statement.where(
                     getattr(model, key).in_(
                         [get_column_type(model, key)(x) for x in value.split(',')]
                     )
                 ).options(*get_joinedload_options(model, read_model))
         with Session(engine) as session:
-            items = session.exec(statement).unique().all()
+            try:
+                order_field = read_model._order_by.default
+            except AttributeError:
+                order_field = "name"
+            try:
+                descending = read_model._descending.default
+            except AttributeError:
+                descending = False
+            ordering = getattr(model, order_field)
+            if descending:
+                ordering = ordering.desc()
+            else:
+                ordering = ordering.asc()
+            items = session.exec(statement.order_by(ordering).limit(limit).offset(offset)).unique().all()
+            has_more = len(items) == limit
 
-        # Trim the full items according to the read_model
-        # items = [
-        #     {field: getattr(item, field) for field in read_model.__fields__ if field != 'id'}
-        #     for item in items
-        # ]
+        # Trim the full items according to the read_model,
+        # extracting nested attributes from related models using the '__' separator.
+            def trim_item(item, fields):
+                trimmed = {}
+                for field in fields:
+                    if field.startswith('_'):
+                        continue # ignore these fields
+                    # If field uses '__', traverse the related objects.
+                    if "__" in field:
+                        parts = field.split("__")
+                        value = item
+                        # Recursively drill down each part. For example, for 'tool__name',
+                        # get the 'tool' relationship, then its 'name' attribute.
+                        for part in parts:
+                            value = getattr(value, part, None)
+                            if value is None:
+                                break
+                        trimmed[field] = value
+                    else:
+                        trimmed[field] = getattr(item, field, None)
+                return trimmed
+
+            items = [trim_item(item, read_model.__fields__) for item in items]
 
         # For full page load, return the complete template
         return templates.TemplateResponse(
             request=request,
             name="engineer/partials/list.html.j2",
-            context={"items": items, 'item_type': item_type, 'read_model': read_model}
+            context={
+                "items": items,
+                "item_type": item_type,
+                "has_more": has_more,
+                "next_offset": offset + limit,
+                "limit": limit,
+                "offset": offset
+            }
         )
 
-    def get_filter_options(model, session):
+    def get_filter_options(filter_model, session):
         filter_options = {}
-        columns = inspect(model).columns
-
-        for column in columns:
-            if column.name != 'id':  # Exclude id from filters
-                if isinstance(column.type, (sqltypes.String, sqltypes.Integer, sqltypes.Enum, sqltypes.JSON, sqltypes.DateTime, AutoString)):
-                    # Query unique values for this column
-                    unique_values = session.query(func.distinct(getattr(model, column.name))).all()
-                    # Flatten the result and convert to strings
-                    unique_values = [str(value[0]) for value in unique_values if value[0] is not None]
-                    filter_options[column.name] = sorted(unique_values)
-                elif isinstance(column.type, sqltypes.Boolean):
-                    filter_options[column.name] = [True, False]
-                else:
-                    print(f"Unhandled column type for {column.name}: {type(column.type)}")
-        
+        # Iterate over the field names defined in the filter_model (a pydantic-style model)
+        for field_name in filter_model.model_fields.keys():
+            try:
+                # Get the corresponding column from the primary SQLModel 'model'
+                column = inspect(model).columns[field_name]
+            except Exception as e:
+                print(f"Could not find column {field_name} in model. Relationship references are not allowed: {e}")
+                continue
+            if field_name.endswith('_id'):
+                relation_name = field_name[:-3]
+                related_model_info = model_mapping.get(relation_name.lower())
+                if related_model_info:
+                    related_model = related_model_info['model']
+                    distinct_ids = session.query(func.distinct(getattr(model, field_name))).all()
+                    id_list = [value[0] for value in distinct_ids if value[0] is not None]
+                    if id_list:
+                        related_items = session.query(related_model).filter(related_model.id.in_(id_list)).all()
+                        filter_options[field_name] = sorted(
+                            [{"id": getattr(item, "id"), "name": getattr(item, "name", None)} for item in related_items],
+                            key=lambda x: str(x["name"]) if x["name"] is not None else ""
+                        )
+                continue
+            elif isinstance(column.type, (sqltypes.String, sqltypes.Integer, sqltypes.Enum, sqltypes.JSON, sqltypes.DateTime, AutoString)):
+                unique_values = session.query(func.distinct(getattr(model, field_name))).all()
+                unique_values = [str(value[0]) for value in unique_values if value[0] is not None]
+                filter_options[field_name] = sorted(unique_values)
+            elif isinstance(column.type, sqltypes.Boolean):
+                filter_options[field_name] = [True, False]
+            else:
+                print(f"Unhandled column type for {field_name}: {type(column.type)}")
         return filter_options
 
     @router.get("/{item_id}/info", response_class=HTMLResponse)

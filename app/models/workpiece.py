@@ -39,6 +39,12 @@ class WorkpieceRead(SQLModel):
     id: int
     name: str
     active: bool
+    line__name: str
+
+class WorkpieceFilter(SQLModel):
+    name: str = None
+    active: bool = None
+    line_id: int
 
 
 class OrderCompletionBase(SQLModel):

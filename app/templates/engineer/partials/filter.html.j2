@@ -2,14 +2,18 @@
     <form id="filterForm" hx-get="/engineer/{{ item_type.lower() }}s/list" hx-target="#{{ item_type }}-list" hx-trigger="change">
         {% for field, options in filter_options.items() %}
             <div class="filter-field">
-                <label for="{{ field }}">{{ field|capitalize }}:</label>
+                <label for="{{ field }}">{{ field.replace('_id', '')|capitalize }}:</label>
                 {% if options|length == 2 and True in options and False in options %}
                     <input type="checkbox" id="{{ field }}" name="{{ field }}" value="true">
                 {% else %}
                     <select id="{{ field }}" name="{{ field }}">
                        <option value="">All</option> <!-- Add an "All" option -->
                         {% for option in options %}
-                            <option value="{{ option }}">{{ option }}</option>
+                            {% if option.id is defined and option.name is defined %}
+                                <option value="{{ option.id }}">{{ option.name }}</option>
+                            {% else %}
+                                <option value="{{ option }}">{{ option }}</option>
+                            {% endif %}
                         {% endfor %}
                     </select>
                 {% endif %}

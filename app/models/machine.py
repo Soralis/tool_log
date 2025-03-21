@@ -79,8 +79,16 @@ class MachineRead(SQLModel):
     id: int
     name: str
     active: bool
-    current_recipe: 'Recipe'
-    line: 'LineRead'
+    cost_center: str
+    current_recipe__name: str
+    line__name: str
+
+
+class MachineFilter(SQLModel):
+    name: str
+    active: bool
+    line_id: int
+
 
 
 class LineBase(SQLModel):

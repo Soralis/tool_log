@@ -33,5 +33,15 @@ class ChangeOverUpdate(ChangeOverBase):
 
 class ChangeOverRead(SQLModel):
     id: int
-    recipe: 'Recipe'
-    machine: 'Machine'
+    recipe__name: str
+    machine__name: str
+    timestamps: datetime
+
+    # Define default ordering attributes within the model
+    _order_by: str = "timestamps"
+    _descending: bool = True
+
+class ChangeOverFilter(SQLModel):
+    machine_id: int = None
+    recipe_id: int = None
+    performed_by: int = None

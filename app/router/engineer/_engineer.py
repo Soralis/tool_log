@@ -1,22 +1,20 @@
 from fastapi import APIRouter, Request
 from app.templates.jinja_functions import templates
 from app.models import User, UserCreate, UserUpdate, UserRead, UserRole, PaymentType
-from app.models import Shift, ShiftCreate, ShiftUpdate, ShiftRead
-from app.models import Machine, MachineCreate, MachineUpdate, MachineRead
-from app.models import Line, LineCreate, LineUpdate, LineRead
-from app.models import Manufacturer, ManufacturerCreate, ManufacturerUpdate, ManufacturerRead
+from app.models import Shift, ShiftCreate, ShiftUpdate, ShiftRead, ShiftFilter
+from app.models import Machine, MachineCreate, MachineUpdate, MachineRead, MachineFilter
+from app.models import Line, LineCreate, LineUpdate, LineRead, LineFilter
+from app.models import Manufacturer, ManufacturerCreate, ManufacturerUpdate, ManufacturerRead, ManufacturerFilter
 from app.models import Tool, ToolCreate, ToolUpdate, ToolRead
 from app.models import ToolAttribute, ToolAttributeCreate, ToolAttributeUpdate, ToolAttributeRead
-# from app.models import ToolSettings, ToolSettingsCreate, ToolSettingsUpdate
-from app.models import ToolOrder, ToolOrderCreate, ToolOrderUpdate, ToolOrderRead
-# from app.models import Recipe, RecipeCreate, RecipeUpdate
+from app.models import ToolOrder, ToolOrderCreate, ToolOrderUpdate, ToolOrderRead, ToolOrderFilter
 from app.models import Measureable, MeasureableCreate, MeasureableUpdate, MeasureableRead
-from app.models import ToolLife, ToolLifeCreate, ToolLifeUpdate, ToolLifeRead
+from app.models import ToolLife, ToolLifeCreate, ToolLifeUpdate, ToolLifeRead, ToolLifeFilter
 from app.models import Note, NoteCreate, NoteUpdate, NoteRead
 from app.models import ToolType, ToolTypeCreate, ToolTypeUpdate, ToolTypeRead, Sentiment
-from app.models import ChangeReason, ChangeReasonCreate, ChangeReasonUpdate, ChangeReasonRead
-from app.models import ChangeOver, ChangeOverCreate, ChangeOverUpdate, ChangeOverRead
-from app.models import Workpiece, WorkpieceCreate, WorkpieceUpdate, WorkpieceRead
+from app.models import ChangeReason, ChangeReasonCreate, ChangeReasonUpdate, ChangeReasonRead, ChangeReasonFilter
+from app.models import ChangeOver, ChangeOverCreate, ChangeOverUpdate, ChangeOverRead, ChangeOverFilter
+from app.models import Workpiece, WorkpieceCreate, WorkpieceUpdate, WorkpieceRead, WorkpieceFilter
 from .generic_router import create_generic_router
 from .recipes import router as recipes_router
 from sqlmodel import Session
@@ -77,26 +75,24 @@ router = APIRouter()
 generic_extra_context = {"tool_type_id": 1}  # Placeholder; adjust as needed.
 
 # Create generic routers
-users_router = create_generic_router(User, UserRead, UserCreate, UserUpdate, "User", {"enum_fields": {"role": UserRole, "payment_type": PaymentType}})
-shift_router = create_generic_router(Shift, ShiftRead, ShiftCreate, ShiftUpdate, "Shift")
-machines_router = create_generic_router(Machine, MachineRead, MachineCreate, MachineUpdate, "Machine")
-lines_router = create_generic_router(Line, LineRead, LineCreate, LineUpdate, "Line")
-manufacturers_router = create_generic_router(Manufacturer, ManufacturerRead, ManufacturerCreate, ManufacturerUpdate, "Manufacturer")
+users_router = create_generic_router(User, UserRead, UserCreate, UserUpdate, UserRead, "User", {"enum_fields": {"role": UserRole, "payment_type": PaymentType}})
+shift_router = create_generic_router(Shift, ShiftRead, ShiftCreate, ShiftUpdate, ShiftFilter, "Shift")
+machines_router = create_generic_router(Machine, MachineRead, MachineCreate, MachineUpdate, MachineFilter, "Machine")
+lines_router = create_generic_router(Line, LineRead, LineCreate, LineUpdate, LineFilter, "Line")
+manufacturers_router = create_generic_router(Manufacturer, ManufacturerRead, ManufacturerCreate, ManufacturerUpdate, ManufacturerFilter, "Manufacturer")
 tool_fixed_mapping = {
     "tool_attributes": {"tool_type_id": (ToolType, "tool_attributes")}
 }
-tools_router = create_generic_router(Tool, ToolRead, ToolCreate, ToolUpdate, "Tool", fixed_field_callback=fixed_field_callback(tool_fixed_mapping, Tool))
-tool_attributes_router = create_generic_router(ToolAttribute, ToolAttributeRead, ToolAttributeCreate, ToolAttributeUpdate, "Tool_Attribute")
-# tool_settings_router = create_generic_router(ToolSettings, ToolSettingsCreate, ToolSettingsUpdate, "Tool_Settings")
-tool_type_router = create_generic_router(ToolType, ToolTypeRead, ToolTypeCreate, ToolTypeUpdate, "Tool_Type", {"enum_fields": {"sentiment": Sentiment}})
-tool_life_router = create_generic_router(ToolLife, ToolLifeRead, ToolLifeCreate, ToolLifeUpdate, "Tool_Life", {"enum_fields": {"sentiment": Sentiment}})
-note_router = create_generic_router(Note, NoteRead, NoteCreate, NoteUpdate, "Note")
-measureable_router = create_generic_router(Measureable, MeasureableRead, MeasureableCreate, MeasureableUpdate, "Measureable")
-change_reason_router = create_generic_router(ChangeReason, ChangeReasonRead, ChangeReasonCreate, ChangeReasonUpdate, "Change_Reason", {"enum_fields": {"sentiment": Sentiment}})
-tool_orders_router = create_generic_router(ToolOrder, ToolOrderRead, ToolOrderCreate, ToolOrderUpdate, "Tool_Order")
-# recipe_router = create_generic_router(Recipe, RecipeCreate, RecipeUpdate, "Recipe")
-change_over_router = create_generic_router(ChangeOver, ChangeOverRead, ChangeOverCreate, ChangeOverUpdate, "Change_Over")
-workpiece_router = create_generic_router(Workpiece, WorkpieceRead, WorkpieceCreate, WorkpieceUpdate, "Workpiece")
+tools_router = create_generic_router(Tool, ToolRead, ToolCreate, ToolUpdate, ToolRead, "Tool", fixed_field_callback=fixed_field_callback(tool_fixed_mapping, Tool))
+tool_attributes_router = create_generic_router(ToolAttribute, ToolAttributeRead, ToolAttributeCreate, ToolAttributeUpdate, ToolAttributeRead, "Tool_Attribute")
+tool_type_router = create_generic_router(ToolType, ToolTypeRead, ToolTypeCreate, ToolTypeUpdate, ToolTypeRead, "Tool_Type", {"enum_fields": {"sentiment": Sentiment}})
+tool_life_router = create_generic_router(ToolLife, ToolLifeRead, ToolLifeCreate, ToolLifeUpdate, ToolLifeFilter, "Tool_Life", {"enum_fields": {"sentiment": Sentiment}})
+note_router = create_generic_router(Note, NoteRead, NoteCreate, NoteUpdate, NoteRead, "Note")
+measureable_router = create_generic_router(Measureable, MeasureableRead, MeasureableCreate, MeasureableUpdate, MeasureableRead, "Measureable")
+change_reason_router = create_generic_router(ChangeReason, ChangeReasonRead, ChangeReasonCreate, ChangeReasonUpdate, ChangeReasonFilter, "Change_Reason", {"enum_fields": {"sentiment": Sentiment}})
+tool_orders_router = create_generic_router(ToolOrder, ToolOrderRead, ToolOrderCreate, ToolOrderUpdate, ToolOrderFilter, "Tool_Order")
+change_over_router = create_generic_router(ChangeOver, ChangeOverRead, ChangeOverCreate, ChangeOverUpdate, ChangeOverFilter, "Change_Over")
+workpiece_router = create_generic_router(Workpiece, WorkpieceRead, WorkpieceCreate, WorkpieceUpdate, WorkpieceFilter, "Workpiece")
 
 # Include the generic routers
 router.include_router(users_router, prefix="/users", tags=["users"])
@@ -106,10 +102,8 @@ router.include_router(lines_router, prefix="/lines", tags=["lines"])
 router.include_router(manufacturers_router, prefix="/manufacturers", tags=["manufacturers"])
 router.include_router(tools_router, prefix="/tools", tags=["tools"])
 router.include_router(tool_attributes_router, prefix="/tool_attributes", tags=["tool_attributes"])
-# router.include_router(tool_settings_router, prefix="/tool_settings", tags=["tool_settings"])
 router.include_router(change_reason_router, prefix="/change_reasons", tags=["change_reasons"])
 router.include_router(tool_orders_router, prefix="/tool_orders", tags=["tool_orders"])
-# router.include_router(recipe_router, prefix="/recipes", tags=["recipes"])
 router.include_router(tool_life_router, prefix="/tool_lifes", tags=["tool_lifes"])
 router.include_router(note_router, prefix="/notes", tags=["notes"])
 router.include_router(tool_type_router, prefix="/tool_types", tags=["tool_types"])
