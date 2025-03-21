@@ -6,7 +6,7 @@ from app.templates.jinja_functions import templates
 from datetime import datetime
 from sqlmodel import Session, select
 from app.database_config import get_session
-from app.models import Tool, ToolLife, Recipe, Machine
+from app.models import Tool, ToolLife, Recipe, Machine, ToolPosition
 from typing import Dict, List, Optional
 from .utils import get_condensed_data
 from . import tool_lifes_cards as tc
@@ -253,9 +253,12 @@ async def get_tool_details(
                 "areaStyle": { "color": machine_colors[machine][1] },
             }
 
-            stats['expected_life'] = ordered_tool_life_records[machine][channel][0].tool_position.expected_life if ordered_tool_life_records[machine][channel] else 1
+            tool_position: ToolPosition = next((record.tool_position for record in ordered_tool_life_records[machine][channel] if record.tool_position), [] )
 
-            for t_life in ordered_tool_life_records[machine][channel]:
+            stats['expected_life'] = tool_position.expected_life if tool_position else 1
+            stats['tools_per_life'] = tool_position.tool_count if tool_position else 1
+
+            for t_life in tool_position.tool_lifes:
                 t_life: ToolLife
                 lifes.append(t_life.reached_life)
                 operators_life[t_life.user.name].append(t_life.reached_life)
@@ -282,13 +285,10 @@ async def get_tool_details(
 
     ### Tool statistics overall
     avg_life = round(sum(tool_lifes) / len(tool_lifes))
-    target_life = 1000
 
     details['cards'].append(tc.stat_card("Tool Statistics", [
         ["Average Life", avg_life],
-        ["Target Life", target_life],
         ["CPU", f"${round(tool.price / tool.max_uses / avg_life, 2)}"],
-        ["Target CPU", f"${round(tool.price / tool.max_uses / target_life, 2)}"]
     ]))  
 
     ### Basic Tool Details
@@ -310,8 +310,9 @@ async def get_tool_details(
         details['cards'].append(tc.stat_card("Tool Statistics", [
             ["Average Life", stats['avg_life']],
             ["Target Life", stats['expected_life']],
-            ["CPU", f"${round(tool.price / tool.max_uses / stats['avg_life'], 2)}"],
-            ["Target CPU", f"${round(tool.price / tool.max_uses / stats['expected_life'], 2)}"],
+            ["Tools per Record", stats['tools_per_life']],
+            ["CPU", f"${round(stats['tools_per_life'] * tool.price / tool.max_uses / stats['avg_life'], 2)}"],
+            ["Target CPU", f"${round(stats['tools_per_life'] * tool.price / tool.max_uses / stats['expected_life'], 2)}"],
             ["Best 3 Operators", best_operators_text],
             ["Worst 3 Operators", worst_operators_text]
         ])) 
