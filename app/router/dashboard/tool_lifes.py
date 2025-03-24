@@ -261,7 +261,8 @@ async def get_tool_details(
             for t_life in tool_position.tool_lifes:
                 t_life: ToolLife
                 lifes.append(t_life.reached_life)
-                operators_life[t_life.user.name].append(t_life.reached_life)
+                if t_life.user:
+                    operators_life[t_life.user.name].append(t_life.reached_life)
 
             general_series.append(series)
 
