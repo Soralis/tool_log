@@ -3,7 +3,9 @@ from fastapi import APIRouter, Request, Depends, Response, status
 from fastapi.responses import HTMLResponse
 from fastapi.exceptions import HTTPException
 from app.templates.jinja_functions import templates
-from sqlmodel import Session, select
+from sqlmodel import Session, select, SQLModel
+from sqlalchemy.orm import joinedload, RelationshipProperty
+from typing import List
 from app.models import Recipe, RecipeRead, ToolPosition
 from app.models import Workpiece
 from app.models import Machine
@@ -30,19 +32,48 @@ async def get_item_list(request: Request,
                         ):
     filters = request.query_params
     statement = select(Recipe)
+    offset = int(request.query_params.get("offset", 0))
+    limit = int(request.query_params.get("limit", 10))
+    statement = statement.order_by(Recipe.name.asc()).offset(offset).limit(limit)
 
     # Apply filters to the statement
     for key, value in filters.items():
-        if value and key != 'with_filter':
+        if value and key not in ['with_filter', 'offset', 'limit']:
             statement = statement.where(getattr(Recipe, key).in_(value.split(',')))
 
     items = session.exec(statement).fetchall()
+    has_more = len(items) == limit
 
+    # Dynamically trim items based on RecipeRead model fields
+    fields = list(RecipeRead.__fields__.keys())
+    def trim_item(item, fields):
+        trimmed = {}
+        for field in fields:
+            if "__" in field:
+                parts = field.split("__")
+                value = item
+                for part in parts:
+                    value = getattr(value, part, None)
+                    if value is None:
+                        break
+                trimmed[field] = value
+            else:
+                trimmed[field] = getattr(item, field, None)
+        return trimmed
+    items = [trim_item(item, fields) for item in items]
+    
     # For full page load, return the complete template
     return templates.TemplateResponse(
         request=request,
         name="engineer/partials/list.html.j2",
-        context={"items": items, 'item_type': 'Recipe', 'read_model': RecipeRead}
+        context={
+            "items": items, 
+            'item_type': 'Recipe', 
+            "has_more": has_more,
+            "next_offset": offset + limit,
+            "limit": limit,
+            "offset": offset
+        }
     )
 
 @router.get("/workpieces")

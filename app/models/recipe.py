@@ -47,8 +47,8 @@ class RecipeUpdate(RecipeCreate):
 class RecipeRead(SQLModel):
     id: int
     name: str
-    machine: 'Machine'
-    workpiece: 'Workpiece'
+    machine__name: str
+    workpiece__name: str
     active: bool
 
 
