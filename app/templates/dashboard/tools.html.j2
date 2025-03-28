@@ -258,6 +258,7 @@
 
   // Original populateToolsData() CPU branch now always groups (with merging) the results.
   function populateToolsData(target, data){
+    console.log(data)
     switch(target) {
       case 'unique_tools':
         const flatBody = document.getElementById('flat-tools-body');
