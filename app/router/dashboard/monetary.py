@@ -8,7 +8,7 @@ import locale
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
-from app.models import Workpiece, Machine, ToolConsumption, Tool
+from app.models import Workpiece, Machine, ToolConsumption, Tool, OrderCompletion
 
 locale.setlocale( locale.LC_ALL, '' )
 
@@ -173,3 +173,45 @@ async def get_spend_summary_sankey(request: Request,
     option['series']['links'] = nodes
     
     return option
+
+
+@router.post("/api/spend_summary_OC")
+async def get_spend_summary_from_ordercompletions(request: Request,
+                            db: Session = Depends(get_session),
+                            selected_products: List[str] = Body(),
+                            selected_operations: List[str] = Body(),
+                            start_date: str = Body(None),
+                            end_date: str = Body(None),
+                            option: dict = Body()):
+    """Get spend summary data based on filters"""
+    start_date = datetime.fromisoformat(start_date) if start_date else None
+    end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else None
+
+    selected_products = [int(x) for x in selected_products]
+    selected_products.append(None)
+    selected_operations = [int(x) for x in selected_operations]
+    selected_operations.append(None)
+
+    query = select(Workpiece.name, Machine.name, Tool.name, ToolConsumption.value)
+    query = query.join(Machine, Machine.name.in_(selected_operations))
+    query = query.join(Workpiece, Workpiece.name.in_(selected_products))
+    query = query.join(Tool, Tool.id == ToolConsumption.tool_id)
+    query = query.where(ToolConsumption.value != 0)
+    if start_date:
+        query = query.where(ToolConsumption.datetime >= start_date)
+    if end_date:
+        query = query.where(ToolConsumption.datetime <= end_date)
+
+
+    tool_consumption = db.exec(query).all()
+
+    query = select(OrderCompletion.workpiece_id, OrderCompletion.quantity)
+    query = query.where(OrderCompletion.workpiece_id.in_(selected_products))
+    if start_date:
+        query = query.where(OrderCompletion.date >= start_date)
+    if end_date:
+        query = query.where(OrderCompletion.date <= end_date)
+
+    order_completions = db.exec(query).all()
+
+    x=3
