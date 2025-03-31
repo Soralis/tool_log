@@ -1,13 +1,16 @@
-from fastapi import APIRouter, Request, Depends, Query, Body
+from fastapi import APIRouter, Request, Depends, Body
 # from collections import defaultdict
 # from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 from typing import List
 from datetime import datetime
+import locale
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
 from app.models import Workpiece, Machine, ToolConsumption, Tool
+
+locale.setlocale( locale.LC_ALL, '' )
 
 router = APIRouter(
     prefix="/monetary",
@@ -88,6 +91,15 @@ async def get_spend_summary(request: Request,
         if isinstance(coords[2], int) and coords[2] > max:
             max = coords[2]
     option['visualMap']['max'] = max
+
+    total_spend = sum(float(item[3]) for item in db_data)
+    option['title'] = {
+        'text': f"Total Spend: {locale.currency( round(total_spend, 2), grouping=True )}",
+        'textStyle': {
+            'color': 'white'
+        }
+    }
+
     return option
 
 @router.post("/api/spend_summary_sankey")
@@ -149,9 +161,15 @@ async def get_spend_summary_sankey(request: Request,
             if value_sum != 0:
                 nodes.append({'source': workpiece, 'target': operation, 'value': int(value_sum)})
     # sort edges by name
-    edges.sort(key=lambda x: x['name'])
+    total_spend = sum(float(item[3]) for item in db_data)
+    option['title'] = {
+        'text': f"Total Spend: {locale.currency( round(total_spend, 2), grouping=True )}",
+        'textStyle': {
+            'color': 'white'
+        }
+    }
+    # edges.sort(key=lambda x: x['name'])
     option['series']['data'] = edges
     option['series']['links'] = nodes
     
     return option
-

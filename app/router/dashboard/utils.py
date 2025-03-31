@@ -43,7 +43,7 @@ def condense_data_points(records: List[Any], timestamp_attr: str = 'timestamp', 
     
     return condensed_records
 
-def get_condensed_data(records: List[Any], max_points: int = 100, timestamp_attr: str = 'timestamp', value_attr: str = 'reached_life') -> List[Tuple[datetime, float]]:
+def get_condensed_data(records: List[Any], max_points: int = 1000, timestamp_attr: str = 'timestamp', value_attr: str = 'reached_life') -> List[Tuple[datetime, float]]:
     """
     Get condensed data points, automatically choosing the appropriate time window
     to keep the number of points under max_points.

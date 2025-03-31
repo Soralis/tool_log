@@ -14,8 +14,14 @@ def graph_card(title, series, xAxis=[{"type": "time"}], yAxis=[{"type": "value"}
         "title": title,
         "width": width,
         "height": height,
-        "type": "graph",
+        "type": 'graph',
         "options": {
+            'legend': {
+                'selectedMode': True,
+                'textStyle': {
+                    'color': '#fff'
+                },
+            },
             "xAxis": xAxis,
             "yAxis": yAxis,
             "series": series,
