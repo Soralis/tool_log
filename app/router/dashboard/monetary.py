@@ -208,14 +208,6 @@ async def get_spend_summary_from_ordercompletions(request: Request,
             op_value = round((sum([workpiece['backflush'] * workpiece['tool_quantity_in_position'] for workpiece in operation.values()])/ total_hits) * float(tool['value']), 2)
             nodes.append({'source': operation_name, 'target': tool_name, 'value': op_value})
 
-    total_spend = sum(float(item[3]) for item in tool_consumption)
-    option['title'] = {
-        'text': f"Total Spend: {locale.currency( round(total_spend, 2), grouping=True )}",
-        'textStyle': {
-            'color': 'white'
-        }
-    }
-
     #combine duplicate nodes
     combined_nodes = []
     combinations = {}
@@ -229,5 +221,13 @@ async def get_spend_summary_from_ordercompletions(request: Request,
 
     option['series']['data'] = edges
     option['series']['links'] = combined_nodes
+
+    total_spend = sum(float(item[3]) for item in tool_consumption)
+    option['title'] = {
+        'text': f"Total Spend: {locale.currency( round(total_spend, 2), grouping=True )}",
+        'textStyle': {
+            'color': 'white'
+        }
+    }
     
     return option
