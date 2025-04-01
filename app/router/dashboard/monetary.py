@@ -213,7 +213,7 @@ async def get_spend_summary_from_ordercompletions(request: Request,
     combinations = {}
     for node in nodes:
         if (node['source'], node['target']) in combinations:
-            combined_nodes[combinations[node['source'], node['target']]]['value'] += round(node['value'], 2)
+            combined_nodes[combinations[node['source'], node['target']]]['value'] = round(combined_nodes[combinations[node['source'], node['target']]]['value'] + node['value'], 2)
         else:
             combined_nodes.append(node)
             combinations[node['source'], node['target']] = len(combined_nodes) - 1
