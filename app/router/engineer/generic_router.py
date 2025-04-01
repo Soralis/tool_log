@@ -97,7 +97,7 @@ def create_generic_router(
                                 # Get the read model for this relation
                                 related_read_model = related_model_info['read']
                                 relations[field_name] = [
-                                    {"id": item.id, **{field: getattr(item, field) for field in related_read_model.model_fields.keys()}}
+                                    {"id": item.id, **{field: getattr(item, field) for field in related_read_model.model_fields.keys() if '__' not in field} }
                                     for item in related_items
                                 ]
                                 children[field_name]['instances'] = relations[field_name]
