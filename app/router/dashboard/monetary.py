@@ -215,8 +215,19 @@ async def get_spend_summary_from_ordercompletions(request: Request,
             'color': 'white'
         }
     }
-    # edges.sort(key=lambda x: x['name'])
+
+    #combine duplicate nodes
+    combined_nodes = []
+    combinations = {}
+    for node in nodes:
+        if (node['source'], node['target']) in combinations:
+            kl = combinations[node['source'], node['target']]
+            combined_nodes[combinations[node['source'], node['target']]]['value'] += node['value']
+        else:
+            combined_nodes.append(node)
+            combinations[node['source'], node['target']] = len(combined_nodes) - 1
+
     option['series']['data'] = edges
-    option['series']['links'] = nodes
+    option['series']['links'] = combined_nodes
     
     return option
