@@ -8,7 +8,7 @@ import locale
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
-from app.models import Workpiece, Machine, ToolConsumption, Tool, OrderCompletion
+from app.models import Workpiece, Machine, ToolConsumption, Tool, OrderCompletion, ToolPosition, Recipe
 
 locale.setlocale( locale.LC_ALL, '' )
 
@@ -102,80 +102,8 @@ async def get_spend_summary(request: Request,
 
     return option
 
+
 @router.post("/api/spend_summary_sankey")
-async def get_spend_summary_sankey(request: Request,
-                            db: Session = Depends(get_session),
-                            selected_products: List[str] = Body(),
-                            selected_operations: List[str] = Body(),
-                            start_date: str = Body(None),
-                            end_date: str = Body(None),
-                            option: dict = Body()):
-    """Get spend summary data based on filters"""
-    start_date = datetime.fromisoformat(start_date) if start_date else None
-    end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else None
-
-    selected_products = [int(x) for x in selected_products]
-    selected_products.append(None)
-    selected_operations = [int(x) for x in selected_operations]
-    selected_operations.append(None)
-
-    query = select(Workpiece.name, Machine.name, Tool.name, ToolConsumption.value)
-    query = query.join(Machine, Machine.id == ToolConsumption.machine_id)
-    query = query.join(Workpiece, Workpiece.id == ToolConsumption.workpiece_id)
-    query = query.join(Tool, Tool.id == ToolConsumption.tool_id)
-    query = query.where(ToolConsumption.workpiece_id.in_(selected_products))
-    query = query.where(ToolConsumption.machine_id.in_(selected_operations))
-    query = query.where(ToolConsumption.value != 0)
-    if start_date:
-        query = query.where(ToolConsumption.datetime >= start_date)
-    if end_date:
-        query = query.where(ToolConsumption.datetime <= end_date)
-
-    db_data = db.exec(query).all()
-
-    # Group data
-    workpieces = set([item[0] for item in db_data])
-    machines = set([item[1] for item in db_data])
-    tools = set([item[2] for item in db_data])
-    edges = []
-    for workpiece in workpieces:
-        edges.append({'name': workpiece})
-    for machine in machines:
-        edges.append({'name': machine})
-    for tool in tools:
-        edges.append({'name': tool})
-    tools.add('total')
-
-    spend_summary = {workpiece: {machine: {tool: 0 for tool in tools} for machine in machines} for workpiece in workpieces}
-    for item in db_data:
-        spend_summary[item[0]][item[1]][item[2]] += float(item[3])
-
-    nodes = []
-    for workpiece in spend_summary:
-        for operation in spend_summary[workpiece]:
-            value_sum = 0
-            for tool in spend_summary[workpiece][operation]:
-                if spend_summary[workpiece][operation][tool] != 0:
-                    nodes.append({'source': operation, 'target': tool, 'value': int(spend_summary[workpiece][operation][tool])})
-                    value_sum += spend_summary[workpiece][operation][tool]
-            if value_sum != 0:
-                nodes.append({'source': workpiece, 'target': operation, 'value': int(value_sum)})
-    # sort edges by name
-    total_spend = sum(float(item[3]) for item in db_data)
-    option['title'] = {
-        'text': f"Total Spend: {locale.currency( round(total_spend, 2), grouping=True )}",
-        'textStyle': {
-            'color': 'white'
-        }
-    }
-    # edges.sort(key=lambda x: x['name'])
-    option['series']['data'] = edges
-    option['series']['links'] = nodes
-    
-    return option
-
-
-@router.post("/api/spend_summary_OC")
 async def get_spend_summary_from_ordercompletions(request: Request,
                             db: Session = Depends(get_session),
                             selected_products: List[str] = Body(),
@@ -192,11 +120,14 @@ async def get_spend_summary_from_ordercompletions(request: Request,
     selected_operations = [int(x) for x in selected_operations]
     selected_operations.append(None)
 
-    query = select(Workpiece.name, Machine.name, Tool.name, ToolConsumption.value)
-    query = query.join(Machine, Machine.name.in_(selected_operations))
-    query = query.join(Workpiece, Workpiece.name.in_(selected_products))
+    ### FETCH Tool Consumption
+    query = select(Workpiece.name, Machine.name, Tool.name, ToolConsumption.value, ToolConsumption.quantity).select_from(ToolConsumption)
+    query = query.join(Machine, Machine.id == ToolConsumption.machine_id)
+    query = query.join(Workpiece, Workpiece.id == ToolConsumption.workpiece_id)
     query = query.join(Tool, Tool.id == ToolConsumption.tool_id)
     query = query.where(ToolConsumption.value != 0)
+    query = query.where(ToolConsumption.workpiece_id.in_(selected_products))
+    query = query.where(ToolConsumption.machine_id.in_(selected_operations))
     if start_date:
         query = query.where(ToolConsumption.datetime >= start_date)
     if end_date:
@@ -205,7 +136,32 @@ async def get_spend_summary_from_ordercompletions(request: Request,
 
     tool_consumption = db.exec(query).all()
 
-    query = select(OrderCompletion.workpiece_id, OrderCompletion.quantity)
+    workpieces = set([item[0] for item in tool_consumption])
+    machines = set([item[1] for item in tool_consumption])
+    tools = set([item[2] for item in tool_consumption])
+    edges = []
+    for workpiece in workpieces:
+        edges.append({'name': workpiece})
+    for machine in machines:
+        edges.append({'name': machine})
+    for tool in tools:
+        edges.append({'name': tool})
+    tools.add('total')
+
+    spend_summary = {}
+    for tool in tool_consumption:
+        if tool[2] not in spend_summary:
+            spend_summary[tool[2]] = {'quantity': 0,
+                                      'value': 0,
+                                      'hits': {}
+                                      }
+        spend_summary[tool[2]]['quantity'] += tool[4]
+        spend_summary[tool[2]]['value'] += tool[3]
+    
+
+    ### FETCH ORDER COMPLETIONS
+    query = select(Workpiece.name, OrderCompletion.quantity)
+    query = query.join(Workpiece, Workpiece.id == OrderCompletion.workpiece_id)
     query = query.where(OrderCompletion.workpiece_id.in_(selected_products))
     if start_date:
         query = query.where(OrderCompletion.date >= start_date)
@@ -213,5 +169,54 @@ async def get_spend_summary_from_ordercompletions(request: Request,
         query = query.where(OrderCompletion.date <= end_date)
 
     order_completions = db.exec(query).all()
+    workpiece_summary = {}
+    for completion in order_completions:
+        if completion[0] not in workpiece_summary:
+            workpiece_summary[completion[0]] = 0
+        workpiece_summary[completion[0]] += completion[1]
 
-    x=3
+    ### FETCH TOOL POSITIONS
+    query = select(Tool.name, ToolPosition.tool_count, Machine.name, Workpiece.name).select_from(ToolPosition)
+    query = query.join(Tool, Tool.id == ToolPosition.tool_id)
+    query = query.join(Recipe, Recipe.id == ToolPosition.recipe_id)
+    query = query.join(Machine, Machine.id == Recipe.machine_id)
+    query = query.join(Workpiece, Workpiece.id == Recipe.workpiece_id)
+    query = query.where(Recipe.machine_id.in_(selected_operations))
+    query = query.where(Recipe.workpiece_id.in_(selected_products))
+
+    tool_positions = db.exec(query).all()
+
+    for position in tool_positions:
+        if position[0] not in spend_summary:
+            print(f"{position[0]} is missing")
+            continue
+        if position[2] not in spend_summary[position[0]]['hits']:
+            spend_summary[position[0]]['hits'][position[2]] = {}
+        if position[3] not in spend_summary[position[0]]['hits'][position[2]]:
+            spend_summary[position[0]]['hits'][position[2]][position[3]] = {'avg_tool_life': 0,
+                                                                            'backflush': workpiece_summary[position[3]],
+                                                                            'tool_quantity_in_position': position[1]
+                                                                            }
+        
+    nodes = []
+    for tool_name, tool in spend_summary.items():
+        total_hits = sum([sum([workpiece['backflush'] * workpiece['tool_quantity_in_position'] for workpiece in op.values()]) for op in tool['hits'].values()])
+        for operation_name, operation in tool['hits'].items():
+            for workpiece_name, workpiece in operation.items():
+                value = round((workpiece['backflush'] * workpiece['tool_quantity_in_position'] / total_hits) * float(tool['value']), 2)
+                nodes.append({'source': workpiece_name, 'target': operation_name, 'value': value})
+            op_value = round((sum([workpiece['backflush'] * workpiece['tool_quantity_in_position'] for workpiece in operation.values()])/ total_hits) * float(tool['value']), 2)
+            nodes.append({'source': operation_name, 'target': tool_name, 'value': op_value})
+
+    total_spend = sum(float(item[3]) for item in tool_consumption)
+    option['title'] = {
+        'text': f"Total Spend: {locale.currency( round(total_spend, 2), grouping=True )}",
+        'textStyle': {
+            'color': 'white'
+        }
+    }
+    # edges.sort(key=lambda x: x['name'])
+    option['series']['data'] = edges
+    option['series']['links'] = nodes
+    
+    return option
