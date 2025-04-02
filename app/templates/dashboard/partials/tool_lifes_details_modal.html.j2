@@ -101,7 +101,6 @@ document.addEventListener('DOMContentLoaded', initModal);
 function createCard(card) {
     const cardElement = document.createElement('div');
     cardElement.id = card.id;
-    console.log(`col-span-${card.width} row-span-${card.height}`)
     cardElement.className = `col-span-${card.width} row-span-${card.height} bg-gray-800 rounded-lg p-4`;
     
     // Add card title
@@ -228,7 +227,6 @@ window.openToolModal = async function(toolId, dateRange) {
 };
 
 function closeToolModal() {
-    console.log('Closing modal...');
     const modal = document.getElementById('toolDetailsModal');
     if (modal) {
         modal.classList.add('hidden');

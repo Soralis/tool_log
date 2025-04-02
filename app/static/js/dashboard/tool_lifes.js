@@ -1,3 +1,5 @@
+import { connectWebSocket } from '/static/js/dashboard/websocket.js';
+
 // Global object to store ECharts instances
 window.echartsInstances = {};
 
@@ -56,8 +58,7 @@ function updateChart(chartInstance, newOption, chartId) {
 }
 
 // Function to handle incoming WebSocket messages and update charts accordingly
-function handleWebSocketMessage(event) {
-    const response = JSON.parse(event.data);
+function handleWebSocketMessage(response) {
     const { graphs, data } = response;
     
     // First, make sure all chart containers exist in the DOM
@@ -80,6 +81,21 @@ function handleWebSocketMessage(event) {
     });
 
     setupGraphCardClickHandlers()
+}
+
+function onWebsocketOpen(websocket) {
+    const startDate = localStorage.getItem('startDate');
+    const endDate = localStorage.getItem('endDate');
+    const selectedOperations = localStorage.getItem('selectedOperations');
+    const selectedProducts = localStorage.getItem('selectedProducts');
+    if (startDate || endDate || selectedOperations || selectedProducts) {
+        websocket.send(JSON.stringify({
+            startDate: startDate,
+            endDate: endDate,
+            selectedOperations: JSON.parse(selectedOperations || '[]'),
+            selectedProducts: JSON.parse(selectedProducts || '[]')
+        }));
+    }
 }
 
 // Function to create chart containers if they don't already exist
@@ -133,45 +149,6 @@ function createChartContainers(graphs) {
     newCards.forEach(card => {
         graphCardsContainer.appendChild(card);
     });
-}
-
-// WebSocket connection and management
-function connectWebSocket() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/toolLifes`);
-    
-    ws.onopen = function() {
-        statusDiv.classList.add('hidden');
-        // Optionally, send initial state if needed
-        if (ws.readyState === WebSocket.OPEN) {
-            const startDate = localStorage.getItem('startDate');
-            const endDate = localStorage.getItem('endDate');
-            const selectedOperations = localStorage.getItem('selectedOperations');
-            const selectedProducts = localStorage.getItem('selectedProducts');
-            if (startDate || endDate || selectedOperations || selectedProducts) {
-                ws.send(JSON.stringify({
-                    startDate: startDate,
-                    endDate: endDate,
-                    selectedOperations: JSON.parse(selectedOperations || '[]'),
-                    selectedProducts: JSON.parse(selectedProducts || '[]')
-                }));
-            }
-        }
-    };
-    
-    ws.onmessage = handleWebSocketMessage;
-    
-    ws.onclose = function() {
-        statusDiv.textContent = 'Reconnecting...';
-        statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500/100';
-        // Reconnect after 5 seconds
-        setTimeout(connectWebSocket, 5000);
-    };
-    
-    ws.onerror = function() {
-        statusDiv.textContent = 'Connection Error';
-        statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-red-500/100';
-    };
 }
 
 // Handle filter changes from any source
@@ -231,7 +208,7 @@ export function initializeComponents() {
     document.addEventListener('dateRangeChanged', handleFilterChange);
 
     // Start WebSocket connection
-    connectWebSocket();
+    ws = connectWebSocket('toolLifes', handleWebSocketMessage, onWebsocketOpen);
 }
 
 // Cleanup function to close WebSocket connection on page unload

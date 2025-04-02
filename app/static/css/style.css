@@ -1119,9 +1119,6 @@
   .bg-red-100 {
     background-color: var(--color-red-100);
   }
-  .bg-red-500\/100 {
-    background-color: color-mix(in oklab, var(--color-red-500) 100%, transparent);
-  }
   .bg-red-900 {
     background-color: var(--color-red-900);
   }
@@ -1757,11 +1754,6 @@
       line-height: var(--tw-leading, var(--text-sm--line-height));
     }
   }
-  .md\:col-span-3 {
-    @media (width >= 48rem) {
-      grid-column: span 3 / span 3;
-    }
-  }
   .md\:w-3\/5 {
     @media (width >= 48rem) {
       width: calc(3/5 * 100%);
@@ -1785,11 +1777,6 @@
   .md\:p-8 {
     @media (width >= 48rem) {
       padding: calc(var(--spacing) * 8);
-    }
-  }
-  .lg\:col-span-6 {
-    @media (width >= 64rem) {
-      grid-column: span 6 / span 6;
     }
   }
   .lg\:w-2\/5 {

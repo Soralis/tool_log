@@ -144,50 +144,6 @@ async def requests(request: Request):
          "server_address": get_ip_address()}
     )
 
-@router.get("/requests/metrics")
-async def get_metrics():
-    db = Session(engine)
-    try:
-        metrics = db.exec(select(ServiceMetrics)).first()
-        if not metrics:
-            metrics = ServiceMetrics()
-            db.add(metrics)
-            db.commit()
-        
-        return {
-            "uptime": (datetime.now() - metrics.start_time).total_seconds(),
-            "total_requests": metrics.total_requests,
-            "total_errors": metrics.total_errors,
-            "error_rate": metrics.total_errors / max(metrics.total_requests, 1),
-            "avg_response_time": float(metrics.avg_response_time)
-        }
-    finally:
-        db.close()
-
-@router.get("/requests/recent-requests")
-async def get_recent_requests():
-    db = Session(engine)
-    try:
-        logs = db.exec(
-            select(RequestLog)
-            .order_by(RequestLog.timestamp.desc())
-            .limit(100)
-        ).all()
-        
-        return [
-            {
-                "method": log.method,
-                "endpoint": log.endpoint,
-                "status_code": log.status_code,
-                "response_time": float(log.response_time),
-                "timestamp": log.timestamp.isoformat()
-            }
-            for log in logs
-        ]
-    finally:
-        db.close()
-
-
 
 ### Hardware Stati
 async def get_device_status(db: Session) -> List[Dict]:
