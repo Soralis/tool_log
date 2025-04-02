@@ -1,8 +1,13 @@
 {% extends "dashboard/base.html.j2" %}
 
 {% block title %}Server Requests{% endblock %}
+{% block subinfo %}<h3>Server Address: {{ server_address }}</h3>{% endblock %}
 
 {% block content %}
+<!-- Connection Status -->
+<div id="connection-status" class="fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500/100">
+    Connecting...
+</div>
 <div class="p-4">
     <div class="max-w-7xl mx-auto">
         <!-- Metrics Cards -->
@@ -24,6 +29,8 @@
                 <p class="text-2xl font-semibold text-gray-100" id="avg-response-time">-</p>
             </div>
         </div>
+
+        {% include 'dashboard/partials/heartbeat_table.html.j2' %}
 
         <!-- Request Log -->
         <div class="bg-gray-800 rounded-lg shadow">
@@ -50,16 +57,21 @@
     </div>
 </div>
 
-<!-- Connection Status -->
-<div id="connection-status" class="fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500/100">
-    Connecting...
-</div>
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script type="module">
+    import { connectWebSocket } from '/static/js/dashboard/websocket.js';
     // Global WebSocket reference
     let ws = null;
+
+    function onmessage(message) {
+        if (message.type === 'metrics') {
+            updateMetrics(message.data);
+        } else if (message.type === 'request') {
+            addRequestLog(message.data);
+        }
+    }
     
     function formatUptime(seconds) {
         const days = Math.floor(seconds / 86400);
@@ -115,47 +127,11 @@
         }
     }
 
-    // WebSocket connection with retry logic
-    function connectWebSocket() {
-        console.log('Connecting to WebSocket...');
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        ws = new WebSocket(`${protocol}//${window.location.host}/dashboard/ws/requests`);
-        const statusDiv = document.getElementById('connection-status');
-        
-        ws.onopen = function() {
-            statusDiv.className = 'hidden';
-        };
-        
-        ws.onmessage = function(event) {
-            const message = JSON.parse(event.data);
-            
-            if (message.type === 'metrics') {
-                updateMetrics(message.data);
-            } else if (message.type === 'request') {
-                addRequestLog(message.data);
-            }
-        };
-
-        ws.onclose = function() {
-            statusDiv.textContent = 'Reconnecting...';
-            statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-yellow-500/100';
-            // Attempt to reconnect after 5 seconds
-            setTimeout(connectWebSocket, 5000);
-        };
-
-        ws.onerror = function() {
-            statusDiv.textContent = 'Connection Error';
-            statusDiv.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-white bg-red-500/100';
-        };
-
-        return ws;
-    }
-
     // Initialize components in the correct order
     function initializeComponents() {
         console.log('Initializing components...');
         // Start WebSocket connection
-        connectWebSocket();
+        ws = connectWebSocket('requests', onmessage);
     }
 
     // Initialize when DOM is ready
