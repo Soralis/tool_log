@@ -250,7 +250,7 @@ async def get_tool_details(
             channel_data = ordered_tool_life_records[machine][channel]
             
             series = {
-                "type": "scatter",
+                "type": "line",
                 "data": [[life.timestamp, life.reached_life] for life in channel_data],
                 # "lineStyle": { "color": machine_colors[machine][0] },
                 # "areaStyle": { "color": machine_colors[machine][1] },
@@ -278,12 +278,13 @@ async def get_tool_details(
             for t_life in tool_position.tool_lifes:
                 t_life: ToolLife
                 lifes.append(t_life.reached_life)
-                if t_life.user:
+                if t_life.user and str(t_life.machine_channel) in channel:
                     operators_life[t_life.user.name].append(t_life.reached_life)
 
             general_series.append(series)
 
             series['name'] = channel
+            series['type'] = "scatter"
             machine_series.append(series)
         
         ranking = []
