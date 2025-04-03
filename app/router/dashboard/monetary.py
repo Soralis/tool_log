@@ -121,42 +121,44 @@ async def get_spend_summary_from_ordercompletions(request: Request,
     selected_operations.append(None)
 
     ### FETCH Tool Consumption
-    query = select(Workpiece.name, Machine.name, Tool.name, ToolConsumption.value, ToolConsumption.quantity).select_from(ToolConsumption)
-    query = query.join(Machine, Machine.id == ToolConsumption.machine_id)
-    query = query.join(Workpiece, Workpiece.id == ToolConsumption.workpiece_id)
-    query = query.join(Tool, Tool.id == ToolConsumption.tool_id)
+    # query = select(Workpiece.name, Machine.name, Tool.name, ToolConsumption.value, ToolConsumption.quantity).select_from(ToolConsumption)
+    # query = query.join(Machine, Machine.id == ToolConsumption.machine_id)
+    # query = query.join(Workpiece, Workpiece.id == ToolConsumption.workpiece_id)
+    # query = query.join(Tool, Tool.id == ToolConsumption.tool_id)
+    query = select(Tool.name, ToolConsumption.value, ToolConsumption.quantity)
     query = query.where(ToolConsumption.value != 0)
-    query = query.where(ToolConsumption.workpiece_id.in_(selected_products))
-    query = query.where(ToolConsumption.machine_id.in_(selected_operations))
+    query = query.join(Tool, Tool.id == ToolConsumption.tool_id)
+    # query = query.where(ToolConsumption.workpiece_id.in_(selected_products))
+    # query = query.where(ToolConsumption.machine_id.in_(selected_operations))
     if start_date:
         query = query.where(ToolConsumption.datetime >= start_date)
     if end_date:
         query = query.where(ToolConsumption.datetime <= end_date)
 
+    db_tool_consumption = db.exec(query).all()
 
-    tool_consumption = db.exec(query).all()
+    db_machines = db.exec(select(Machine.name).where(Machine.id.in_(selected_operations))).all()
+    db_workpieces = db.exec(select(Workpiece.name).where(Workpiece.id.in_(selected_products))).all()
 
-    workpieces = set([item[0] for item in tool_consumption])
-    machines = set([item[1] for item in tool_consumption])
-    tools = set([item[2] for item in tool_consumption])
+    tools = set([item[0] for item in db_tool_consumption])
     edges = []
-    for workpiece in workpieces:
+    for workpiece in db_workpieces:
         edges.append({'name': workpiece})
-    for machine in machines:
+    for machine in db_machines:
         edges.append({'name': machine})
     for tool in tools:
         edges.append({'name': tool})
     tools.add('total')
 
     spend_summary = {}
-    for tool in tool_consumption:
-        if tool[2] not in spend_summary:
-            spend_summary[tool[2]] = {'quantity': 0,
+    for tool in db_tool_consumption:
+        if tool[0] not in spend_summary:
+            spend_summary[tool[0]] = {'quantity': 0,
                                       'value': 0,
                                       'hits': {}
                                       }
-        spend_summary[tool[2]]['quantity'] += tool[4]
-        spend_summary[tool[2]]['value'] += tool[3]
+        spend_summary[tool[0]]['quantity'] += tool[2]
+        spend_summary[tool[0]]['value'] += tool[1]
     
 
     ### FETCH ORDER COMPLETIONS
@@ -194,7 +196,7 @@ async def get_spend_summary_from_ordercompletions(request: Request,
             spend_summary[position[0]]['hits'][position[2]] = {}
         if position[3] not in spend_summary[position[0]]['hits'][position[2]]:
             spend_summary[position[0]]['hits'][position[2]][position[3]] = {'avg_tool_life': 0,
-                                                                            'backflush': workpiece_summary[position[3]],
+                                                                            'backflush': workpiece_summary.get(position[3], 0),
                                                                             'tool_quantity_in_position': position[1]
                                                                             }
         
@@ -203,9 +205,9 @@ async def get_spend_summary_from_ordercompletions(request: Request,
         total_hits = sum([sum([workpiece['backflush'] * workpiece['tool_quantity_in_position'] for workpiece in op.values()]) for op in tool['hits'].values()])
         for operation_name, operation in tool['hits'].items():
             for workpiece_name, workpiece in operation.items():
-                value = round((workpiece['backflush'] * workpiece['tool_quantity_in_position'] / total_hits) * float(tool['value']), 2)
+                value = round((workpiece['backflush'] * workpiece['tool_quantity_in_position'] / total_hits) * float(tool['value']), 2) if total_hits != 0 else 0
                 nodes.append({'source': workpiece_name, 'target': operation_name, 'value': value})
-            op_value = round((sum([workpiece['backflush'] * workpiece['tool_quantity_in_position'] for workpiece in operation.values()])/ total_hits) * float(tool['value']), 2)
+            op_value = round((sum([workpiece['backflush'] * workpiece['tool_quantity_in_position'] for workpiece in operation.values()])/ total_hits) * float(tool['value']), 2) if total_hits != 0 else 0
             nodes.append({'source': operation_name, 'target': tool_name, 'value': op_value})
 
     #combine duplicate nodes
@@ -221,7 +223,7 @@ async def get_spend_summary_from_ordercompletions(request: Request,
     option['series']['data'] = edges
     option['series']['links'] = combined_nodes
 
-    total_spend = sum(float(item[3]) for item in tool_consumption)
+    total_spend = sum(float(item[1]) for item in db_tool_consumption)
     option['title'] = {
         'text': f"Total Spend: {locale.currency( round(total_spend, 2), grouping=True )}",
         'textStyle': {

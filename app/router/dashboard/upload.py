@@ -200,12 +200,12 @@ async def upload_tool_consumption(
                     machine = machines[cost_center]
                     machine_id = machine.id
 
-                tool = tools.get(row['CPN'].upper())
+                tool = tools.get(row['CustPartNumber'].upper())
                 if tool is None:
                     new_tool = Tool(
-                        number=row['CPN'].upper(),
+                        number=row['CustPartNumber'].upper(),
                         manufacturer_name=row['Description'],
-                        name=row['PartDescription2'] if row['PartDescription2'] is not None else row['Description'],
+                        name=row['PartDescription2'] if row['PartDescription2'] is not None else row['PartDescription1'],
                         manufacturer_id=manufacturer.id,
                         tool_type_id=tool_type.id
                     )
@@ -239,7 +239,7 @@ async def upload_tool_consumption(
                 records.append({
                     'datetime': row['OrderDateTime'],
                     'number': row['TransactionId'],
-                    'consumption_type': row['TransactionType'],
+                    'consumption_type': row['Transaction Type'],
                     'quantity': row['IssuedQuantity'],
                     'value': float(row['ExtendedPrice']) if row.get('ExtendedPrice') else 0.0,
                     'price': float(row['SellPrice']) if row.get('SellPrice') else 0.0,
@@ -251,6 +251,8 @@ async def upload_tool_consumption(
                     'workpiece_id': workpiece_id,
                 })
                 tool.price = float(row['SellPrice']) if row.get('SellPrice') else 0.0
+                if not tool.inventory:
+                    tool.inventory = 0
                 tool.inventory -= row['IssuedQuantity']
             except Exception as e:
                 print(e)
