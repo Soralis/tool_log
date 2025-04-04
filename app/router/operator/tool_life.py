@@ -75,6 +75,7 @@ async def create_tool_life(
             user_id = current_operator.id,
             reached_life = int(form_data.pop('reached_life', 0)),
             tool_settings = toolposition.tool_settings,
+            tool_count = toolposition.tool_count,
             machine_id = machine.id,
             machine_channel = int(form_data.pop('machine_channel')),
             recipe_id = machine.current_recipe_id,

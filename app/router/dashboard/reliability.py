@@ -1,12 +1,9 @@
-from fastapi import APIRouter, WebSocket, Request, Depends, HTTPException, Body
-import asyncio
-import json
-from collections import defaultdict
+from fastapi import APIRouter, Request, Depends, Body
 from app.templates.jinja_functions import templates
 from datetime import datetime, timedelta
 from sqlmodel import Session, select
 from app.database_config import get_session
-from app.models import Tool, ToolLife, Recipe, Machine, ToolPosition, ToolConsumption
+from app.models import ToolLife, Machine, ToolConsumption
 from typing import Dict, List, Optional
 from . import tool_lifes_cards as tc
 
