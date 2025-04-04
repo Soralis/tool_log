@@ -3,31 +3,29 @@
 <script type="module">
   const chartDom = document.getElementById('spendSummarySankey');
   const chart = echarts.init(chartDom);
-  let option;
-
- option = {
-  series: {
-    type: 'sankey',
-    emphasis: {
-      focus: 'adjacency'
+  let option = {
+    series: {
+      type: 'sankey',
+      emphasis: {
+        focus: 'adjacency'
+      },
+      layout: 'none',
+      lineStyle: {
+        color: 'source',
+      },
+      orient: 'vertical',
+      label: {
+        position: 'top',
+        color: '#fff'
+      },
+      data: [],
+      links: [],
     },
-    layout: 'none',
-    lineStyle: {
-      color: 'source',
+    tooltip: {
+      trigger: 'item',
+      triggerOn: 'mousemove'
     },
-    orient: 'vertical',
-    label: {
-      position: 'top',
-      color: '#fff'
-    },
-    data: [],
-    links: [],
-  },
-  tooltip: {
-    trigger: 'item',
-    triggerOn: 'mousemove'
-  },
-};
+  };
 
 
   option && chart.setOption(option);

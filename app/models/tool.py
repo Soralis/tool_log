@@ -170,6 +170,7 @@ class ToolLife(ToolLifeBase, table=True):
     timestamp: dt = Field(default_factory=dt.now, nullable=False)
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
     additional_measurements: Dict = Field(default_factory=dict, sa_column=Column(JSON))
+    tool_count: int = Field(default=1)
 
     # tool_order_id: Optional[int] = Field(foreign_key='toolorder.id')
     user_id: Optional[int] = Field(foreign_key='user.id', ondelete='SET NULL')
