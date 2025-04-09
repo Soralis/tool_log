@@ -349,6 +349,8 @@ async def upload_tool_orders(
         result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
 
         for _, row in df.iterrows():
+            if not row.get('OrderQty', False):
+                continue
             try:
                 tool_id = tools.get(str(row.get('custpart', '')).upper())
                 manufacturer_id = manufacturers.get(row.get('VendorNumber'))
@@ -446,15 +448,15 @@ async def upload_tool_deliveries(
 
         for _, row in df.iterrows():
             try:
-                order_id = orders.get(f"{row.get('Textbox28', '')}-{row.get('POLine', '')}")
+                order_id = orders.get(f"{row.get('PONumber', '')}-{row.get('POLine', '')}")
 
                 if not order_id:
                     try:
-                        tool_id=tools.get(str(row['custpart2']).upper())
+                        tool_id=tools.get(str(row['custpart']).upper())
                         if not tool_id:
                             new_tool = Tool(
-                                name=f"{row['PartDescription21']} - {row['PartDescription11']}",
-                                number=str(row['custpart2']).upper(),
+                                name=f"{row['PartDescription2']} - {row['PartDescription1']}",
+                                number=str(row['custpart']).upper(),
                                 tool_type_id=unknown_tool_type.id,
                                 manufacturer_id=unknown_manufacturer.id
                             )
@@ -471,11 +473,11 @@ async def upload_tool_deliveries(
                     
                         new_order = ToolOrder(
                             tool_id=tool_id,
-                            number=row['Textbox28'].split('-')[0],
-                            suffix=row['Textbox28'].split('-')[1],
+                            number=row['PONumber'].split('-')[0],
+                            suffix=row['PONumber'].split('-')[1],
                             line=str(row['POLine']),
-                            quantity=row['OrderQty1'],
-                            order_date=row['OrderDate1'],
+                            quantity=row['OrderQty'],
+                            order_date=row['OrderDate'],
                             estimated_delivery_date=row['DueDate'],
                         )
                         session.add(new_order)

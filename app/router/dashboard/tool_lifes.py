@@ -1,6 +1,7 @@
 from fastapi import APIRouter, WebSocket, Request, Depends, HTTPException
 import asyncio
 import json
+from statistics import median
 from collections import defaultdict
 from app.templates.jinja_functions import templates
 from datetime import datetime
@@ -232,7 +233,7 @@ async def get_tool_details(
     ### General Graph
     machines = db.exec(select(Machine).where(Machine.active == True)).all()
     machines.sort(key=lambda x: x.name)
-    machine_colors = define_machine_colors(machines)
+    # machine_colors = define_machine_colors(machines)
 
     general_series = []
     machine_spec_series = []
@@ -297,6 +298,7 @@ async def get_tool_details(
         ranking.sort(key=lambda x: x['avg_life'], reverse=True)
         stats['ranking'] = ranking
         stats['avg_life'] = round(sum(lifes) / len(lifes)) if len(lifes) > 0 else 0
+        stats['median_life'] = round(median(lifes)) if len(lifes) > 0 else 0
 
 
         change_reason_series = []
@@ -326,10 +328,11 @@ async def get_tool_details(
     details['cards'].append(tc.graph_card("", general_series))
 
     ### Tool statistics overall
-    avg_life = round(sum(tool_lifes) / len(tool_lifes))
+    avg_life = round(sum(tool_lifes) / len(tool_lifes)) if len(tool_lifes) > 0 else 0
 
     details['cards'].append(tc.stat_card("Tool Statistics", [
         ["Average Life", avg_life],
+        ["Median Life", round(median(tool_lifes)) if len(tool_lifes) > 0 else 0],
         ["CPU", f"${round(tool.price / tool.max_uses / avg_life, 2)}"],
     ]))  
 
@@ -353,6 +356,7 @@ async def get_tool_details(
         details['cards'].append(tc.stat_card("Tool Statistics", [
             ["Machine Health", f"{machine_spec['health']} / 10"],
             ["Average Life", stats['avg_life']],
+            ["Median Life", stats['median_life']],
             ["Target Life", stats['expected_life']],
             ["Tools per Record", stats['tools_per_life']],
             ["CPU", f"${round(stats['tools_per_life'] * tool.price / tool.max_uses / stats['avg_life'], 2)}"],

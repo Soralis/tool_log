@@ -178,7 +178,7 @@ async def tools(request: Request,
     machine_ids = db.exec(select(Machine.id).order_by(Machine.name)).all()
     graphs = [await machine_reliability(db, id) for id in machine_ids]
     return templates.TemplateResponse(
-        "dashboard/report_reliability.html.j2",  # Updated template path
+        "dashboard/log_reliability.html.j2",  # Updated template path
         {
             "request": request,
             "graphs": graphs
