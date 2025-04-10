@@ -1,4 +1,4 @@
-<div id="toolDetailsModal" class="fixed inset-0 bg-gray-900/95 hidden z-[9999] overflow-y-auto">
+<div id="toolLifeDetailsModal" class="fixed inset-0 bg-gray-900/95 hidden z-[9999] overflow-y-auto">
     <div class="min-h-screen p-4" id="modalBackdrop">
         <div class="flex items-center justify-center">
             <div class="relative w-full max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-xl max-h-[90vh] flex flex-col" id="modalContent">
@@ -73,7 +73,7 @@ function toggleBodyScroll(lock) {
 
 // Initialize modal
 function initModal() {
-    const modal = document.getElementById('toolDetailsModal');
+    const modal = document.getElementById('toolLifeDetailsModal');
     if (!modal) return;
 
     // Close modal when clicking outside content
@@ -163,11 +163,11 @@ function resetModalContent() {
     modalCharts = {};
 }
 
-// Make openToolModal globally available
-window.openToolModal = async function(toolId, dateRange) {
-    const modal = document.getElementById('toolDetailsModal');
+// Make openToolLifeModal globally available
+window.openToolModal = async function(endpoint, params) {
+    const modal = document.getElementById('toolLifeDetailsModal');
     if (!modal) {
-        console.error('Modal element not found in openToolModal');
+        console.error('Modal element not found in openToolLifeModal');
         return;
     }
     
@@ -179,16 +179,10 @@ window.openToolModal = async function(toolId, dateRange) {
     modal.classList.remove('hidden');
     toggleBodyScroll(true);
     
-    // Extract numeric ID from the tool_X format
-    const numericId = toolId.split('_')[1];
+    
     
     try {
-        // Build URL with date range parameters
-        const params = new URLSearchParams({
-            start_date: dateRange.startDate || '',
-            end_date: dateRange.endDate || ''
-        });
-        const response = await fetch(`/dashboard/api/toolLifes/${numericId}/details?${params}`);
+        const response = await fetch(`/dashboard/${endpoint}?${params}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -227,7 +221,7 @@ window.openToolModal = async function(toolId, dateRange) {
 };
 
 function closeToolModal() {
-    const modal = document.getElementById('toolDetailsModal');
+    const modal = document.getElementById('toolLifeDetailsModal');
     if (modal) {
         modal.classList.add('hidden');
         toggleBodyScroll(false);
@@ -253,7 +247,7 @@ window.closeToolModal = closeToolModal;
     }
     
     /* Modal visibility control */
-    #toolDetailsModal {
+    #toolLifeDetailsModal {
         visibility: hidden;
         opacity: 0;
         pointer-events: none;
@@ -261,28 +255,28 @@ window.closeToolModal = closeToolModal;
         backdrop-filter: blur(4px);
     }
     
-    #toolDetailsModal:not(.hidden) {
+    #toolLifeDetailsModal:not(.hidden) {
         visibility: visible;
         opacity: 1;
         pointer-events: auto;
     }
 
-    #toolDetailsModal > div {
+    #toolLifeDetailsModal > div {
         transition: transform 0.15s ease-out;
         transform: scale(0.95);
     }
 
-    #toolDetailsModal:not(.hidden) > div {
+    #toolLifeDetailsModal:not(.hidden) > div {
         transform: scale(1);
     }
 
     /* Ensure modal content is always on top */
-    #toolDetailsModal .relative {
+    #toolLifeDetailsModal .relative {
         z-index: 9999;
     }
 
     /* Modal content scrolling */
-    #toolDetailsModal .overflow-y-auto {
+    #toolLifeDetailsModal .overflow-y-auto {
         -webkit-overflow-scrolling: touch;
     }
 

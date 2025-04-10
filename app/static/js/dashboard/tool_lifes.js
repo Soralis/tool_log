@@ -180,11 +180,14 @@ function setupGraphCardClickHandlers() {
                 e.preventDefault();
                 e.stopPropagation();
                 const graphId = card.dataset.graphId;
-                const dateRange = {
-                    startDate: localStorage.getItem('startDate'),
-                    endDate: localStorage.getItem('endDate')
-                };
-                openToolModal(graphId, dateRange);
+                // Extract numeric ID from the tool_X format
+                const numericId = graphId.split('_')[1];
+                // Build URL with date range parameters
+                const params = new URLSearchParams({
+                    start_date: localStorage.getItem('startDate') || '',
+                    end_date: localStorage.getItem('endDate') || ''
+                });
+                openToolModal(`api/toolLifes/${numericId}/details`, params)
             });
             card.dataset.listenerAdded = "true";
         }

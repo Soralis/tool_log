@@ -7,6 +7,7 @@
   <button id="tab-placeholder" class="tab-button text-gray-400 hover:text-gray-100 whitespace-nowrap px-4 border-b-2 font-medium border-transparent">Table 3</button>
 {% endblock %}
 {% block content %}
+{% include 'dashboard/partials/tool_lifes_details_modal.html.j2' %}
 <div class="w-full px-4 py-6">
   <!-- Tab Contents -->
   <div id="content-flat" class="tab-content hidden">
@@ -142,7 +143,6 @@
   }
         
   function bindGroupedFilterListeners() {
-    // Reset groupedFilters array
     groupedFilters = [];
     const groupInputs = document.querySelectorAll('#grouped-tools-filters .group-filter-input');
     groupInputs.forEach((input, index) => {
@@ -153,11 +153,11 @@
     });
   }
 
-  // New function: renderGroupedTableMerged() groups rows by product, operation, and position and applies rowSpan merging.
+  // New function: renderGroupedTableMerged() groups rows by product -> operation -> position and applies rowSpan merging.
   function renderGroupedTableMerged(rows) {
     const tbody = document.querySelector('#grouped-tools table tbody#grouped-tools-body');
     tbody.innerHTML = "";
-    // Group rows by product -> operation -> position
+    // Group rows by product, operation, position
     const products = {};
     rows.forEach(row => {
       if(!products[row.product]){ products[row.product] = {}; }
@@ -184,41 +184,126 @@
           let firstPositionRow = true;
           rowsForPosition.forEach(row => {
             const tr = document.createElement('tr');
+            // Product cell with click event
             if(firstProductRow){
               const tdProduct = document.createElement('td');
               tdProduct.className = "px-4 py-2 border-b border-gray-700";
               tdProduct.rowSpan = productRowCount;
               tdProduct.innerHTML = `${product}<br>$ ${row.product_cpp}`;
+              tdProduct.style.cursor = 'pointer';
+              tdProduct.onclick = function(e) {
+                e.stopPropagation();
+                const params = new URLSearchParams({
+                  target_id: row.product_id,
+                  target_type: "product",
+                  start_date: localStorage.getItem('startDate') || '',
+                  end_date: localStorage.getItem('endDate') || new Date().toISOString()
+                });
+                openToolModal('tools/api/target_info', params.toString());
+              };
               tr.appendChild(tdProduct);
               firstProductRow = false;
             }
+            // Operation cell with click event
             if(firstOperationRow){
               const tdOperation = document.createElement('td');
               tdOperation.className = "px-4 py-2 border-b border-gray-700";
               tdOperation.rowSpan = operationRowCount;
               tdOperation.innerHTML = `${operation}<br>$ ${row.operation_cpp}`;
+              tdOperation.style.cursor = 'pointer';
+              tdOperation.onclick = function(e) {
+                e.stopPropagation();
+                const params = new URLSearchParams({
+                  target_id: row.operation_id,
+                  target_type: "operation",
+                  start_date: localStorage.getItem('startDate') || '',
+                  end_date: localStorage.getItem('endDate') || new Date().toISOString()
+                });
+                openToolModal('tools/api/target_info', params.toString());
+              };
               tr.appendChild(tdOperation);
               firstOperationRow = false;
             }
+            // Position cell with click event
             if(firstPositionRow){
               const tdPosition = document.createElement('td');
               tdPosition.className = "px-4 py-2 border-b border-gray-700";
               tdPosition.rowSpan = rowsForPosition.length;
               tdPosition.innerHTML = `${row.position}<br>$ ${row.position_cpp}`;
+              tdPosition.style.cursor = 'pointer';
+              tdPosition.onclick = function(e) {
+                e.stopPropagation();
+                const params = new URLSearchParams({
+                  target_id: row.position_id,
+                  target_type: "position",
+                  start_date: localStorage.getItem('startDate') || '',
+                  end_date: localStorage.getItem('endDate') || new Date().toISOString()
+                });
+                openToolModal('tools/api/target_info', params.toString());
+              };
               tr.appendChild(tdPosition);
               firstPositionRow = false;
             }
-            tr.innerHTML += `
-              <td class="px-4 py-2 border-b border-gray-700${row.selected ? ' text-green-500' : ''}">${row.name}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.type}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.number}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.manufacturer}</td>
-              <td class="px-4 py-2 border-b border-gray-700">${row.weekly_consumption}</td>
-              <td class="px-4 py-2 border-b border-gray-700 ${row.inventory_weeks <= 1.5 * row.order_lead_time ? row.inventory_weeks <= row.order_lead_time ? 'text-red-500' : 'text-orange-500' : ''}">${row.inventory} (${row.inventory_weeks} Weeks)</td>
-              <td class="px-4 py-2 border-b border-gray-700${row.stop_order ? ' text-red-500' : ''}">${row.stop_order ? 'ORDER STOP' : `${row.order_lead_time} Weeks (${row.order_size} units)`}</td>
-              {# <td class="px-4 py-2 border-b border-gray-700">${row.last_price}</td> #}
-              <td class="px-4 py-2 border-b border-gray-700">$${row.cost_per_piece} (${row.percent_consumptions_recorded}%)</td>
-            `;
+            // Append remaining cells using createElement
+            const tdHidden = document.createElement('td');
+            tdHidden.className = "hidden";
+            tdHidden.textContent = row.id;
+            tr.appendChild(tdHidden);
+
+            const tdName = document.createElement('td');
+            tdName.className = "px-4 py-2 border-b border-gray-700" + (row.selected ? " text-green-500" : "");
+            tdName.textContent = row.name;
+            tr.appendChild(tdName);
+
+            const tdType = document.createElement('td');
+            tdType.className = "px-4 py-2 border-b border-gray-700";
+            tdType.textContent = row.type;
+            tr.appendChild(tdType);
+
+            const tdNumber = document.createElement('td');
+            tdNumber.className = "px-4 py-2 border-b border-gray-700";
+            tdNumber.textContent = row.number;
+            tr.appendChild(tdNumber);
+
+            const tdManufacturer = document.createElement('td');
+            tdManufacturer.className = "px-4 py-2 border-b border-gray-700";
+            tdManufacturer.textContent = row.manufacturer;
+            tr.appendChild(tdManufacturer);
+
+            const tdWeekly = document.createElement('td');
+            tdWeekly.className = "px-4 py-2 border-b border-gray-700";
+            tdWeekly.textContent = row.weekly_consumption;
+            tr.appendChild(tdWeekly);
+
+            const tdInventory = document.createElement('td');
+            let inventoryClass = "px-4 py-2 border-b border-gray-700";
+            if (row.inventory_weeks <= 1.5 * row.order_lead_time) {
+              inventoryClass += row.inventory_weeks <= row.order_lead_time ? " text-red-500" : " text-orange-500";
+            }
+            tdInventory.className = inventoryClass;
+            tdInventory.textContent = `${row.inventory} (${row.inventory_weeks} Weeks)`;
+            tr.appendChild(tdInventory);
+
+            const tdOrder = document.createElement('td');
+            tdOrder.className = "px-4 py-2 border-b border-gray-700" + (row.stop_order ? " text-red-500" : "");
+            tdOrder.textContent = row.stop_order ? "ORDER STOP" : `${row.order_lead_time} Weeks (${row.order_size} units)`;
+            tr.appendChild(tdOrder);
+
+            const tdCost = document.createElement('td');
+            tdCost.className = "px-4 py-2 border-b border-gray-700";
+            tdCost.textContent = `$${row.cost_per_piece} (${row.percent_consumptions_recorded}%)`;
+            tr.appendChild(tdCost);
+
+            tr.style.cursor = 'pointer';
+            tr.onclick = function() {
+              const params = new URLSearchParams({
+                target_id: row.id,
+                target_type: "tool",
+                start_date: localStorage.getItem('startDate') || '',
+                end_date: localStorage.getItem('endDate') || new Date().toISOString()
+              });
+              openToolModal('tools/api/target_info', params.toString());
+            };
             tbody.appendChild(tr);
           });
         }
@@ -226,7 +311,7 @@
     }
   }
 
-  // Updated filterGroupedTools() to use the merged renderer.
+  // Updated filterGroupedTools to use the merged renderer.
   function filterGroupedTools() {
     const filteredRows = allGroupedRows.filter(row => {
       let include = true;
@@ -236,6 +321,7 @@
             row.product,
             row.operation,
             row.position,
+            row.id,
             row.name,
             row.type,
             row.number,
@@ -243,12 +329,12 @@
             row.weekly_consumption,
             row.inventory,
             row.order_lead_time,
-            {# row.last_price, #}
-            row.percent_consumptions_recorded,
-            row.cost_per_piece,
+            row.last_price
           ];
           const cellText = cellValues[index] ? cellValues[index].toString().toLowerCase() : '';
-          if(!cellText.includes(filterValue.toLowerCase())){ include = false; }
+          if(!cellText.includes(filterValue.toLowerCase())){
+            include = false;
+          }
         }
       });
       return include;
@@ -258,7 +344,6 @@
 
   // Original populateToolsData() CPU branch now always groups (with merging) the results.
   function populateToolsData(target, data){
-    console.log(data)
     switch(target) {
       case 'unique_tools':
         const flatBody = document.getElementById('flat-tools-body');
@@ -300,12 +385,15 @@
               rows = rows.concat(processProduct(subProd, productData.products[subProd]));
             }
           } else if(productData.operations){
-            const product_cpp = productData.cost_per_piece
+            const product_cpp = productData.cost_per_piece;
+            const product_id = productData.id;
             for(const opKey in productData.operations){
               const operation = productData.operations[opKey];
-              const operation_cpp = operation.cost_per_piece
+              const operation_cpp = operation.cost_per_piece;
+              const operation_id = operation.id;
               for(const pos in operation.tool_positions){
-                const pos_cpp = operation.tool_positions[pos].cost_per_piece
+                const pos_cpp = operation.tool_positions[pos].cost_per_piece;
+                const pos_id = operation.tool_positions[pos].id;
                 const toolsArray = operation.tool_positions[pos].tools;
                 toolsArray.forEach(tool => {
                   let inventory_weeks = (
@@ -319,10 +407,14 @@
                     inventory_weeks: inventory_weeks,
                     product: productName,
                     product_cpp: product_cpp,
+                    product_id: product_id,
                     operation: opKey,
                     operation_cpp: operation_cpp,
+                    operation_id: operation_id,
                     position: pos,
                     position_cpp: pos_cpp, 
+                    position_id: pos_id,
+                    id: tool.tool_id || '',
                     name: tool.tool_name || '',
                     type: tool.type || '',
                     number: tool.number || '',
@@ -331,13 +423,11 @@
                     inventory: tool.inventory || 0,
                     order_lead_time: tool.order_lead_time || '',
                     order_size: tool.longest_order_size || 0,
-                    {# last_price: tool.last_price || '', #}
                     cost_per_piece: tool.cost_per_piece || '-',
                     percent_consumptions_recorded: tool.percent_consumptions_recorded || 0,
                     selected: tool.selected,
                     stop_order: tool.stop_order || false,
                     active: tool.active || true,
-                    id: tool.id || ''
                   });
                 });
               }
@@ -349,9 +439,8 @@
           allRows = allRows.concat(processProduct(key, data[key]));
         }
         allGroupedRows = allRows;
-        // Always apply grouping merge, whether filters are active or not.
+        // Apply grouping merge, with any filters if active.
         let filteredRows = allRows;
-        // Check if any filter is active:
         const headerInputs = table.querySelectorAll('#grouped-tools-filters .group-filter-input');
         let filtersActive = false;
         headerInputs.forEach(input => {
@@ -366,8 +455,12 @@
               if(filterValue.trim() !== ""){
                 const cellValues = [
                   row.product,
+                  row.product_id,
                   row.operation,
+                  row.operation_id,
                   row.position,
+                  row.position_id,
+                  row.id,
                   row.name,
                   row.type,
                   row.number,
@@ -378,7 +471,9 @@
                   row.last_price
                 ];
                 const cellText = cellValues[index] ? cellValues[index].toString().toLowerCase() : '';
-                if(!cellText.includes(filterValue.toLowerCase())){ include = false; }
+                if(!cellText.includes(filterValue.toLowerCase())){
+                  include = false;
+                }
               }
             });
             return include;
@@ -400,39 +495,13 @@
         const filterValue = input.value.toLowerCase();
         if(filterValue) {
           const cellText = cells[index] ? cells[index].textContent.toLowerCase() : '';
-          if(!cellText.includes(filterValue)){ visible = false; }
+          if(!cellText.includes(filterValue)){
+            visible = false;
+          }
         }
       });
       row.style.display = visible ? '' : 'none';
     });
-  }
-  
-  // Updated filterGroupedTools to call renderGroupedTableMerged.
-  function filterGroupedTools() {
-    const filteredRows = allGroupedRows.filter(row => {
-      let include = true;
-      groupedFilters.forEach((filterValue, index) => {
-        if(filterValue.trim() !== ""){
-          const cellValues = [
-            row.product,
-            row.operation,
-            row.position,
-            row.name,
-            row.type,
-            row.number,
-            row.manufacturer,
-            row.weekly_consumption,
-            row.inventory,
-            row.order_lead_time,
-            row.last_price
-          ];
-          const cellText = cellValues[index] ? cellValues[index].toString().toLowerCase() : '';
-          if(!cellText.includes(filterValue.toLowerCase())){ include = false; }
-        }
-      });
-      return include;
-    });
-    renderGroupedTableMerged(filteredRows);
   }
   
   document.querySelectorAll('#flat-tools-filters .filter-input').forEach(input => {

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Request, Query
-from sqlmodel import Session, select, and_, exists, desc
+from sqlmodel import Session, select, and_, exists, desc, asc
 from sqlalchemy.orm import selectinload
 from typing import Dict
-from datetime import datetime, timedelta
+from datetime import datetime
 from math import ceil
 
 from app.templates.jinja_functions import templates
@@ -11,6 +11,7 @@ from app.models import (Tool, RecipeTool, Recipe, ToolType,
                         ToolConsumption, Workpiece, Machine, ChangeOver,
                         ToolPosition, Line, OrderDelivery, ToolLife,
                         OrderCompletion)
+from . import tool_lifes_cards as tc
 
 
 router = APIRouter(
@@ -114,7 +115,7 @@ def aggregate_tool_metrics(aggregated: dict, line, product, machine, tool_positi
         # Use tool_position name if available; otherwise, group under "Unassigned"
         position_key = tool_position.name if tool_position is not None else "Unassigned"
         if position_key not in aggregated[line.name]['products'][product.name]['operations'][machine.name]['tool_positions']:
-            aggregated[line.name]['products'][product.name]['operations'][machine.name]['tool_positions'][position_key] = {'tools': []}
+            aggregated[line.name]['products'][product.name]['operations'][machine.name]['tool_positions'][position_key] = {'id': tool_position.id if tool_position else None, 'tools': []}
         aggregated[line.name]['products'][product.name]['operations'][machine.name]['tool_positions'][position_key]['tools'].append(tool_entry)
     else:
         # For standalone tools, update the aggregated under "Standalone Tools".
@@ -238,6 +239,7 @@ async def get_unique_tool_data(
         weekly_consumption = total_consumption / weeks if weeks > 0 else total_consumption
 
         tool_dict = {
+            'id': tool.id,
             'name': tool.name,
             'number': tool.number,
             'type': tool.tool_type.name,
@@ -359,3 +361,139 @@ async def get_cpu(
             product['cost_per_piece'] = round(product_cpp, 2)
 
     return aggregated
+
+
+async def tool_info(tool_id:int, start_date:datetime, end_date:datetime, db):
+    """
+    Retrieve detailed information about a specific tool, including its consumption history,
+    tool life records, and related recipes.
+
+    Parameters:
+        tool_id (int): The ID of the tool to retrieve information for.
+        start_date (datetime): Start date for filtering consumption data.
+        end_date (datetime): End date for filtering consumption data.
+        db (Session): Database session dependency.
+
+    Returns:
+        dict: A dictionary containing detailed information about the specified tool.
+    """
+    # Fetch the tool by its ID
+    tool = db.exec(select(Tool).where(Tool.id == tool_id)).first()
+    if not tool:
+        return {"error": "Tool not found."}
+
+    # Fetch consumption records for the specified date range
+    consumptions = db.exec(
+        select(ToolConsumption)
+        .where(ToolConsumption.tool_id == tool.id)
+        .where(ToolConsumption.datetime >= start_date)
+        .where(ToolConsumption.datetime <= end_date)
+        .order_by(asc(ToolConsumption.datetime))
+    ).all()
+
+    # Fetch tool life records
+    lifes = db.exec(
+        select(ToolLife)
+        .where(ToolLife.tool_id == tool.id)
+        .where(ToolLife.timestamp >= start_date)
+        .where(ToolLife.timestamp <= end_date)
+        .order_by(asc(ToolLife.timestamp))
+    ).all()
+
+    # Fetch related recipes
+    recipes = db.exec(
+        select(Recipe)
+        .join(RecipeTool, RecipeTool.recipe_id == Recipe.id)
+        .where(RecipeTool.tool_id == tool.id)
+    ).all()
+
+    return {
+            "id": tool.id,
+            "name": tool.name,
+            "number": tool.number,
+            "type": tool.tool_type.name,
+            "manufacturer": tool.manufacturer.name,
+            "price": round(tool.price, 2),
+            "inventory": tool.inventory,
+            "stop_order": tool.stop_order,
+            "active": tool.active,
+            "consumptions": [{"datetime": c.datetime, "quantity": c.quantity} for c in consumptions],
+            "prices": [{"datetime": c.datetime, "price": c.price} for c in consumptions],
+            "lifes": [{"timestamp": life.timestamp, "reached_life": life.reached_life} for life in lifes],
+            "workpieces": {r.workpiece.name for r in recipes},
+    }
+
+
+# Endpoint: Retrieve detailed information about a specific tool
+@router.get("/api/target_info")
+async def get_target_info(
+    request: Request,
+    target_type: str = Query(''),
+    target_id: int = Query(''),
+    start_date: datetime = Query(''),
+    end_date: datetime = Query(''),
+    db: Session = Depends(get_session),
+) -> dict:
+    """
+    Retrieve detailed information about a specific tool.
+
+    This endpoint fetches consumption history, tool life records, and related recipes
+    for the specified tool within the given date range.
+
+    Parameters:
+        request (Request): The incoming HTTP request.
+        tool_id (int): The ID of the tool to retrieve information for.
+        start_date (datetime): Start date for filtering consumption data.
+        end_date (datetime): End date for filtering consumption data.
+        db (Session): Database session dependency.
+
+    Returns:
+        dict: A dictionary containing detailed information about the specified tool.
+    """
+
+    production = db.exec(
+        select(OrderCompletion)
+        .where(OrderCompletion.date >= start_date)
+        .where(OrderCompletion.date <= end_date)
+        .order_by(asc(OrderCompletion.date))
+    ).all()
+
+    details = {
+        "title": "",
+        "cards": []
+    }
+
+    match target_type:
+        case "tool":
+            tool = await tool_info(target_id, start_date, end_date, db)
+            details["title"] = f"{tool['name']} (#{tool['number']})"
+            series = [
+                {
+                    "name": "Consumption",
+                    "type": "line",
+                    "data": [[consumption['datetime'], consumption['quantity']] for consumption in tool['consumptions']],
+                },
+                {
+                    "name": "Price",
+                    "type": "line",
+                    "data": [[price['datetime'], price['price']] for price in tool['prices']],
+                },
+            ]
+            details['cards'].append(tc.graph_card(details["title"], series))
+
+            
+        
+        case "position":
+            tool_position_id = target_id
+
+        case "operation":
+            operation_id = target_id
+
+        case "product":
+            product_id = target_id
+
+
+
+
+
+    return details
