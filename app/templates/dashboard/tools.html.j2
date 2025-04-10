@@ -321,7 +321,6 @@
             row.product,
             row.operation,
             row.position,
-            row.id,
             row.name,
             row.type,
             row.number,
@@ -329,7 +328,7 @@
             row.weekly_consumption,
             row.inventory,
             row.order_lead_time,
-            row.last_price
+            `$${row.cost_per_piece} (${row.percent_consumptions_recorded}%)`
           ];
           const cellText = cellValues[index] ? cellValues[index].toString().toLowerCase() : '';
           if(!cellText.includes(filterValue.toLowerCase())){
