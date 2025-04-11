@@ -12,6 +12,7 @@ from app.models import (Tool, RecipeTool, Recipe, ToolType,
                         ToolPosition, Line, OrderDelivery, ToolLife,
                         OrderCompletion)
 from . import tool_lifes_cards as tc
+from .utils import get_condensed_data
 
 
 router = APIRouter(
@@ -431,7 +432,7 @@ async def get_target_info(
     target_type: str = Query(''),
     target_id: int = Query(''),
     start_date: datetime = Query(''),
-    end_date: datetime = Query(''),
+    end_date: str = Query(''),
     db: Session = Depends(get_session),
 ) -> dict:
     """
@@ -450,6 +451,7 @@ async def get_target_info(
     Returns:
         dict: A dictionary containing detailed information about the specified tool.
     """
+    end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else datetime.now()
 
     production = db.exec(
         select(OrderCompletion)
@@ -466,20 +468,53 @@ async def get_target_info(
     match target_type:
         case "tool":
             tool = await tool_info(target_id, start_date, end_date, db)
+            tool['consumptions'] = get_condensed_data(tool['consumptions'], 50, 'datetime', 'quantity')
+            tool['prices'] = get_condensed_data(tool['prices'], 50, 'datetime', 'price')
+            tool['lifes'] = get_condensed_data(tool['lifes'], 50, 'timestamp', 'reached_life')
             details["title"] = f"{tool['name']} (#{tool['number']})"
             series = [
                 {
                     "name": "Consumption",
                     "type": "line",
-                    "data": [[consumption['datetime'], consumption['quantity']] for consumption in tool['consumptions']],
+                    "smooth": True,
+                    "data": [[consumption[0], consumption[1]] for consumption in tool['consumptions']],
                 },
                 {
                     "name": "Price",
                     "type": "line",
-                    "data": [[price['datetime'], price['price']] for price in tool['prices']],
+                    "smooth": True,
+                    "yAxisIndex": 1,
+                    "data": [[price[0], price[1]] for price in tool['prices']],
                 },
             ]
-            details['cards'].append(tc.graph_card(details["title"], series))
+            y_axises = [
+                {
+                    "name": "Consumption",
+                    "type": "value",
+                    "position": "left",
+                    "alignTicks": True,
+                    "axisLine": {
+                        "show": True,
+                    },
+                    "axisLabel": {
+                        "formatter": '{value} pcs'
+                    }
+                },
+                {
+                    "name": "Price",
+                    "type": "value",
+                    "position": "right",
+                    # "offset": 80,
+                    "alignTicks": True,
+                    "axisLine": {
+                        "show": True,
+                    },
+                    "axisLabel": {
+                        "formatter": '${value}'
+                    }
+                },
+            ]
+            details['cards'].append(tc.graph_card(details["title"], series, yAxis=y_axises))
 
             
         

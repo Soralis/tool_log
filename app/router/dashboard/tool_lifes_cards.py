@@ -16,6 +16,13 @@ def graph_card(title, series, xAxis=[{"type": "time"}], yAxis=[{"type": "value"}
         "height": height,
         "type": 'graph',
         "options": {
+            "toolbox": {
+                "feature": {
+                    "dataView": { "show": True, "readOnly": False },
+                    "restore": { "show": True },
+                    "saveAsImage": { "show": True }
+                }
+            },
             'legend': {
                 'selectedMode': True,
                 'textStyle': {

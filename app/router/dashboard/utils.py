@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 from typing import List, Tuple, Any
 
-def condense_data_points(records: List[Any], timestamp_attr: str = 'timestamp', value_attr: str = 'reached_life', window: str = 'day') -> List[Tuple[datetime, float]]:
+def condense_data_points(records: List[dict], timestamp_attr: str = 'timestamp', value_attr: str = 'reached_life', window: str = 'day') -> List[Tuple[datetime, float]]:
     """
     Condense time series data points by averaging values within time windows.
     
@@ -19,8 +19,8 @@ def condense_data_points(records: List[Any], timestamp_attr: str = 'timestamp', 
     # Group records by time window
     grouped_data = defaultdict(list)
     for record in records:
-        timestamp = getattr(record, timestamp_attr)
-        value = getattr(record, value_attr)
+        timestamp = record.get(timestamp_attr)
+        value = record.get(value_attr)
         
         if window == 'day':
             key = timestamp.date()
@@ -43,7 +43,7 @@ def condense_data_points(records: List[Any], timestamp_attr: str = 'timestamp', 
     
     return condensed_records
 
-def get_condensed_data(records: List[Any], max_points: int = 1000, timestamp_attr: str = 'timestamp', value_attr: str = 'reached_life') -> List[Tuple[datetime, float]]:
+def get_condensed_data(records: List[dict], max_points: int = 1000, timestamp_attr: str = 'timestamp', value_attr: str = 'reached_life') -> List[Tuple[datetime, float]]:
     """
     Get condensed data points, automatically choosing the appropriate time window
     to keep the number of points under max_points.
@@ -58,7 +58,8 @@ def get_condensed_data(records: List[Any], max_points: int = 1000, timestamp_att
         List of (timestamp, average_value) tuples
     """
     # Start with raw data points
-    condensed_data = [(getattr(record, timestamp_attr), getattr(record, value_attr)) 
+    # condensed_data = [(getattr(record, timestamp_attr), getattr(record, value_attr)) 
+    condensed_data = [(record.get(timestamp_attr), record.get(value_attr))
                       for record in records]
     
     # Condense data if needed
