@@ -1,9 +1,14 @@
 from datetime import datetime, timedelta
 from collections import defaultdict
 import numpy as np
-from typing import List, Tuple, Any
+from typing import List, Tuple
 
-def condense_data_points(records: List[dict], timestamp_attr: str = 'timestamp', value_attr: str = 'reached_life', window: str = 'day') -> List[Tuple[datetime, float]]:
+def condense_data_points(records: List[dict], 
+                         timestamp_attr: str = 'timestamp', 
+                         value_attr: str = 'reached_life', 
+                         window: str = 'day',
+                         average: bool = True
+                         ) -> List[Tuple[datetime, float]]:
     """
     Condense time series data points by averaging values within time windows.
     
@@ -37,13 +42,21 @@ def condense_data_points(records: List[dict], timestamp_attr: str = 'timestamp',
     # Calculate averages for each window
     condensed_records = []
     for date, values in sorted(grouped_data.items()):
-        avg_value = np.mean(values)
+        if average and values:
+            result_value = np.mean(values)
+        else:
+            result_value = sum(values)
         timestamp = datetime.combine(date, datetime.min.time())
-        condensed_records.append((timestamp, avg_value))
+        condensed_records.append((timestamp, result_value))
     
     return condensed_records
 
-def get_condensed_data(records: List[dict], max_points: int = 1000, timestamp_attr: str = 'timestamp', value_attr: str = 'reached_life') -> List[Tuple[datetime, float]]:
+def get_condensed_data(records: List[dict], 
+                       max_points: int = 100, 
+                       timestamp_attr: str = 'timestamp', 
+                       value_attr: str = 'reached_life', 
+                       average: bool=True
+                       ) -> List[Tuple[datetime, float]]:
     """
     Get condensed data points, automatically choosing the appropriate time window
     to keep the number of points under max_points.
@@ -66,7 +79,7 @@ def get_condensed_data(records: List[dict], max_points: int = 1000, timestamp_at
     windows = ['day', 'week', 'month']
     window_idx = 0
     while len(condensed_data) > max_points and window_idx < len(windows):
-        condensed_data = condense_data_points(records, timestamp_attr, value_attr, windows[window_idx])
+        condensed_data = condense_data_points(records, timestamp_attr, value_attr, windows[window_idx], average)
         window_idx += 1
 
     condensed_data_list = []
