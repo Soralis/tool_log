@@ -111,7 +111,7 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
 
             for machine in ordered_records:
                 for channel in ordered_records[machine]:
-                    condensed_data = get_condensed_data([{'timestamp': tool_life.timestamp, 'reached_life': tool_life.reached_life} 
+                    condensed_data, window = get_condensed_data([{'timestamp': tool_life.timestamp, 'reached_life': tool_life.reached_life} 
                                                          for tool_life in ordered_records[machine][channel]])
 
                     series.append({

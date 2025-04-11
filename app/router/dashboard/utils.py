@@ -86,4 +86,4 @@ def get_condensed_data(records: List[dict],
     for data_point in condensed_data:
         condensed_data_list.append([data_point[0].isoformat(), data_point[1]])
 
-    return condensed_data_list
+    return condensed_data_list, windows[window_idx-1]

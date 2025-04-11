@@ -468,10 +468,12 @@ async def get_target_info(
     match target_type:
         case "tool":
             tool = await tool_info(target_id, start_date, end_date, db)
-            tool['consumptions'] = get_condensed_data(tool['consumptions'], 50, 'datetime', 'quantity', average=False)
-            tool['prices'] = get_condensed_data(tool['prices'], 50, 'datetime', 'price')
-            tool['lifes'] = get_condensed_data(tool['lifes'], 50, 'timestamp', 'reached_life')
-            details["title"] = f"{tool['name']} (#{tool['number']})"
+            tool['consumptions'], window = get_condensed_data(tool['consumptions'], 50, 'datetime', 'quantity', average=False)
+            print(window)
+            tool['prices'], window = get_condensed_data(tool['prices'], 50, 'datetime', 'price')
+            print(window)
+            tool['lifes'], _ = get_condensed_data(tool['lifes'], 50, 'timestamp', 'reached_life')
+            details["title"] = f"{tool['name']} (#{tool['number']}, {window})"
             series = [
                 {
                     "name": "Consumption",
