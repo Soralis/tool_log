@@ -23,6 +23,9 @@ def graph_card(title, series, xAxis=[{"type": "time"}], yAxis=[{"type": "value"}
                     "saveAsImage": { "show": True }
                 }
             },
+            "tooltip": {
+                "trigger": 'item'
+            },
             'legend': {
                 'selectedMode': True,
                 'textStyle': {

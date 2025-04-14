@@ -117,6 +117,9 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
                     series.append({
                         "type": "line",
                         "data": condensed_data,
+                        "tooltip": {
+                            "formatter": 'gaygaygay',
+                        },
                         # "smooth": True,
                         "lineStyle": { "color": machine_colors[machine][0] },
                         "areaStyle": { "color": machine_colors[machine][1] },
@@ -250,10 +253,18 @@ async def get_tool_details(
         for channel in ordered_tool_life_records[machine]:
             channels.append(channel)
             channel_data = ordered_tool_life_records[machine][channel]
-            
+        
             series = {
                 "type": "line",
-                "data": [[life.timestamp, life.reached_life] for life in channel_data],
+                "data": [{"value": [life.timestamp, life.reached_life], 
+                          "tooltip": f"""{life.timestamp.strftime('%Y-%m-%d %H:%M')}
+                                <br>{life.reached_life} pcs
+                                <br>{life.change_reason.name if life.change_reason else 'N/A'}
+                                <br>{life.user.name if life.user else 'N/A'} {life.user.shift.number if life.user and life.user.shift else ''}
+                                """} for life in channel_data],
+                # "tooltip": {
+                #     "formatter": 'homohmomom',
+                # },
                 # "lineStyle": { "color": machine_colors[machine][0] },
                 # "areaStyle": { "color": machine_colors[machine][1] },
             }
@@ -316,7 +327,7 @@ async def get_tool_details(
 
         machine_health = 0
         for reason in change_reasons:
-            machine_health += change_reasons[reason]['Sentiment'] * sum([change_reasons[reason][cr_channel] for cr_channel in change_reasons[reason] if channel != 'Sentiment']) / (len(change_reasons[reason]) - 1)
+            machine_health += change_reasons[reason]['Sentiment'] * sum([change_reasons[reason][cr_channel] for cr_channel in change_reasons[reason] if cr_channel != 'Sentiment']) / (len(change_reasons[reason]) - 1)
 
         machine_spec_series.append({
             'title': machine, 
