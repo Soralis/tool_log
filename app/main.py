@@ -21,6 +21,8 @@ from datetime import datetime, timedelta
 
 from . import event_listener # keep, as its necessary to register the event listeners
 
+from app.broadcast import broadcast
+
 static_files = StaticFiles(directory = "app/static")
 
 # Initialize service metrics on startup
@@ -28,18 +30,22 @@ static_files = StaticFiles(directory = "app/static")
 # async def initialize_metrics():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Connect to broadcaster for real-time updates
+    await broadcast.connect()
+    # Schedule background tasks
+    schedule_tasks()
+    scheduler.start()
+
+    # Initialize service metrics
     db = next(get_session())
     try:
-        schedule_tasks()
-        scheduler.start()
-
         # Delete any existing metrics to ensure a fresh start
         statement = select(ServiceMetrics)
         existing_metrics = db.exec(statement).first()
         if existing_metrics:
             db.delete(existing_metrics)
             db.commit()
-        
+
         # Create new metrics with server start time
         metrics = ServiceMetrics(
             start_time=SERVER_START_TIME,
@@ -53,15 +59,17 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
+    # Compile Tailwind CSS
     process = tailwind.compile(
         static_files.directory + "/css/style.css",
-        tailwind_stylesheet_path = "app/static/css/input.css"
+        tailwind_stylesheet_path="app/static/css/input.css"
     )
 
-    yield # The code after this is called on shutdown.
-
-    process.terminate() # We must terminate the compiler on shutdown to
-    # prevent multiple compilers running in development mode or when watch is enabled.
+    try:
+        yield
+    finally:
+        process.terminate()
+        await broadcast.disconnect()
 
 app = FastAPI(
     lifespan = lifespan

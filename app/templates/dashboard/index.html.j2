@@ -3,6 +3,8 @@
 {% block title %}Dashboard Overview{% endblock %}
 
 {% block content %}
-    <div class="grid sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-12 gap-4">
+    {# <div class="grid sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-12 gap-4"> #}
+    <div>
+        {% include 'dashboard/partials/machine_status.html.j2' %}
     </div>
 {% endblock %}
