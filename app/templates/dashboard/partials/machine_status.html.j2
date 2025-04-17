@@ -17,65 +17,69 @@
 <script type="text/javascript">
 (function() {
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-  const socket = new WebSocket(`${scheme}://${location.host}/dashboard/ws/machine_status`);
   const tbody = document.querySelector('#machine-status-table tbody');
 
-  socket.onmessage = event => {
-    const msg = JSON.parse(event.data);
-  const { op, data } = msg;
-  if (op === "initial") {
-    // Initialize the table with initial data if provided.
-    if (Array.isArray(data)) {
-      data.forEach(machine => {
-        const id = machine.machine_id;
-        const name = machine.machine_name || "";
-        const workpiece = machine.current_workpiece || "";
-        const since = machine.timestamp || "";
-        const newRow = document.createElement("tr");
-        newRow.setAttribute("data-id", id);
-        newRow.innerHTML = `
-          <td class="border px-4 py-2 hidden">${id}</td>
-          <td class="border px-4 py-2">${name}</td>
-          <td class="border px-4 py-2">${workpiece}</td>
-          <td class="border px-4 py-2">${since}</td>
-        `;
+  function connectWebSocket() {
+    const socket = new WebSocket(`${scheme}://${location.host}/dashboard/ws/machine_status`);
+
+    socket.onmessage = event => {
+      const msg = JSON.parse(event.data);
+      const { op, data } = msg;
+      if (op === "initial") {
+        // Initialize the table with initial data if provided.
+        if (Array.isArray(data)) {
+          data.forEach(machine => {
+            const id = machine.machine_id;
+            const name = machine.machine_name || "";
+            const workpiece = machine.current_workpiece || "";
+            const since = machine.timestamp || "";
+            const newRow = document.createElement("tr");
+            newRow.setAttribute("data-id", id);
+            newRow.innerHTML = `
+              <td class="border px-4 py-2 hidden">${id}</td>
+              <td class="border px-4 py-2">${name}</td>
+              <td class="border px-4 py-2">${workpiece}</td>
+              <td class="border px-4 py-2">${since}</td>
+            `;
+            tbody.appendChild(newRow);
+          });
+        }
+        return;
+      }
+      const id = data.machine_id;
+      let row = tbody.querySelector(`tr[data-id="${id}"]`);
+
+      if (op === 'DELETE') {
+        if (row) row.remove();
+        return;
+      }
+
+      const name = data.machine_name || '';
+      const workpiece = data.current_workpiece || '';
+      const since = data.timestamp || "";
+      const cells = `
+        <td class="border px-4 py-2 hidden">${id}</td>
+        <td class="border px-4 py-2">${name}</td>
+        <td class="border px-4 py-2">${workpiece}</td>
+        <td class="border px-4 py-2">${since}</td>
+      `;
+
+      if (row) {
+        row.innerHTML = cells;
+      } else {
+        const newRow = document.createElement('tr');
+        newRow.setAttribute('data-id', id);
+        newRow.innerHTML = cells;
         tbody.appendChild(newRow);
-      });
-    }
-    return;
+      }
+    };
+
+    socket.onclose = () => {
+      console.warn('Machine status WebSocket closed. Reconnecting in 5 seconds...');
+      setTimeout(connectWebSocket, 5000);
+    };
   }
-    const id = data.machine_id;
-    let row = tbody.querySelector(`tr[data-id="${id}"]`);
 
-    // Handle delete
-    if (op === 'DELETE') {
-      if (row) row.remove();
-      return;
-    }
-
-    // Build cell HTML
-    const name = data.machine_name || '';
-    const workpiece = data.current_workpiece || '';
-    const since = data.timestamp || "";
-    const cells = `
-      <td class="border px-4 py-2 hidden">${id}</td>
-      <td class="border px-4 py-2">${name}</td>
-      <td class="border px-4 py-2">${workpiece}</td>
-      <td class="border px-4 py-2">${since}</td>
-    `;
-
-    if (row) {
-      row.innerHTML = cells;
-    } else {
-      const newRow = document.createElement('tr');
-      newRow.setAttribute('data-id', id);
-      newRow.innerHTML = cells;
-      tbody.appendChild(newRow);
-    }
-  };
-
-  socket.onclose = () => {
-    console.warn('Machine status WebSocket closed');
-  };
+  connectWebSocket();
 })();
 </script>
