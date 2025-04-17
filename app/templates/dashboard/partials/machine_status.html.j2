@@ -56,7 +56,7 @@
     // Build cell HTML
     const name = data.machine_name || '';
     const workpiece = data.current_workpiece || '';
-    const since = machine.timestamp || "";
+    const since = data.timestamp || "";
     const cells = `
       <td class="border px-4 py-2 hidden">${id}</td>
       <td class="border px-4 py-2">${name}</td>
