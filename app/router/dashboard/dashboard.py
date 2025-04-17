@@ -12,7 +12,6 @@ from app.models import Workpiece, Machine, ToolConsumption, Recipe, ChangeOver
 router = APIRouter()
 
 
-
 @router.get("/api/filter-options")
 async def get_filter_options(request: Request, db: Session = Depends(get_session)):
     """Get available filter options (products and operations)"""
