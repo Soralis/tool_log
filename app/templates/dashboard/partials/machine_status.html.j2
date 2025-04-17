@@ -21,11 +21,9 @@
   const tbody = document.querySelector('#machine-status-table tbody');
 
   socket.onmessage = event => {
-    console.log('Machine status WebSocket message received:', event.data);
     const msg = JSON.parse(event.data);
   const { op, data } = msg;
   if (op === "initial") {
-    console.log("Initial data received:", data);
     // Initialize the table with initial data if provided.
     if (Array.isArray(data)) {
       data.forEach(machine => {
@@ -56,7 +54,6 @@
     }
 
     // Build cell HTML
-    console.log(data)
     const name = data.machine_name || '';
     const workpiece = data.current_workpiece || '';
     const since = machine.timestamp || "";

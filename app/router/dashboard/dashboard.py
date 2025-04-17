@@ -130,4 +130,3 @@ async def machine_status_websocket(websocket: WebSocket):
             }
                 
             await websocket.send_text(json.dumps(msg))
-            print(f"Sent message: {msg}")
