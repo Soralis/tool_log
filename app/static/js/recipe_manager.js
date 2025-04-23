@@ -420,7 +420,7 @@ class RecipeManager {
                 ${hasHighRole ? `
                 <div class="tool-position-actions">
                     <button type="button" class="btn-edit" onclick="${this.getManagerName()}.editToolPosition(this)">Edit</button>
-                    <button type="button" class="btn-delete" onclick="${this.getManagerName()}.deleteToolPosition(this)">Delete</button>
+                    ${data.active ? `<button type="button" class="btn-delete" onclick="${this.getManagerName()}.deleteToolPosition(this)">Deactivate</button>` : ''}
                 </div>
                 ` : ''}
             `;
