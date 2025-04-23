@@ -3,9 +3,7 @@ from fastapi import APIRouter, Request, Depends, Response, status
 from fastapi.responses import HTMLResponse
 from fastapi.exceptions import HTTPException
 from app.templates.jinja_functions import templates
-from sqlmodel import Session, select, SQLModel
-from sqlalchemy.orm import joinedload, RelationshipProperty
-from typing import List
+from sqlmodel import Session, select
 from app.models import Recipe, RecipeRead, ToolPosition
 from app.models import Workpiece
 from app.models import Machine
@@ -31,10 +29,13 @@ async def get_item_list(request: Request,
                         session: Session = Depends(get_session)
                         ):
     filters = request.query_params
-    statement = select(Recipe)
     offset = int(request.query_params.get("offset", 0))
-    limit = int(request.query_params.get("limit", 10))
-    statement = statement.order_by(Recipe.name.asc()).offset(offset).limit(limit)
+    limit = int(request.query_params.get("limit", 25))
+    statement = (select(Recipe)
+                 .join(Recipe.machine)
+                 .order_by(Recipe.name, Machine.name)
+                 .offset(offset)
+                 .limit(limit))
 
     # Apply filters to the statement
     for key, value in filters.items():
@@ -122,7 +123,9 @@ async def get_tools(q: str = "", session: Session = Depends(get_session)):
     return tools_dict
 
 @router.get("/{recipe_id}")
-async def get_recipe(recipe_id: int, session: Session = Depends(get_session)):
+async def get_recipe(recipe_id: int, 
+                     user: User = Depends(get_current_operator),
+                     session: Session = Depends(get_session)):
     # Query for the recipe
     recipe_query = select(Recipe).where(Recipe.id == recipe_id)
     recipe = session.exec(recipe_query).first()
@@ -130,9 +133,10 @@ async def get_recipe(recipe_id: int, session: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="Recipe not found")
 
     # Query for all tool positions
-    tool_positions_query = select(ToolPosition).where(
-        ToolPosition.recipe_id == recipe_id,
-        ToolPosition.active
+    tool_positions_query = (select(ToolPosition)
+                            .join(ToolPosition.tool)
+                            .where(ToolPosition.recipe_id == recipe_id)
+                            .order_by(ToolPosition.active.desc(), Tool.name)
     )
     tool_positions = session.exec(tool_positions_query).all()
 
@@ -158,6 +162,7 @@ async def get_recipe(recipe_id: int, session: Session = Depends(get_session)):
         tp_dict = {
             "id": tp.id,  # Include the ID
             "name": tp.name,
+            "active": tp.active,
             "tool_id": tp.tool_id,
             "tool_count": tp.tool_count,
             "expected_life": tp.expected_life,
@@ -165,7 +170,9 @@ async def get_recipe(recipe_id: int, session: Session = Depends(get_session)):
             'tool_attributes': tool_attributes,
             "selected": tp.selected
         }
-        recipe_dict["tool_positions"].append(tp_dict)
+        if tp_dict["active"] or user.role == 4:  # If the user is an engineer, show all tool positions
+            recipe_dict["tool_positions"].append(tp_dict)
+
 
     return recipe_dict
 
@@ -228,33 +235,31 @@ async def update_recipe(
     
     # Delete positions that aren't in the submitted data
     for existing_pos in existing_positions:
+        existing_pos: ToolPosition
+        existing_pos.selected = False
         if existing_pos.id not in submitted_position_ids:
-            try:
-                session.delete(existing_pos)
-                session.commit()
-            except:
-                session.rollback()
-                existing_pos.active = False
-                session.commit()
+            existing_pos.active = False
         else:
             existing_pos.active = True
-            existing_pos.selected = False
-            session.commit()
+    session.commit()
     
     # Update or create tool positions
-
     tool_ids = []
     for tp in body['tool_positions']:
         tp['tool_id'] = int(tp['tool_id'])
         tool_ids.append(tp['tool_id'])
         tp['recipe_id'] = recipe_id
-        
+
         if tp.get('id'):  # Update existing position
+            # position = next((item for item in existing_positions if item.id == tp['id']), None)
             position = session.get(ToolPosition, tp['id'])
             if position:
                 for key, value in tp.items():
-                    if key != 'id' and key != 'tool_attributes':
+                    if key not in ['id', 'tool_attributes']:
+                        print(key, value)
                         setattr(position, key, value)
+                    elif key == 'id':
+                        print(key, value)
         else:  # Create new position
             db_tp = ToolPosition.model_validate(tp)
             session.add(db_tp)
@@ -265,6 +270,7 @@ async def update_recipe(
     session.commit()
     return {"message": "Recipe updated successfully"}
 
+
 @router.delete("/{item_id}")
 def delete_item(item_id: int,
                 session: Session = Depends(get_session)
@@ -273,6 +279,7 @@ def delete_item(item_id: int,
     item = session.exec(statement).one_or_none()
     if not item:
         raise HTTPException(status_code=404, detail="Recipe not found")
-    session.delete(item)
+    # switch status
+    item.active = not item.active
     session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return Response(status_code=status.HTTP_202_ACCEPTED)

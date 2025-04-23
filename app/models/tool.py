@@ -63,11 +63,19 @@ class ToolUpdate(ToolCreate):
 class ToolRead(SQLModel):
     id: int
     name: str
+    number: str
     inventory: int
     stop_order: bool
     manufacturer__name: str
     tool_type__name: str
     active: bool
+
+class ToolFilter(SQLModel):
+    tool_type_id: int
+    manufacturer_id: int
+    regrind: bool
+    max_uses: int
+    has_serialnumber: bool
 
 
 class ToolOrderBase(SQLModel):
@@ -213,7 +221,6 @@ class ToolLifeRead(SQLModel):
 class ToolLifeFilter(SQLModel):
     machine_id: int
     tool_id: int
-    timestamp: dt
     user_id: int
 
 class NoteBase(SQLModel):

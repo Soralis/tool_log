@@ -162,6 +162,7 @@ def create_generic_router(
     async def get_filter(request: Request):
         with Session(engine) as session:
             filter_options = get_filter_options(filter_model, session)
+        print({"filter_options": filter_options, 'item_type': item_type})
         return templates.TemplateResponse(
             request=request,
             name="engineer/partials/filter.html.j2",

@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 from typing import Dict
 from datetime import datetime
 from math import ceil
+import dotsi
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
@@ -364,7 +365,7 @@ async def get_cpu(
     return aggregated
 
 
-async def tool_info(tool_id:int, start_date:datetime, end_date:datetime, db):
+async def tool_info(tool_id:int, start_date:datetime, end_date:datetime, db, condense:bool=True, max_points:int=50) -> dict:
     """
     Retrieve detailed information about a specific tool, including its consumption history,
     tool life records, and related recipes.
@@ -384,7 +385,7 @@ async def tool_info(tool_id:int, start_date:datetime, end_date:datetime, db):
         return {"error": "Tool not found."}
 
     # Fetch consumption records for the specified date range
-    consumptions = db.exec(
+    consumptions_db = db.exec(
         select(ToolConsumption)
         .where(ToolConsumption.tool_id == tool.id)
         .where(ToolConsumption.datetime >= start_date)
@@ -408,7 +409,18 @@ async def tool_info(tool_id:int, start_date:datetime, end_date:datetime, db):
         .where(RecipeTool.tool_id == tool.id)
     ).all()
 
-    return {
+    consumptions = [{"datetime": c.datetime, "quantity": c.quantity} for c in consumptions_db]
+    prices = [{"datetime": c.datetime, "price": c.price} for c in consumptions_db]
+    lifes = [{"timestamp": life.timestamp, "reached_life": life.reached_life} for life in lifes]
+    window = 'daily'
+
+    if condense:
+        consumptions, window = get_condensed_data(consumptions, max_points, 'datetime', 'quantity', average=False)
+        prices, window = get_condensed_data(prices, max_points, 'datetime', 'price')
+        lifes, _ = get_condensed_data(lifes, max_points, 'timestamp', 'reached_life')      
+
+    return_data = dotsi.Dict(
+        {
             "id": tool.id,
             "name": tool.name,
             "number": tool.number,
@@ -418,11 +430,123 @@ async def tool_info(tool_id:int, start_date:datetime, end_date:datetime, db):
             "inventory": tool.inventory,
             "stop_order": tool.stop_order,
             "active": tool.active,
-            "consumptions": [{"datetime": c.datetime, "quantity": c.quantity} for c in consumptions],
-            "prices": [{"datetime": c.datetime, "price": c.price} for c in consumptions],
-            "lifes": [{"timestamp": life.timestamp, "reached_life": life.reached_life} for life in lifes],
+            "consumptions": consumptions,
+            "prices": prices,
+            "lifes": lifes,
             "workpieces": {r.workpiece.name for r in recipes},
-    }
+            "window": window,
+        }
+    ) 
+
+    return return_data
+
+
+async def position_info(position_id:int, start_date:datetime, end_date:datetime, db: Session, condense:bool=True, max_points:int=50) -> dict:
+    """
+    Retrieve detailed information about a specific tool position, including its consumption history,
+    tool life records, and related recipes.
+
+    Parameters:
+        position_id (int): The ID of the tool position to retrieve information for.
+
+    Returns:
+        dict: A dictionary containing detailed information about the specified tool position.
+    """
+    # Fetch the tool position by its ID
+    position = db.exec(select(ToolPosition).where(ToolPosition.id == position_id)).first()
+    if not position:
+        return {"error": "Tool Position not found."}
+
+    positions = db.exec(select(ToolPosition)
+                        .where(ToolPosition.name == position.name)
+                        .where(ToolPosition.recipe_id == position.recipe_id)).all()
+
+    tools_data = [await tool_info(position.tool.id, start_date, end_date, db, condense, max_points) for position in positions]
+
+    return_data = dotsi.Dict(
+        {
+            "id": position.id,
+            "name": position.name,
+            "machine": position.recipe.machine.name,
+            "workpiece": position.recipe.workpiece.name,
+            "tool_count": position.tool_count,
+            "active": position.active,
+            "tools": tools_data,
+        }
+    )
+
+    return return_data
+
+
+async def operation_info(operation_id:int, start_date:datetime, end_date:datetime, db: Session, condense:bool=True, max_points:int=50) -> dict:
+    """
+    Retrieve detailed information about a specific operation, including its consumption history,
+    tool life records, and related recipes.
+
+    Parameters:
+        operation_id (int): The ID of the operation to retrieve information for.
+
+    Returns:
+        dict: A dictionary containing detailed information about the specified operation.
+    """
+    # Fetch the operation by its ID
+    operation = db.exec(select(Machine).where(Machine.id == operation_id)).first()
+    if not operation:
+        return {"error": "Operation not found."}
+
+    # Fetch related recipes
+    recipes = db.exec(
+        select(Recipe)
+        .where(Recipe.machine_id == operation.id)
+    ).all()
+
+    tool_positions_data = [position_info(tool_position.id, start_date, end_date, db, condense, max_points) for recipe in recipes for tool_position in recipe.tool_positions]
+
+    return_data = dotsi.Dict(
+        {
+            "id": operation.id,
+            "name": operation.name,
+            "recipes": [r.name for r in recipes],
+            "tool_positions": tool_positions_data,
+        }
+    )
+
+    return return_data
+
+
+async def product_info(product_id:int, start_date:datetime, end_date:datetime, db: Session, condense:bool=True, max_points:int=50) -> dict:
+    """
+    Retrieve detailed information about a specific product, including its consumption history,
+    tool life records, and related recipes.
+
+    Parameters:
+        product_id (int): The ID of the product to retrieve information for.
+
+    Returns:
+        dict: A dictionary containing detailed information about the specified product.
+    """
+    # Fetch the product by its ID
+    product = db.exec(select(Workpiece).where(Workpiece.id == product_id)).first()
+    if not product:
+        return {"error": "Product not found."}
+
+    # Fetch related recipes
+    recipes = db.exec(
+        select(Recipe)
+        .where(Recipe.workpiece_id == product.id)
+    ).all()
+
+    operations_data = [operation_info(recipe.machine_id, start_date, end_date, db, condense, max_points) for recipe in recipes]
+
+    return_data = dotsi.Dict(
+        {
+            "id": product.id,
+            "name": product.name,
+            "operations": operations_data,
+        }
+    )
+
+    return return_data
 
 
 # Endpoint: Retrieve detailed information about a specific tool
@@ -468,12 +592,7 @@ async def get_target_info(
     match target_type:
         case "tool":
             tool = await tool_info(target_id, start_date, end_date, db)
-            tool['consumptions'], window = get_condensed_data(tool['consumptions'], 50, 'datetime', 'quantity', average=False)
-            print(window)
-            tool['prices'], window = get_condensed_data(tool['prices'], 50, 'datetime', 'price')
-            print(window)
-            tool['lifes'], _ = get_condensed_data(tool['lifes'], 50, 'timestamp', 'reached_life')
-            details["title"] = f"{tool['name']} (#{tool['number']}, {window})"
+            details["title"] = f"{tool['name']} (#{tool['number']}, {tool.window})"
             series = [
                 {
                     "name": "Consumption",
@@ -516,21 +635,54 @@ async def get_target_info(
                     }
                 },
             ]
-            details['cards'].append(tc.graph_card(details["title"], series, yAxis=y_axises))
-
-            
+            details['cards'].append(tc.graph_card(details["title"], series, yAxis=y_axises)) 
         
         case "position":
             tool_position_id = target_id
+            position = await position_info(tool_position_id, start_date, end_date, db)
+            details["title"] = f"{position.workpiece} {position.machine} {position.name} ({position.tools[0].window})"
+
+            consumption_series = []
+            price_series = []
+
+            for tool in position.tools:
+                if len(tool['consumptions']) == 0:
+                    continue
+
+                consumption_series.append(
+                    {
+                        "name": tool['name'],
+                        "type": "line",
+                        "smooth": True,
+                        "data": [[consumption[0], consumption[1]] for consumption in tool['consumptions']],
+                    }
+                )
+                price_series.append(
+                    {
+                        "name": f"{tool['name']} Price",
+                        "type": "line",
+                        "smooth": True,
+                        # "yAxisIndex": 1,
+                        "data": [[price[0], price[1]] for price in tool['prices']],
+                    }
+                )
+            
+            details['cards'].append(tc.graph_card(details["title"], consumption_series))
+            details['cards'].append(tc.graph_card(details["title"], price_series))
 
         case "operation":
             operation_id = target_id
+            operation = await operation_info(operation_id, start_date, end_date, db)
+            details["title"] = f"{operation['name']}"
 
         case "product":
             product_id = target_id
+            product = await product_info(product_id, start_date, end_date, db)
+            details["title"] = f"{product['name']}"
 
 
 
 
 
     return details
+

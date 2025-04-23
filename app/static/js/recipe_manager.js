@@ -369,6 +369,9 @@ class RecipeManager {
 
     addToolPositionToGroup(group, toolPosition) {
         const select = group.querySelector('.tool-select');
+        const hasHighRole = window.userRole >= 4;
+        const isInactive = toolPosition.active === false;
+        if (isInactive && !hasHighRole) return;
         const option = document.createElement('option');
         option.value = JSON.stringify({
             id: toolPosition.id,
@@ -376,11 +379,16 @@ class RecipeManager {
             tool_count: toolPosition.tool_count,
             expected_life: toolPosition.expected_life,
             tool_settings: toolPosition.tool_settings,
-            tool_attributes: toolPosition.tool_attributes
+            tool_attributes: toolPosition.tool_attributes,
+            active: toolPosition.active !== false
         });
-        option.textContent = `${toolPosition.tool_name} (Life: ${toolPosition.expected_life})`;
+        let label = `${toolPosition.tool_name} (Life: ${toolPosition.expected_life})`;
+        if (isInactive) {
+            label = `(INACTIVE) ${label}`;
+            option.style.color = '#888';
+        }
+        option.textContent = label;
         select.appendChild(option);
-        
         if (toolPosition.selected) {
             select.value = option.value;
             this.handleToolPositionChange(select);
@@ -468,6 +476,8 @@ class RecipeManager {
             Array.from(select.options).forEach(option => {
                 if (option.value) {
                     const data = JSON.parse(option.value);
+                    const isSelected = option.value === selectedValue;
+                    if (!data.active && !isSelected) return;
                     positions.push({
                         id: data.id,
                         name: positionName,
@@ -476,7 +486,8 @@ class RecipeManager {
                         expected_life: data.expected_life,
                         tool_settings: data.tool_settings,
                         tool_attributes: data.tool_attributes,
-                        selected: option.value === selectedValue
+                        active: isSelected ? true : data.active,
+                        selected: isSelected
                     });
                 }
             });
@@ -517,6 +528,7 @@ class RecipeManager {
                         expected_life: tp.expected_life,
                         tool_settings: tp.tool_settings,
                         tool_attributes: tp.tool_attributes || (tool ? tool.attributes : {}),
+                        active: tp.active,
                         selected: tp.selected
                     });
                 });

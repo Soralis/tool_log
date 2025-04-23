@@ -5,7 +5,7 @@ from app.models import Shift, ShiftCreate, ShiftUpdate, ShiftRead, ShiftFilter
 from app.models import Machine, MachineCreate, MachineUpdate, MachineRead, MachineFilter
 from app.models import Line, LineCreate, LineUpdate, LineRead, LineFilter
 from app.models import Manufacturer, ManufacturerCreate, ManufacturerUpdate, ManufacturerRead, ManufacturerFilter
-from app.models import Tool, ToolCreate, ToolUpdate, ToolRead
+from app.models import Tool, ToolCreate, ToolUpdate, ToolRead, ToolFilter
 from app.models import ToolAttribute, ToolAttributeCreate, ToolAttributeUpdate, ToolAttributeRead
 from app.models import ToolOrder, ToolOrderCreate, ToolOrderUpdate, ToolOrderRead, ToolOrderFilter
 from app.models import Measureable, MeasureableCreate, MeasureableUpdate, MeasureableRead
@@ -83,7 +83,7 @@ manufacturers_router = create_generic_router(Manufacturer, ManufacturerRead, Man
 tool_fixed_mapping = {
     "tool_attributes": {"tool_type_id": (ToolType, "tool_attributes")}
 }
-tools_router = create_generic_router(Tool, ToolRead, ToolCreate, ToolUpdate, ToolRead, "Tool", fixed_field_callback=fixed_field_callback(tool_fixed_mapping, Tool))
+tools_router = create_generic_router(Tool, ToolRead, ToolCreate, ToolUpdate, ToolFilter, "Tool", fixed_field_callback=fixed_field_callback(tool_fixed_mapping, Tool))
 tool_attributes_router = create_generic_router(ToolAttribute, ToolAttributeRead, ToolAttributeCreate, ToolAttributeUpdate, ToolAttributeRead, "Tool_Attribute")
 tool_type_router = create_generic_router(ToolType, ToolTypeRead, ToolTypeCreate, ToolTypeUpdate, ToolTypeRead, "Tool_Type", {"enum_fields": {"sentiment": Sentiment}})
 tool_life_router = create_generic_router(ToolLife, ToolLifeRead, ToolLifeCreate, ToolLifeUpdate, ToolLifeFilter, "Tool_Life", {"enum_fields": {"sentiment": Sentiment}})

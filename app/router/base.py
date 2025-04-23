@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, status
+from fastapi.responses import JSONResponse
+from psycopg.errors import UniqueViolation, IntegrityError
 from app.models import LogDevice, Machine
 from sqlmodel import Session, select
 from sqlalchemy.orm import joinedload
@@ -51,12 +53,34 @@ async def change_pin(request: Request,
 async def create_operator(request: Request, 
                           session: Session = Depends(get_session)):
     form = await request.form()
-    new_operator = User(name=form["name"], 
-                        initials=form["initials"], 
-                        pin=form["pin"], 
-                        role=1)
-    session.add(new_operator)
-    session.commit()
-    session.refresh(new_operator)
-    return {"message": f"Operator {new_operator.name} created successfully"}
+    try:
+        new_operator = User(name=form["name"], 
+                            initials=form["initials"], 
+                            pin=form["pin"], 
+                            payment_type=1,
+                            role=1)
+        session.add(new_operator)
+        session.commit()
+        session.refresh(new_operator)
 
+        return JSONResponse(
+            content={"message": f"Operator {new_operator.name} created successfully"},
+            status_code=status.HTTP_201_CREATED
+        )
+    except IntegrityError as e:
+        session.rollback()
+        if isinstance(e.orig, UniqueViolation):
+            return JSONResponse(
+                content={"message": "Operator with these initials already exists"},
+                status_code=status.HTTP_409_CONFLICT
+            )
+        else:
+            return JSONResponse(
+                content={"message": e.args},
+                status_code=status.HTTP_409_CONFLICT
+            )
+    except Exception as e:
+        return JSONResponse(
+            content={"message": f"Error creating operator: {str(e)}"},
+            status_code=status.HTTP_400_BAD_REQUEST
+        )

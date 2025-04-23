@@ -219,6 +219,15 @@ wheels = [
 ]
 
 [[package]]
+name = "dotsi"
+version = "0.0.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/80/f3/4fe653038b8e0cfd4dda9e4658173f954bf66f97a5db5d7039c737456f9e/dotsi-0.0.3.tar.gz", hash = "sha256:70209fb30b254b625517fcb9022c48b3ba1d91f887fcc56cac98214c16a40cae", size = 6821 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/8d/fccad9e5df48d541c4cbf8c19c13db1bc670acf701826b4e6e2619120d4f/dotsi-0.0.3-py2.py3-none-any.whl", hash = "sha256:fe857974d3c1abe399defef0ea9281caf273da1dcab7c171e1066f1b672aca63", size = 6068 },
+]
+
+[[package]]
 name = "ecdsa"
 version = "0.19.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1040,6 +1049,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "alembic" },
     { name = "apscheduler" },
+    { name = "dotsi" },
     { name = "fastapi", extra = ["standard"] },
     { name = "fastapi-tailwind" },
     { name = "numpy" },
@@ -1061,8 +1071,9 @@ dependencies = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.13.3" },
     { name = "apscheduler", specifier = ">=3.11.0" },
+    { name = "dotsi" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.2" },
-    { name = "fastapi-tailwind" },
+    { name = "fastapi-tailwind", specifier = ">=2.0.2a1" },
     { name = "numpy", specifier = ">=2.2.1" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },

@@ -5,7 +5,7 @@ from .machine import (Machine, MachineBase, MachineCreate, MachineUpdate, Machin
                       Line, LineBase, LineCreate, LineUpdate, LineRead, LineFilter
 )
 from .tool import (
-    Tool, ToolBase, ToolCreate, ToolUpdate, ToolRead,
+    Tool, ToolBase, ToolCreate, ToolUpdate, ToolRead, ToolFilter,
     ToolOrder, ToolOrderBase, ToolOrderCreate, ToolOrderUpdate, ToolOrderRead, ToolOrderFilter,
     OrderDelivery, OrderDeliveryCreate, OrderDeliveryUpdate, OrderDeliveryRead,
     ToolLife, ToolLifeBase, ToolLifeCreate, ToolLifeUpdate, ToolLifeRead, ToolLifeFilter,
@@ -48,7 +48,7 @@ __all__ = [
     "Line", "LineBase", "LineCreate", "LineUpdate", "LineRead", "LineFilter",
     
     # Tool
-    "Tool", "ToolBase", "ToolCreate", "ToolUpdate", "ToolRead",
+    "Tool", "ToolBase", "ToolCreate", "ToolUpdate", "ToolRead", "ToolFilter",
     "ToolOrder", "ToolOrderBase", "ToolOrderCreate", "ToolOrderUpdate", "ToolOrderRead", "ToolOrderFilter", 
     "OrderDelivery", "OrderDeliveryCreate", "OrderDeliveryUpdate", "OrderDeliveryRead",
     "ToolLife", "ToolLifeBase", "ToolLifeCreate", "ToolLifeUpdate", "ToolLifeRead", "ToolLifeFilter",

@@ -190,11 +190,11 @@
                                         this.reset();
                                     } else {
                                         const data = await response.json();
-                                        errorMessage.textContent = 'Initials already in Use, change them.';
+                                        errorMessage.textContent = data.message;
                                         errorDiv.classList.remove('hidden');
                                     }
                                 } catch (error) {
-                                    errorMessage.textContent = 'An error occurred while creating the user.';
+                                    errorMessage.textContent = `An error occurred while creating the user: ${error}`;
                                     errorDiv.classList.remove('hidden');
                                 }
                             });
