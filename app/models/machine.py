@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from .tool import ToolLife, ToolConsumption
     from .recipe import Recipe
     from .change_over import ChangeOver
-    from .workpiece import Workpiece
+    from .workpiece import Workpiece, Production
 
 
 class MeasureableBase(SQLModel):
@@ -101,6 +101,7 @@ class Line(LineBase, table=True):
 
     machines: List['Machine'] = Relationship(back_populates='line', cascade_delete=False)
     workpieces: List['Workpiece'] = Relationship(back_populates='line', cascade_delete=False)
+    productions: List['Production'] = Relationship(back_populates='line', cascade_delete=False)
 
 class LineCreate(LineBase):
     pass

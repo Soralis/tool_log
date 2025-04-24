@@ -26,11 +26,10 @@ async def get_excel_sheets(file: UploadFile):
         return None
     
     content = await file.read()
-    file.seek(0)  # Reset file pointer for future reads
+    await file.seek(0)  # Reset file pointer for future reads
     xlsx = io.BytesIO(content)
     wb = openpyxl.load_workbook(xlsx, data_only=True)
     sheets = wb.sheetnames
-    print(f"Available sheets: {sheets}")
     return sheets
 
 async def preview_excel_sheet(file: UploadFile, sheet_name: str = None):
@@ -39,7 +38,7 @@ async def preview_excel_sheet(file: UploadFile, sheet_name: str = None):
         return None
     
     content = await file.read()
-    file.seek(0)  # Reset file pointer for future reads
+    await file.seek(0)  # Reset file pointer for future reads
     xlsx = io.BytesIO(content)
     wb = openpyxl.load_workbook(xlsx, data_only=True)
     ws = wb[sheet_name]
@@ -58,7 +57,7 @@ async def read_excel(file: UploadFile, sheet_names: str = None, header_row: int 
         return None
     
     content = await file.read()
-    file.seek(0)  # Reset file pointer for future reads
+    await file.seek(0)  # Reset file pointer for future reads
     xlsx = io.BytesIO(content)
     wb = openpyxl.load_workbook(xlsx, data_only=True)
     
@@ -546,3 +545,63 @@ async def upload_tool_inventory(
         session.commit()
 
     return {"filename": file.filename, "type": "tool_consumption", 'result': result}
+
+
+@router.post("/hourlyProduction")
+async def upload_production(
+    file: UploadFile = File(...),
+    sheet_names: str = Form(None),
+):
+    try:
+        content = await file.read()
+        await file.seek(0)  # Reset file pointer for future reads
+        xlsx = io.BytesIO(content)
+        wb = openpyxl.load_workbook(xlsx, data_only=True)
+    except Exception as e:
+        print(f"Error loading Excel file: {e}")
+        return {"filename": file.filename, "type": "production", "error": "Failed to read file"}
+    
+    # Read the selected sheet and find inners and outers
+    ws = wb[sheet_names]
+    locations = {}
+    workpiece_type = None
+    start, end = None, None
+    for row in ws.iter_rows():
+        for cell in row:
+            if isinstance(cell.value, str) and cell.value.lower() in ['inner', 'outer']:
+                workpiece_type = cell.value.lower()
+                start = (cell.column, cell.row + 1)
+            if start:
+                if cell.column < start[0]:
+                    continue
+                if isinstance(cell.value, str) and any(ordinal in cell.value.lower() for ordinal in ['1st', '2nd', '3rd']):
+                    end = (cell.column, cell.row - 1)
+                    break
+            if start and end:
+                locations[workpiece_type] = {
+                    'start': start,
+                    'end': end
+                }
+                start, end, workpiece_type = None, None, None
+            
+    # clean up the headers and create dataframes
+    for workpiece_type, loc in locations.items():
+        workpiece_values = []
+        for row in ws.iter_rows(min_row=loc['start'][1], max_row=loc['end'][1], min_col=loc['start'][0], max_col=loc['end'][0]):
+            row_values = []
+            for cell in row:
+                row_values.append(cell.value)
+            workpiece_values.append(row_values)
+        line_1 = workpiece_values.pop(0)
+        for i in range(len(workpiece_values[0])):
+            if workpiece_values[0][i] is None and line_1[i] is not None:
+                workpiece_values[0][i] = line_1[i]
+        locations[workpiece_type] = pd.DataFrame(workpiece_values[1:], columns=workpiece_values[0])
+
+    # Save data from dataframes in Database
+    with Session(engine) as session:
+        pass # TODO: implement saving logic
+
+    result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
+    return {"filename": file.filename, "type": "tool_consumption", 'result': result}
+

@@ -126,6 +126,31 @@
         Upload Tool Inventory
       </button>
     </div>
+
+    <!-- Hourly Production Upload Button -->
+    <div class="p-6 bg-slate-800 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-3">Hourly Production</h2>
+      <p class="text-gray-200 mb-4">Upload excel file containing hourly Production Data.</p>
+      <button
+        onclick="toggleInstructions('hourlyProduction')"
+        class="text-gray-200 hover:text-teal-500 mb-2 flex items-center"
+      >
+        <span id="hourlyProductionArrow" class="mr-2">▶</span>
+        Where do I get the data?
+      </button>
+      <ul id="hourlyProductionInstructions" class="list-disc list-inside text-gray-200 mb-4 hidden">
+        <li>Theres a Teams group called IFNA OPS CORE TEAMS</li>
+        <li>Shamarcus Simmons can add you</li>
+        <li>in the groups files, theres the HOURLY TRACKER OAS V3</li>
+        <li>Download that, and then ...</li>
+      </ul>
+      <button 
+        onclick="openUploadModal('hourlyProduction', 'Hourly Production Data')"
+        class="bg-teal-700 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+      >
+        Upload Hourly Production
+      </button>
+    </div>
   </div>
 
   <!-- Upload Modal -->
@@ -267,7 +292,7 @@
 
               // Select this button
               button.dataset.selected = 'true';
-              button.className = 'w-full mb-2 py-2 px-4 rounded text-left text-white bg-teal-700 hover:bg-teal-600 focus:outline-none';
+              button.className = 'w-full mb-2 py-2 px-4 rounded text-left text-white bg-teal-700 hover:bg-teal-600 focus:outline-none cursor-not-allowed';
 
               // Show preview
               await previewSheet(file, sheet);
@@ -285,6 +310,7 @@
         });
 
         document.getElementById('sheetSelection').classList.remove('hidden');
+        document.getElementById('uploadButton').classList.remove('cursor-not-allowed');
         document.getElementById('uploadButton').textContent = 'Next';
       }
     } catch (error) {
@@ -293,8 +319,11 @@
   }
 
   async function previewSheet(file, sheetName) {
-    console.log('Previewing sheet:', sheetName);
-    
+    const uploadType = document.getElementById('uploadType').value;
+    if (uploadType === 'hourlyProduction') {
+      document.getElementById('sheetPreview').classList.add('hidden');
+      return;
+    }
     if (!sheetName) {
       console.error('No sheet name provided');
       return;
@@ -309,25 +338,20 @@
       const previewDiv = document.getElementById('sheetPreview');
       previewDiv.classList.remove('hidden');
       previewDiv.innerHTML = '<div class="text-center py-4 text-gray-200">Loading preview...</div>';
-      
-      console.log('Sending preview request with data:', {
-        file: file.name,
-        sheet_name: sheetName
-      });
+      document.getElementById('uploadButton').classList.add('cursor-not-allowed');
       
       const response = await fetch('/dashboard/upload/preview-sheet', {
         method: 'POST',
         body: formData
       });
+
+      document.getElementById('uploadButton').classList.remove('cursor-not-allowed');
       
       const preview = await response.json();
       if (preview.error) {
         console.error('Preview error:', preview.error);
         previewDiv.innerHTML = `<div class="text-center py-4 text-red-500">${preview.error}</div>`;
-        return;
       }
-      
-      console.log('Preview data received:', preview);
       
       // Reset preview div
       previewDiv.innerHTML = `
@@ -342,35 +366,36 @@
       const body = document.getElementById('previewBody');
       
       // Build rows with radio buttons
-      preview.rows.forEach((row, rowIndex) => {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-600';
+      if (!preview.error) {
+        preview.rows.forEach((row, rowIndex) => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-600';
 
-        // Add radio button cell
-        const radioCell = document.createElement('td');
-        radioCell.className = 'px-4 py-2 text-sm text-gray-200 whitespace-nowrap';
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = 'headerRow';
-        radio.value = rowIndex;
-        radio.className = 'mr-2';
-        if (rowIndex === 0) {
-          radio.checked = true;
-        }
-        radioCell.appendChild(radio);
-        tr.appendChild(radioCell);
+          // Add radio button cell
+          const radioCell = document.createElement('td');
+          radioCell.className = 'px-4 py-2 text-sm text-gray-200 whitespace-nowrap';
+          const radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = 'headerRow';
+          radio.value = rowIndex;
+          radio.className = 'mr-2';
+          if (rowIndex === 0) {
+            radio.checked = true;
+          }
+          radioCell.appendChild(radio);
+          tr.appendChild(radioCell);
 
-        // Add data cells
-        row.forEach(cell => {
-          const td = document.createElement('td');
-          td.className = 'px-4 py-2 text-sm text-gray-200 whitespace-nowrap';
-          td.textContent = cell || '';
-          tr.appendChild(td);
+          // Add data cells
+          row.forEach(cell => {
+            const td = document.createElement('td');
+            td.className = 'px-4 py-2 text-sm text-gray-200 whitespace-nowrap';
+            td.textContent = cell || '';
+            tr.appendChild(td);
+          });
+          body.appendChild(tr);
         });
-        body.appendChild(tr);
-      });
+      }
       
-      console.log('Preview table updated');
     } catch (error) {
       console.error('Error previewing sheet:', error);
       previewDiv.innerHTML = '<div class="text-center py-4 text-red-500">Error loading preview</div>';
@@ -405,20 +430,23 @@
           return;
         }
 
-        const selectedRadio = document.querySelector('input[name="headerRow"]:checked');
-        if (!selectedRadio) {
-          messageDiv.textContent = 'Please select a header row';
-          messageDiv.classList.remove('hidden', 'bg-green-100', 'bg-yellow-100');
-          messageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
-          return;
+        console.log(uploadType)
+        if (uploadType != 'hourlyProduction') {
+          const selectedRadio = document.querySelector('input[name="headerRow"]:checked');
+          if (!selectedRadio) {
+            messageDiv.textContent = 'Please select a header row';
+            messageDiv.classList.remove('hidden', 'bg-green-100', 'bg-yellow-100');
+            messageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+            return;
+          }
+          formData.append('header_row', selectedRadio.value);
         }
 
         formData.append('sheet_names', selectedSheets.join(','));
-        formData.append('header_row', selectedRadio.value);
+        
         messageDiv.textContent = 'Processing selected sheets...';
       } else if (isXLSX && fileInput.files[0]) {
         // First step - get sheets
-        console.log('getting sheit')
         document.getElementById('sheetPreview').classList.add('hidden');  // Hide any existing preview
         await getSheetsAndPreview(fileInput.files[0]);
         return;
@@ -426,6 +454,7 @@
 
       messageDiv.classList.remove('hidden', 'bg-green-100', 'bg-red-100');
       messageDiv.classList.add('bg-yellow-100', 'border-yellow-400', 'text-yellow-700');
+      document.getElementById('uploadButton').classList.add('cursor-not-allowed');
       
       try {
         const response = await fetch(`/dashboard/upload/${uploadType}`, {
@@ -434,6 +463,7 @@
         });
         
         if (response.ok) {
+          document.getElementById('uploadButton').classList.remove('cursor-not-allowed');
           const data = await response.json();
           const stats = data.result;
           messageDiv.textContent = `File "${data.filename}" uploaded successfully! Processed ${stats.total_records} records (${stats.inserted} inserted, ${stats.skipped} duplicates skipped, ${stats.bad_data} rejected due to invalid data)`;

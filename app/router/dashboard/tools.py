@@ -88,6 +88,7 @@ def aggregate_tool_metrics(aggregated: dict, line, product, machine, tool_positi
             cost_per_piece = (float(tool.price) / tool.max_uses) / avg_tool_life if avg_tool_life > 0 else 0
     else:
         cost_per_piece = 0
+        avg_tool_life = 0
     
     tool_entry = {
         'tool_id': tool.id,
@@ -103,6 +104,7 @@ def aggregate_tool_metrics(aggregated: dict, line, product, machine, tool_positi
         'order_lead_time': longest_delivery_duration[0],
         'longest_order_size': longest_delivery_duration[1],
         'cost_per_piece': round(cost_per_piece, 2),
+        'average_life': round(avg_tool_life),
         'percent_consumptions_recorded': percent_consumptions_recorded,
     }
     
@@ -213,10 +215,10 @@ async def get_unique_tool_data(
 
     db_tools = db.exec(statement).all()
 
-    # Retrieve tool consumption records within the date range for selected tools
-    statement = select(ToolConsumption).where(ToolConsumption.tool_id.in_([tool.id for tool in db_tools]))
-    statement = statement.where(ToolConsumption.datetime >= start_date)
-    statement = statement.where(ToolConsumption.datetime <= end_date)
+    # # Retrieve tool consumption records within the date range for selected tools
+    # statement = select(ToolConsumption).where(ToolConsumption.tool_id.in_([tool.id for tool in db_tools]))
+    # statement = statement.where(ToolConsumption.datetime >= start_date)
+    # statement = statement.where(ToolConsumption.datetime <= end_date)
 
     tools = {}
     # For unique tools endpoint, we simply build a dictionary keyed by tool.id
@@ -240,6 +242,19 @@ async def get_unique_tool_data(
         weeks = (last_consumption_date - first_consumption_date).days // 7 + 1 if first_consumption_date != end_date else 1
         weekly_consumption = total_consumption / weeks if weeks > 0 else total_consumption
 
+        # Calculate average life
+        tool_lifes = db.exec(
+            select(ToolLife)
+            .where(ToolLife.tool_id == tool.id)
+            .where(ToolLife.timestamp >= start_date)
+            .where(ToolLife.timestamp <= end_date)
+        ).all()
+
+        if tool_lifes:
+            avg_life = round(sum(t.reached_life for t in tool_lifes) / len(tool_lifes) if len(tool_lifes) > 0 else 0)
+        else:
+            avg_life = 0
+
         tool_dict = {
             'id': tool.id,
             'name': tool.name,
@@ -251,6 +266,7 @@ async def get_unique_tool_data(
             'inventory': f"{tool.inventory} ({round(tool.inventory/weekly_consumption, 1) if weekly_consumption and weekly_consumption > 0 else '∞'} Weeks)" if tool.inventory else "N/A",
             'order_lead_time': 15,
             'stop_order': tool.stop_order,
+            'average_life': avg_life,
             'price': round(tool.price, 2)
         }
         tools[tool.id] = tool_dict

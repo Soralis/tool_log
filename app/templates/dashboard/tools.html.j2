@@ -22,9 +22,11 @@
           <th class="px-4 py-2 text-left">Weekly Consumption</th>
           <th class="px-4 py-2 text-left">Inventory</th>
           <th class="px-4 py-2 text-left">Order Lead Time</th>
+          <th class="px-4 py-2 text-left">Average Life</th>
           <th class="px-4 py-2 text-left">Last Price</th>
         </tr>
         <tr id="flat-tools-filters">
+          <th class="px-4 py-2"><input type="text" class="filter-input" placeholder="Filter"/></th>
           <th class="px-4 py-2"><input type="text" class="filter-input" placeholder="Filter"/></th>
           <th class="px-4 py-2"><input type="text" class="filter-input" placeholder="Filter"/></th>
           <th class="px-4 py-2"><input type="text" class="filter-input" placeholder="Filter"/></th>
@@ -77,10 +79,11 @@
         <th class="px-4 py-2 text-left">Weekly Consumption</th>
         <th class="px-4 py-2 text-left">Inventory</th>
         <th class="px-4 py-2 text-left">Order Lead Time</th>
-        {# <th class="px-4 py-2 text-left">Last Price</th> #}
+        <th class="px-4 py-2 text-left">Average Life</th>
         <th class="px-4 py-2 text-left">Cost per Unit (% of consumption tracked)</th>
       </tr>
       <tr id="grouped-tools-filters">
+        <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
         <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
         <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
         <th class="px-4 py-2"><input type="text" class="group-filter-input" placeholder="Filter"/></th>
@@ -289,6 +292,11 @@
             tdOrder.textContent = row.stop_order ? "ORDER STOP" : `${row.order_lead_time} Weeks (${row.order_size} units)`;
             tr.appendChild(tdOrder);
 
+            const tdAvgLife = document.createElement('td');
+            tdAvgLife.className = "px-4 py-2 border-b border-gray-700";
+            tdAvgLife.textContent = `${row.average_life}`;
+            tr.appendChild(tdAvgLife);
+
             const tdCost = document.createElement('td');
             tdCost.className = "px-4 py-2 border-b border-gray-700";
             tdCost.textContent = `$${row.cost_per_piece} (${row.percent_consumptions_recorded}%)`;
@@ -328,6 +336,7 @@
             row.weekly_consumption,
             row.inventory,
             row.order_lead_time,
+            row.average_life,
             `$${row.cost_per_piece} (${row.percent_consumptions_recorded}%)`
           ];
           const cellText = cellValues[index] ? cellValues[index].toString().toLowerCase() : '';
@@ -360,6 +369,7 @@
             <td class="px-4 py-2 border-b border-gray-700">${tool.weekly_consumption || ''}</td>
             <td class="px-4 py-2 border-b border-gray-700">${tool.inventory || ''}</td>
             <td class="px-4 py-2 border-b border-gray-700${tool.stop_order ? ' text-red-500' : ''}">${tool.stop_order ? 'ORDER STOP' : tool.order_lead_time}</td>
+            <td class="px-4 py-2 border-b border-gray-700">${tool.average_life || ''}</td>
             <td class="px-4 py-2 border-b border-gray-700">${tool.price || ''}</td>
           `;
           flatBody.appendChild(tr);
@@ -423,6 +433,7 @@
                     order_lead_time: tool.order_lead_time || '',
                     order_size: tool.longest_order_size || 0,
                     cost_per_piece: tool.cost_per_piece || '-',
+                    average_life: tool.average_life || 0,
                     percent_consumptions_recorded: tool.percent_consumptions_recorded || 0,
                     selected: tool.selected,
                     stop_order: tool.stop_order || false,
@@ -467,6 +478,7 @@
                   row.weekly_consumption,
                   row.inventory,
                   row.order_lead_time,
+                  row.average_life,
                   row.last_price
                 ];
                 const cellText = cellValues[index] ? cellValues[index].toString().toLowerCase() : '';

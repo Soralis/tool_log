@@ -25,6 +25,7 @@ class Workpiece(WorkpieceBase, table=True):
     order_completions: List['OrderCompletion'] = Relationship(back_populates='workpiece', cascade_delete=False)
     tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='workpiece', cascade_delete=False)
     line: Optional['Line'] = Relationship(back_populates='workpieces')
+    productions: List['Production'] = Relationship(back_populates='workpiece', cascade_delete=False)
 
 class WorkpieceCreate(WorkpieceBase):
     pass
@@ -75,3 +76,46 @@ class OrderCompletionUpdate(OrderCompletionBase):
 class OrderCompletionRead(SQLModel):
     id: int
     quantity: int
+
+
+class ProductionBase(SQLModel):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    quantity: int = Field(nullable=False)
+    date: dt.date = Field(index=True, nullable=False)
+    start_time: dt.time = Field(nullable=False)
+    end_time: dt.time = Field(nullable=False)
+    workpiece_id: int = Field(foreign_key='workpiece.id', ondelete='CASCADE', index=True, nullable=False)
+    line_id: Optional[int] = Field(foreign_key='line.id', ondelete='SET NULL')
+    target: int = Field(nullable=False)
+    finished: int = Field(nullable=False)
+    started: int = Field(nullable=False)
+    comment: Optional[str] = Field(default=None)
+
+
+class Production(ProductionBase, table=True):
+    workpiece: Workpiece = Relationship(back_populates='productions')
+    line: Optional['Line'] = Relationship(back_populates='productions')
+
+class ProductionCreate(ProductionBase):
+    pass
+
+class ProductionUpdate(ProductionCreate):
+    id: int
+
+class ProductionRead(SQLModel):
+    id: int
+    quantity: int
+    date: dt.date
+    start_time: dt.time
+    end_time: dt.time
+    target: int
+    finished: int
+    started: int
+    comment: Optional[str] = None
+
+class ProductionFilter(SQLModel):
+    date: dt.date = None
+    line_id: int = None
+    workpiece_id: int = None
+    start_time: dt.time = None
+    end_time: dt.time = None
