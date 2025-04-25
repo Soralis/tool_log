@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket, Request, Depends, HTTPException, Query
+from fastapi import APIRouter, WebSocket, Request, Depends, HTTPException
 import asyncio
 import json
 from statistics import median
@@ -301,18 +301,23 @@ async def get_tool_details(
 
                 tool_position: ToolPosition = next((record.tool_position for record in channel_data if record.tool_position), [] )
 
-                stats['expected_life'] = tool_position.expected_life if tool_position else 1
-                stats['tools_per_life'] = tool_position.tool_count if tool_position else 1
+                expected_life = []
+                tools_per_life = []
 
                 for t_life in tool_position.tool_lifes:
                     t_life: ToolLife
                     if (t_life.recipe.workpiece_id not in selected_products
                         or end_date.date() < t_life.timestamp.date() 
-                        or t_life.timestamp.date() < start_date.date()):
+                        or t_life.timestamp.date() < start_date.date()
+                        or t_life.recipe.workpiece.name != workpiece):
                         continue
                     lifes.append(t_life.reached_life)
+                    tools_per_life.append(t_life.tool_count)
                     if t_life.user and str(t_life.machine_channel) in channel:
                         operators_life[t_life.user.name].append(t_life.reached_life)
+                
+                stats['expected_life'] = t_life.tool_position.expected_life
+                stats['tools_per_life'] = sum(tools_per_life)/len(tools_per_life) if len(tools_per_life) > 0 else 1
 
                 general_series.append(series)
 
@@ -391,8 +396,8 @@ async def get_tool_details(
             ["Median Life", stats['median_life']],
             ["Target Life", stats['expected_life']],
             ["Tools per Record", stats['tools_per_life']],
-            ["CPU", f"${round(stats['tools_per_life'] * tool.price / tool.max_uses / stats['avg_life'], 2)}"],
-            ["Target CPU", f"${round(stats['tools_per_life'] * tool.price / tool.max_uses / stats['expected_life'], 2)}"],
+            ["CPU", f"${round(stats['tools_per_life'] * float(tool.price) / tool.max_uses / stats['avg_life'], 2)}"],
+            ["Target CPU", f"${round(stats['tools_per_life'] * float(tool.price) / tool.max_uses / stats['expected_life'], 2)}"],
             ["Highest Toollife", best_operators_text],
             ["Lowest Toollife", worst_operators_text]
         ])) 
