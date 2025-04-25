@@ -281,7 +281,7 @@ async def get_tool_details(
                     "type": "line",
                     "data": [{"value": [life.timestamp, life.reached_life], 
                             "tooltip": f"""{life.timestamp.strftime('%Y-%m-%d %H:%M')}
-                                    <br>{life.reached_life} pcs ({life.recipe.workpiece.name if life.recipe.workpiece else 'N/A'})
+                                    <br>{life.reached_life} pcs
                                     <br>{life.change_reason.name if life.change_reason else 'N/A'}
                                     <br>{life.user.name if life.user else 'N/A'} {life.user.shift.number if life.user and life.user.shift else ''}
                                     """} for life in channel_data],
