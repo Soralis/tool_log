@@ -198,7 +198,7 @@ async def get_tool_details(
     
     # Convert date strings to datetime objects
     # start = datetime.fromisoformat(start_date) if start_date and start_date != 'null' else None
-    end = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else None
+    end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else datetime.today()
 
     selected_operations = json.loads(selected_operations) if selected_operations else []
     selected_products = json.loads(selected_products) if selected_products else []
@@ -210,8 +210,8 @@ async def get_tool_details(
     statement = select(ToolLife).where(ToolLife.tool_id == tool_id)
     if start_date:
         statement = statement.where(ToolLife.timestamp >= start_date)
-    if end:
-        statement = statement.where(ToolLife.timestamp <= end)
+    if end_date:
+        statement = statement.where(ToolLife.timestamp <= end_date)
     if selected_operations:
         statement = statement.where(ToolLife.machine_id.in_(selected_operations))
     if selected_products:
@@ -233,7 +233,7 @@ async def get_tool_details(
     if not tool_life_records:
         details['cards'].append({
             "id": "no_data",
-            "title": f"No Data Available for the timeframe from {start} to {end}.",
+            "title": f"No Data Available for the timeframe from {start_date} to {end_date}.",
             "width": 12,
             "height": 2,
         })
@@ -246,9 +246,12 @@ async def get_tool_details(
         tool_lifes.append(r.reached_life)
         if r.machine.name not in ordered_tool_life_records:
             ordered_tool_life_records[r.machine.name] = {}
-        if f"Channel {r.machine_channel}" not in ordered_tool_life_records[r.machine.name]:
-            ordered_tool_life_records[r.machine.name][f"Channel {r.machine_channel}"] = []
-        ordered_tool_life_records[r.machine.name][f"Channel {r.machine_channel}"].append(r)
+        if r.recipe.workpiece.name not in ordered_tool_life_records[r.machine.name]:
+            ordered_tool_life_records[r.machine.name][r.recipe.workpiece.name] = {}
+
+        if f"Channel {r.machine_channel}" not in ordered_tool_life_records[r.machine.name][r.recipe.workpiece.name]:
+            ordered_tool_life_records[r.machine.name][r.recipe.workpiece.name][f"Channel {r.machine_channel}"] = []
+        ordered_tool_life_records[r.machine.name][r.recipe.workpiece.name][f"Channel {r.machine_channel}"].append(r)
 
     ### General Graph
     machines = db.exec(select(Machine).where(Machine.active == True)).all()
@@ -258,99 +261,101 @@ async def get_tool_details(
     general_series = []
     machine_spec_series = []
 
-    for machine in ordered_tool_life_records:
-        machine_series = []
-        stats = {}
-        operators_life = defaultdict(list)
-        lifes = []
-        change_reasons = {}
-        channels = [channel for channel in ordered_tool_life_records[machine]]
-
-        for channel in channels:
-            channel_data = ordered_tool_life_records[machine][channel]
+    for machine_name, machine in ordered_tool_life_records.items():
         
-            series = {
-                "type": "line",
-                "data": [{"value": [life.timestamp, life.reached_life], 
-                          "tooltip": f"""{life.timestamp.strftime('%Y-%m-%d %H:%M')}
-                                <br>{life.reached_life} pcs ({life.recipe.workpiece.name if life.recipe.workpiece else 'N/A'})
-                                <br>{life.change_reason.name if life.change_reason else 'N/A'}
-                                <br>{life.user.name if life.user else 'N/A'} {life.user.shift.number if life.user and life.user.shift else ''}
-                                """} for life in channel_data],
-                # "tooltip": {
-                #     "formatter": 'homohmomom',
-                # },
-                # "lineStyle": { "color": machine_colors[machine][0] },
-                # "areaStyle": { "color": machine_colors[machine][1] },
-            }
+        workpieces = [workpiece for workpiece in machine]
+        
+        for workpiece in workpieces:
+            machine_series = []
+            stats = {}
+            operators_life = defaultdict(list)
+            lifes = []
+            change_reasons = {}
 
+            channels = [channel for channel in machine[workpiece]]
+
+            for channel in channels:
+                channel_data = machine[workpiece][channel]
             
-            for record in channel_data:
-                change_reason = record.change_reason.name if record.change_reason else "N/A"
-                if change_reason not in change_reasons:
-                    change_reasons[change_reason] = {"Sentiment": record.change_reason.sentiment if record.change_reason else 3}
-                    for ch in channels:
-                        change_reasons[change_reason][ch] = 0
-                change_reasons[change_reason][channel] += 1
+                series = {
+                    "type": "line",
+                    "data": [{"value": [life.timestamp, life.reached_life], 
+                            "tooltip": f"""{life.timestamp.strftime('%Y-%m-%d %H:%M')}
+                                    <br>{life.reached_life} pcs ({life.recipe.workpiece.name if life.recipe.workpiece else 'N/A'})
+                                    <br>{life.change_reason.name if life.change_reason else 'N/A'}
+                                    <br>{life.user.name if life.user else 'N/A'} {life.user.shift.number if life.user and life.user.shift else ''}
+                                    """} for life in channel_data],
+                }
+
+                
+                for record in channel_data:
+                    change_reason = record.change_reason.name if record.change_reason else "N/A"
+                    if change_reason not in change_reasons:
+                        change_reasons[change_reason] = {"Sentiment": record.change_reason.sentiment if record.change_reason else 3}
+                        for ch in channels:
+                            change_reasons[change_reason][ch] = 0
+                    change_reasons[change_reason][channel] += 1
+                
+                for reason in change_reasons:
+                    change_reasons[reason][channel] = round(100 * change_reasons[reason][channel] / len(channel_data), 1)
+
+                tool_position: ToolPosition = next((record.tool_position for record in channel_data if record.tool_position), [] )
+
+                stats['expected_life'] = tool_position.expected_life if tool_position else 1
+                stats['tools_per_life'] = tool_position.tool_count if tool_position else 1
+
+                for t_life in tool_position.tool_lifes:
+                    t_life: ToolLife
+                    if (t_life.recipe.workpiece_id not in selected_products
+                        or end_date.date() < t_life.timestamp.date() 
+                        or t_life.timestamp.date() < start_date.date()):
+                        continue
+                    lifes.append(t_life.reached_life)
+                    if t_life.user and str(t_life.machine_channel) in channel:
+                        operators_life[t_life.user.name].append(t_life.reached_life)
+
+                general_series.append(series)
+
+                series['name'] = channel
+                series['type'] = "scatter"
+                machine_series.append(series)
             
+            ranking = []
+            for operator in operators_life:
+                log_count = len(operators_life[operator])
+                avg_life = round(sum(operators_life[operator]) / log_count) if log_count > 0 else 0
+                ranking.append({'operator': operator,
+                            'avg_life': avg_life,
+                            'log_count': log_count})
+            ranking.sort(key=lambda x: (x['avg_life'], x['log_count']), reverse=True)
+            stats['ranking'] = ranking
+            stats['avg_life'] = round(sum(lifes) / len(lifes)) if len(lifes) > 0 else 0
+            stats['median_life'] = round(median(lifes)) if len(lifes) > 0 else 0
+
+
+            change_reason_series = []
             for reason in change_reasons:
-                # if channel not in change_reasons[reason]:
-                #     change_reasons[reason][channel] = 0
-                change_reasons[reason][channel] = round(100 * change_reasons[reason][channel] / len(channel_data), 1)
+                series = {
+                    "name": reason,
+                    "type": "bar",
+                    "barWidth": "60%",
+                    "label": { "show": True, "formatter": "{c}%" },
+                    "stack": "total",
+                    "data": [change_reasons[reason][channel] for channel in change_reasons[reason] if channel != 'Sentiment']
+                }
+                change_reason_series.append(series)
 
-            tool_position: ToolPosition = next((record.tool_position for record in channel_data if record.tool_position), [] )
+            machine_health = 0
+            for reason in change_reasons:
+                machine_health += change_reasons[reason]['Sentiment'] * sum([change_reasons[reason][cr_channel] for cr_channel in change_reasons[reason] if cr_channel != 'Sentiment']) / (len(change_reasons[reason]) - 1)
 
-            stats['expected_life'] = tool_position.expected_life if tool_position else 1
-            stats['tools_per_life'] = tool_position.tool_count if tool_position else 1
-
-            for t_life in tool_position.tool_lifes:
-                t_life: ToolLife
-                lifes.append(t_life.reached_life)
-                if t_life.user and str(t_life.machine_channel) in channel:
-                    operators_life[t_life.user.name].append(t_life.reached_life)
-
-            general_series.append(series)
-
-            series['name'] = channel
-            series['type'] = "scatter"
-            machine_series.append(series)
-        
-        ranking = []
-        for operator in operators_life:
-            log_count = len(operators_life[operator])
-            avg_life = round(sum(operators_life[operator]) / log_count) if log_count > 0 else 0
-            ranking.append({'operator': operator,
-                        'avg_life': avg_life,
-                        'log_count': log_count})
-        ranking.sort(key=lambda x: x['avg_life'], reverse=True)
-        stats['ranking'] = ranking
-        stats['avg_life'] = round(sum(lifes) / len(lifes)) if len(lifes) > 0 else 0
-        stats['median_life'] = round(median(lifes)) if len(lifes) > 0 else 0
-
-
-        change_reason_series = []
-        for reason in change_reasons:
-            series = {
-                "name": reason,
-                "type": "bar",
-                "barWidth": "60%",
-                "label": { "show": True, "formatter": "{c}%" },
-                "stack": "total",
-                "data": [change_reasons[reason][channel] for channel in change_reasons[reason] if channel != 'Sentiment']
-            }
-            change_reason_series.append(series)
-
-        machine_health = 0
-        for reason in change_reasons:
-            machine_health += change_reasons[reason]['Sentiment'] * sum([change_reasons[reason][cr_channel] for cr_channel in change_reasons[reason] if cr_channel != 'Sentiment']) / (len(change_reasons[reason]) - 1)
-
-        machine_spec_series.append({
-            'title': machine, 
-            'health': round((stats['avg_life']/stats['expected_life']) * 2 * machine_health / 100, 1),
-            'channels': channels,
-            'data': machine_series, 
-            'change_reasons': change_reason_series, 
-            'stats': stats})
+            machine_spec_series.append({
+                'title': f"{machine_name} - {workpiece}", 
+                'health': round((stats['avg_life']/stats['expected_life']) * 2 * machine_health / 100, 1),
+                'channels': channels,
+                'data': machine_series, 
+                'change_reasons': change_reason_series, 
+                'stats': stats})
 
     details['cards'].append(tc.graph_card("", general_series))
 
