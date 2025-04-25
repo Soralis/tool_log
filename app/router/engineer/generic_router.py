@@ -122,6 +122,11 @@ def create_generic_router(
         for childname in children:
             if relations.get(childname):
                 del relations[childname]
+        
+        # Sort the relations by the items name
+        for relation in relations:
+            relations[relation] = sorted(relations[relation], key=lambda x: str(x.get('name', '')))
+        
 
         return relations, children
     
@@ -328,7 +333,7 @@ def create_generic_router(
                 if key in context['relationship_options']:
                     del context['relationship_options'][key]
                 context['fixed_field_options'][key] = value
-        
+
         return templates.TemplateResponse(
             request=request,
             name="engineer/partials/info_modal.html.j2",
