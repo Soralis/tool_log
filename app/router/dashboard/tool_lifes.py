@@ -373,8 +373,8 @@ async def get_tool_details(
             ["Tools per Record", stats['tools_per_life']],
             ["CPU", f"${round(stats['tools_per_life'] * tool.price / tool.max_uses / stats['avg_life'], 2)}"],
             ["Target CPU", f"${round(stats['tools_per_life'] * tool.price / tool.max_uses / stats['expected_life'], 2)}"],
-            ["Best 3 Operators", best_operators_text],
-            ["Worst 3 Operators", worst_operators_text]
+            ["Highest Toollife", best_operators_text],
+            ["Lowest Toollife", worst_operators_text]
         ])) 
 
 
