@@ -185,7 +185,9 @@ function setupGraphCardClickHandlers() {
                 // Build URL with date range parameters
                 const params = new URLSearchParams({
                     start_date: localStorage.getItem('startDate') || '',
-                    end_date: localStorage.getItem('endDate') || ''
+                    end_date: localStorage.getItem('endDate') || '',
+                    selected_operations: localStorage.getItem('selectedOperations') || '',
+                    selected_products: localStorage.getItem('selectedProducts') || ''
                 });
                 openToolModal(`api/toolLifes/${numericId}/details`, params)
             });

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket, Request, Depends, HTTPException
+from fastapi import APIRouter, WebSocket, Request, Depends, HTTPException, Query
 import asyncio
 import json
 from statistics import median
@@ -183,9 +183,11 @@ async def tools(request: Request, db: Session = Depends(get_session)):
 
 @router.get("/api/toolLifes/{tool_id}/details")
 async def get_tool_details(
-    tool_id: int, 
-    start_date: str = None, 
+    tool_id: int,
+    start_date: Optional[datetime],
     end_date: str = None, 
+    selected_operations: str = '',
+    selected_products: str = '',
     db: Session = Depends(get_session)
 ):
     """Get detailed information about a specific tool"""
@@ -195,15 +197,29 @@ async def get_tool_details(
         raise HTTPException(status_code=404, detail="Tool not found")
     
     # Convert date strings to datetime objects
-    start = datetime.fromisoformat(start_date) if start_date and start_date != 'null' else None
+    # start = datetime.fromisoformat(start_date) if start_date and start_date != 'null' else None
     end = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else None
+
+    selected_operations = json.loads(selected_operations) if selected_operations else []
+    selected_products = json.loads(selected_products) if selected_products else []
+    # Convert selected operations and products to lists of integers
+    selected_operations = [int(op) for op in selected_operations]
+    selected_products = [int(product) for product in selected_products]
     
     # Get tool life records with date filtering
     statement = select(ToolLife).where(ToolLife.tool_id == tool_id)
-    if start:
-        statement = statement.where(ToolLife.timestamp >= start)
+    if start_date:
+        statement = statement.where(ToolLife.timestamp >= start_date)
     if end:
         statement = statement.where(ToolLife.timestamp <= end)
+    if selected_operations:
+        statement = statement.where(ToolLife.machine_id.in_(selected_operations))
+    if selected_products:
+        statement = (
+            statement
+            .join(Recipe, ToolLife.recipe_id == Recipe.id)
+            .where(Recipe.workpiece_id.in_(selected_products))
+        )
     statement = statement.order_by(ToolLife.timestamp.asc())
     tool_life_records = db.exec(statement).all()
     # tool_life_records.reverse()  # Chronological order
@@ -257,7 +273,7 @@ async def get_tool_details(
                 "type": "line",
                 "data": [{"value": [life.timestamp, life.reached_life], 
                           "tooltip": f"""{life.timestamp.strftime('%Y-%m-%d %H:%M')}
-                                <br>{life.reached_life} pcs
+                                <br>{life.reached_life} pcs ({life.recipe.workpiece.name if life.recipe.workpiece else 'N/A'})
                                 <br>{life.change_reason.name if life.change_reason else 'N/A'}
                                 <br>{life.user.name if life.user else 'N/A'} {life.user.shift.number if life.user and life.user.shift else ''}
                                 """} for life in channel_data],
