@@ -39,11 +39,12 @@ model_mapping = {
     "user": {"model": User, "create": UserCreate, "read": UserRead},
     'tool': {"model": Tool, "create": ToolCreate, "read": ToolRead},
     'toollife': {"model": ToolLife, "create": ToolLifeCreate, "read": ToolLifeRead},
+    'tool_type': {"model": ToolType, "create": ToolTypeCreate, "read": ToolTypeRead},
     'note': {"model": Note, "create": NoteCreate, "read": NoteRead},
     'toolattribute': {"model": ToolAttribute, "create": ToolAttributeCreate, "read": ToolAttributeRead},
     'toolattributevalue': {"model": ToolAttributeValue, "create": ToolAttributeValueCreate, "read": ToolAttributeValueRead},
     'toolsetting': {"model": ToolSetting, "create": ToolSettingCreate, "read": ToolSettingRead},
-    'tooltype': {"model": ToolType, "create": ToolTypeCreate, "read": ToolTypeRead},
+    'tooltype': {"model": ToolType, "create": ToolTypeCreate, "read": ToolTypeRead}, # needed????
     'toolposition': {"model": ToolPosition, "create": ToolPositionCreate, "read": ToolPositionRead},
     'recipe': {"model": Recipe, "create": RecipeCreate, "read": RecipeRead},
     'shift': {"model": Shift, "create": ShiftCreate, "read": ShiftRead},
