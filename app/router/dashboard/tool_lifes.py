@@ -248,10 +248,9 @@ async def get_tool_details(
         operators_life = defaultdict(list)
         lifes = []
         change_reasons = {}
-        channels = []
+        channels = [channel for channel in ordered_tool_life_records[machine]]
 
-        for channel in ordered_tool_life_records[machine]:
-            channels.append(channel)
+        for channel in channels:
             channel_data = ordered_tool_life_records[machine][channel]
         
             series = {
@@ -274,13 +273,13 @@ async def get_tool_details(
                 change_reason = record.change_reason.name if record.change_reason else "N/A"
                 if change_reason not in change_reasons:
                     change_reasons[change_reason] = {"Sentiment": record.change_reason.sentiment if record.change_reason else 3}
-                if channel not in change_reasons[change_reason]:
-                    change_reasons[change_reason][channel] = 0
+                    for ch in channels:
+                        change_reasons[change_reason][ch] = 0
                 change_reasons[change_reason][channel] += 1
             
             for reason in change_reasons:
-                if channel not in change_reasons[reason]:
-                    change_reasons[reason][channel] = 0
+                # if channel not in change_reasons[reason]:
+                #     change_reasons[reason][channel] = 0
                 change_reasons[reason][channel] = round(100 * change_reasons[reason][channel] / len(channel_data), 1)
 
             tool_position: ToolPosition = next((record.tool_position for record in channel_data if record.tool_position), [] )

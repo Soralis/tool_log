@@ -162,11 +162,13 @@ def create_generic_router(
     async def get_filter(request: Request):
         with Session(engine) as session:
             filter_options = get_filter_options(filter_model, session)
-        print({"filter_options": filter_options, 'item_type': item_type})
         return templates.TemplateResponse(
             request=request,
             name="engineer/partials/filter.html.j2",
-            context={"filter_options": filter_options, 'item_type': item_type}
+            context={
+                "filter_options": filter_options,
+                "item_type": item_type,
+            }
         )
 
     @router.get("/list", response_class=HTMLResponse)
@@ -178,7 +180,7 @@ def create_generic_router(
             while keeping the nested relationships as IDs.
             """
             joinedload_options = []
-            for name, field in read_model.__fields__.items():
+            for name in read_model.__fields__.keys():
                 # Eagerly load all relationships to prevent detached instance errors
                 if hasattr(model, name) and getattr(getattr(model, name), 'property', None):
                     if isinstance(getattr(model, name).property, RelationshipProperty):
