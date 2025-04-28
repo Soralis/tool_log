@@ -1,0 +1,77 @@
+<div id="low-inventory">
+    <h1>Low Inventory Tools</h1>
+    <table class="table table-striped w-full">
+        <thead class="bg-gray-900">
+            <tr>
+                <th class="px-4 py-2 text-left">Tool</th>
+                <th class="px-4 py-2 text-left">Number</th>
+                <th class="px-4 py-2 text-left">Weekly Usage</th>
+                <th class="px-4 py-2 text-left">Inventory</th>
+                <th class="px-4 py-2 text-left">Supply</th>
+                <th class="px-4 py-2 text-left">On Order</th>
+                {# <th class="px-4 py-2 text-left">Affected Recipes</th> #}
+            </tr>
+        </thead>
+        <tbody id="low-inventory-table-body">
+        </tbody>
+    </table>
+</div>
+
+<script type="module">
+    // Function to update the heartbeat table
+    function updateLowInventoryTable(data) {
+        const tableBody = document.getElementById("low-inventory-table-body");
+        tableBody.innerHTML = ""; // Clear existing table data
+
+        data.forEach(item => {
+            const row = tableBody.insertRow();
+
+            const toolNameCell = row.insertCell();
+            toolNameCell.classList.add("px-4", "py-2");
+            toolNameCell.textContent = item.name || "N/A";
+
+            const toolNumberCell = row.insertCell();
+            toolNumberCell.classList.add("px-4", "py-2");
+            toolNumberCell.textContent = item.number || "N/A";
+
+            const usageCell = row.insertCell();
+            usageCell.classList.add("px-4", "py-2");
+            usageCell.textContent = item.weekly_usage || "N/A";
+
+            const inventory = row.insertCell();
+            inventory.classList.add("px-4", "py-2", "text-left");
+            inventory.textContent = item.inventory || "N/A";
+
+            const supplyCell = row.insertCell();
+            supplyCell.classList.add("px-4", "py-2", "font-bold");
+            supplyCell.textContent = `${item.supply} weeks` || "N/A";
+
+            const openOrderCell = row.insertCell();
+            openOrderCell.classList.add("px-4", "py-2", "text-left");
+            openOrderCell.textContent = `${item.order_quantity} (${item.delivery_date})`;
+            openOrderCell.classList.add(new Date(item.delivery_date) < new Date() ? "text-orange-500" : '');
+            openOrderCell.classList.add(item.order_quantity == 0 ? "text-red-500" : '');
+
+        });
+    }
+
+    // Function to fetch data from the API
+    async function fetchLowInventoryData() {
+        try {
+            const response = await fetch(`http://${location.host}/dashboard/api/low_inventory`);
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            const data = await response.json();
+            console.log('low inventory data:', data);
+            updateLowInventoryTable(data.tools);
+        } catch (error) {
+            console.error("Error fetching low inventory data:", error);
+        }
+    }
+
+    fetchLowInventoryData()
+
+
+
+</script>

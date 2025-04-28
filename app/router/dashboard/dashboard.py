@@ -2,12 +2,13 @@ from fastapi import APIRouter, Request, Depends, Query, WebSocket
 from typing import List
 import json
 from sqlmodel import Session, select, func, and_
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.broadcast import broadcast
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
-from app.models import Workpiece, Machine, ToolConsumption, Recipe, ChangeOver
+from app.models import Workpiece, Machine, ToolConsumption, Recipe, ChangeOver, Tool, ToolOrder, OrderDelivery
+from collections import defaultdict
 
 router = APIRouter()
 
@@ -129,3 +130,66 @@ async def machine_status_websocket(websocket: WebSocket):
             }
                 
             await websocket.send_text(json.dumps(msg))
+
+
+@router.get("/api/low_inventory")
+async def low_inventory(request: Request, db: Session = Depends(get_session)):
+    """Render the low inventory page"""
+    # last calendar week
+    now = datetime.now()
+    last_sunday = now - timedelta(days=now.weekday() + 1)
+
+    # get tools for which the inventory is below 1.5 times the average weekly consumption rate of the last 4 weeks
+    records = db.exec(
+        select(ToolConsumption)
+        .where(ToolConsumption.datetime <= last_sunday)
+        .where(ToolConsumption.datetime >= last_sunday - timedelta(weeks=8))
+    ).all()
+    weekly_totals = defaultdict(lambda: defaultdict(int))
+    for rec in records:
+        iso_year, iso_week, _ = rec.datetime.isocalendar()
+        key = f"{iso_year}-{iso_week}"
+        weekly_totals[rec.tool_id][key] += rec.quantity
+    
+    tool_ids = [tool_id for tool_id in weekly_totals]
+
+    tools: list[Tool] = db.exec(
+                            select(Tool)
+                            .where(Tool.id.in_(tool_ids))
+                            .where(Tool.stop_order == False)
+                        ).all()
+
+    tools = {tool.id: 
+             {
+                'name': tool.name,
+                'number': tool.number,
+                'weekly_usage': None,
+                'supply': None,
+                'inventory': tool.inventory,
+                'order_quantity': 0,
+                'delivery_date': None,
+            } for tool in tools if tool.inventory < 1.5 * sum(weekly_totals[tool.id].values()) / len(weekly_totals[tool.id])}
+    
+    tool_ids = [tool_id for tool_id in tools]
+
+    for tool_id, weeks in weekly_totals.items():
+        if tool_id not in tools:
+            continue
+        avg_consumption = sum(weeks.values()) / len(weeks)
+        tools[tool_id]['weekly_usage'] = avg_consumption
+        tools[tool_id]['supply'] = round(tools[tool_id]['inventory'] / avg_consumption, 1)
+
+    orders: list[ToolOrder] = db.exec(
+        select(ToolOrder)
+        .where(ToolOrder.tool_id.in_(tool_ids))
+        .where(ToolOrder.delivered < ToolOrder.quantity)
+    )
+    for order in orders:
+        tools[order.tool_id]['order_quantity'] = order.quantity - order.delivered
+        tools[order.tool_id]['delivery_date'] = order.estimated_delivery_date.strftime("%Y-%m-%d")
+    
+    tools = [tool for tool in tools.values()]
+
+    return {
+        "tools": tools,
+    }
