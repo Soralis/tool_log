@@ -199,7 +199,7 @@ async def upload_tool_consumption(
                     machine = machines[cost_center]
                     machine_id = machine.id
 
-                tool = tools.get(row['CustPartNumber'].upper())
+                tool = tools.get(str(row['CustPartNumber']).upper())
                 if tool is None:
                     new_tool = Tool(
                         number=row['CustPartNumber'].upper(),
