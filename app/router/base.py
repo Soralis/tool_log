@@ -4,10 +4,11 @@ from psycopg.errors import UniqueViolation, IntegrityError
 from app.models import LogDevice, Machine
 from sqlmodel import Session, select
 from sqlalchemy.orm import joinedload
+from datetime import datetime
 from auth import get_current_device
 
 from app.templates.jinja_functions import templates
-from app.models import User
+from app.models import User, Shift
 from app.database_config import get_session
 from auth import get_current_operator
 
@@ -53,12 +54,16 @@ async def change_pin(request: Request,
 async def create_operator(request: Request, 
                           session: Session = Depends(get_session)):
     form = await request.form()
+    current_time = datetime.now()
+    current_shift = session.exec(select(Shift).where(Shift.start_time <= current_time.time(), Shift.end_time >= current_time.time())).one_or_none()
     try:
         new_operator = User(name=form["name"], 
                             initials=form["initials"], 
                             pin=form["pin"], 
                             payment_type=1,
-                            role=1)
+                            role=1,
+                            shift_id=current_shift.id if current_shift else None,
+                            )
         session.add(new_operator)
         session.commit()
         session.refresh(new_operator)
