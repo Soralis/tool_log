@@ -81,8 +81,8 @@ class Shift(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(unique=True)
     number: int = Field(unique=True)
-    start_time: datetime
-    end_time: datetime
+    start_time: time
+    end_time: time
 
     users: List['User'] = Relationship(back_populates="shift", cascade_delete=False)
 

@@ -20,8 +20,8 @@ async def users_by_shift(session: Session = Depends(get_session)):
 
     shifts = session.exec(select(Shift).where(Shift.number < 4)).all()
     for shift in shifts:
-        start_time = shift.start_time.time()
-        end_time = shift.end_time.time()
+        start_time = shift.start_time
+        end_time = shift.end_time
         if start_time <= now <= end_time:
             active_shift = shift.number
             break

@@ -55,7 +55,9 @@ async def create_operator(request: Request,
                           session: Session = Depends(get_session)):
     form = await request.form()
     current_time = datetime.now()
-    current_shift = session.exec(select(Shift).where(Shift.start_time <= current_time.time(), Shift.end_time >= current_time.time())).one_or_none()
+    current_shift = session.exec(select(Shift).where(Shift.start_time <= current_time.time(), 
+                                                     Shift.end_time >= current_time.time(),
+                                                     Shift.number <= 3)).one_or_none()
     try:
         new_operator = User(name=form["name"], 
                             initials=form["initials"], 
