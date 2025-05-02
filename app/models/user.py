@@ -74,6 +74,7 @@ class UserRead(SQLModel):
 class UserFilter(SQLModel):
     role: UserRole
     active: bool
+    shift_id: int
 
 
 class Shift(SQLModel, table=True):

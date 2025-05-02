@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 from app.templates.jinja_functions import templates
-from app.models import User, UserCreate, UserUpdate, UserRead, UserRole, PaymentType
+from app.models import User, UserCreate, UserUpdate, UserRead, UserFilter, UserRole, PaymentType
 from app.models import Shift, ShiftCreate, ShiftUpdate, ShiftRead, ShiftFilter
 from app.models import Machine, MachineCreate, MachineUpdate, MachineRead, MachineFilter
 from app.models import Line, LineCreate, LineUpdate, LineRead, LineFilter
@@ -75,7 +75,7 @@ router = APIRouter()
 generic_extra_context = {"tool_type_id": 1}  # Placeholder; adjust as needed.
 
 # Create generic routers
-users_router = create_generic_router(User, UserRead, UserCreate, UserUpdate, UserRead, "User", {"enum_fields": {"role": UserRole, "payment_type": PaymentType}})
+users_router = create_generic_router(User, UserRead, UserCreate, UserUpdate, UserFilter, "User", {"enum_fields": {"role": UserRole, "payment_type": PaymentType}})
 shift_router = create_generic_router(Shift, ShiftRead, ShiftCreate, ShiftUpdate, ShiftFilter, "Shift")
 machines_router = create_generic_router(Machine, MachineRead, MachineCreate, MachineUpdate, MachineFilter, "Machine")
 lines_router = create_generic_router(Line, LineRead, LineCreate, LineUpdate, LineFilter, "Line")
