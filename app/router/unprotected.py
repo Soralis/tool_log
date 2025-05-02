@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("/usersByShift")
 async def users_by_shift(session: Session = Depends(get_session)):
-    users = session.exec(select(User).where(User.active)).all()
+    users = session.exec(select(User).where(User.active).where(User.shift.has())).all()
     users_by_shift = {}
     active_shift = None
     now = datetime.now().time()
