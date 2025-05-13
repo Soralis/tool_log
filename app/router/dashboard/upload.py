@@ -159,9 +159,27 @@ async def upload_tool_consumption(
     sheet_names: str = Form(None),
     header_row: int = Form(None)
 ):
-    """Handle tool consumption file upload"""
+    """Handle tool consumption file upload
+
+    Returns:
+        dict: A dictionary containing the following keys:
+            - filename (str): The name of the uploaded file.
+            - type (str): The type of the upload, e.g., "tool_consumption".
+            - result (dict): A dictionary with the following keys:
+                - total_records (int): Total number of records processed.
+                - inserted (int): Number of records successfully inserted.
+                - bad_data (int): Number of records with validation errors.
+                - skipped (int): Number of records skipped due to conflicts or other issues.
+    """
     print(f'Processing tool consumption file: {file.filename}')
 
+    # Validate sheet names
+    valid_sheets = await get_excel_sheets(file)
+    if sheet_names:
+        invalid_sheets = [sheet for sheet in sheet_names.split(',') if sheet not in valid_sheets]
+        if invalid_sheets:
+            return {"error": f"Invalid sheet names: {', '.join(invalid_sheets)}"}
+    
     df = await read_excel(file, sheet_names, header_row)
 
     if df is None:
@@ -190,21 +208,21 @@ async def upload_tool_consumption(
             try:
                 user_id = None
                 if row.get('Employee'):
-                    user_number = row['Employee'].split(' ')[0]
+                    user_number = row['Employee'].split('-')[1]
                     user_id = users.get(user_number, None)
                 
                 machine, machine_id = None, None
-                if row.get('Cost Center'):
-                    cost_center = row['Cost Center'].split(' ')[0]
+                if row.get('CostCenter'):
+                    cost_center = str(row['CostCenter'])
                     machine = machines[cost_center]
                     machine_id = machine.id
 
-                tool = tools.get(str(row['CustPartNumber']).upper())
+                tool = tools.get(str(row['CPN']).strip("\n").upper())
                 if tool is None:
                     new_tool = Tool(
-                        number=row['CustPartNumber'].upper(),
-                        manufacturer_name=row['Description'],
-                        name=row['PartDescription2'] if row['PartDescription2'] is not None else row['PartDescription1'],
+                        number=row['CPN'].upper(),
+                        # manufacturer_name=row['Description'], # not in the data yet
+                        name=row['Desc1'],
                         manufacturer_id=manufacturer.id,
                         tool_type_id=tool_type.id
                     )
@@ -236,12 +254,12 @@ async def upload_tool_consumption(
                                 break
 
                 records.append({
-                    'datetime': row['OrderDateTime'],
+                    'datetime': row['TransDate'],
                     'number': row['TransactionId'],
-                    'consumption_type': row['Transaction Type'],
-                    'quantity': row['IssuedQuantity'],
-                    'value': float(row['ExtendedPrice']) if row.get('ExtendedPrice') else 0.0,
-                    'price': float(row['SellPrice']) if row.get('SellPrice') else 0.0,
+                    'consumption_type': "ISSUE", # row['Transaction Type'], # hardcoded for now untill data contains transaction type
+                    'quantity': row['Qty1'],
+                    'value': float(row['ExtValue']) if row.get('ExtValue') and row['ExtValue'] > 0 else tool.price * row['Qty1'],
+                    'price': float(row['ExtValue']) / row["Qty1"] if row.get('ExtValue') and row['ExtValue'] > 0 else tool.price,
                     'user_id': user_id,
                     'machine_id': machine_id,
                     'tool_id': tool.id,
@@ -249,10 +267,10 @@ async def upload_tool_consumption(
                     'tool_position_id': tool_position_id,
                     'workpiece_id': workpiece_id,
                 })
-                tool.price = float(row['SellPrice']) if row.get('SellPrice') else 0.0
+                tool.price = float(row['ExtValue']) / row["Qty1"] if row.get('ExtValue') and row['ExtValue'] > 0 else tool.price
                 if not tool.inventory:
                     tool.inventory = 0
-                tool.inventory -= row['IssuedQuantity']
+                tool.inventory -= row['Qty1']
             except Exception as e:
                 print(e)
 
@@ -268,6 +286,124 @@ async def upload_tool_consumption(
         
 
     return {"filename": file.filename, "type": "tool_consumption", 'result': result}
+
+
+
+# OLD FROM TOM 
+# async def upload_tool_consumption(
+#     file: UploadFile = File(...),
+#     sheet_names: str = Form(None),
+#     header_row: int = Form(None)
+# ):
+#     """Handle tool consumption file upload"""
+#     print(f'Processing tool consumption file: {file.filename}')
+
+#     df = await read_excel(file, sheet_names, header_row)
+
+#     if df is None:
+#         return {"filename": file.filename, "type": "tool_consumption", "error": "Failed to read file"}
+
+#     with Session(engine) as session:
+#         users = session.exec(select(User)).all()
+#         users = {user.number: user.id for user in users}
+
+#         machines = session.exec(select(Machine)).all()
+#         machines = {str(machine.cost_center): machine for machine in machines}
+
+#         tools = session.exec(select(Tool)).all()
+#         tools = {tool.number.upper(): tool for tool in tools}
+
+#         workpieces = session.exec(select(Workpiece)).all()
+#         workpieces = {workpiece.description: workpiece.id for workpiece in workpieces}
+        
+#         manufacturer = session.exec(select(Manufacturer).where(Manufacturer.name=='Undefined')).first()
+#         tool_type = session.exec(select(ToolType).where(ToolType.name=='Undefined')).first()
+
+#         # Prepare all valid records
+#         records = []
+#         result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
+#         for _, row in df.iterrows():
+#             try:
+#                 user_id = None
+#                 if row.get('Employee'):
+#                     user_number = row['Employee'].split(' ')[0]
+#                     user_id = users.get(user_number, None)
+                
+#                 machine, machine_id = None, None
+#                 if row.get('Cost Center'):
+#                     cost_center = row['Cost Center'].split(' ')[0]
+#                     machine = machines[cost_center]
+#                     machine_id = machine.id
+
+#                 tool = tools.get(str(row['CustPartNumber']).upper())
+#                 if tool is None:
+#                     new_tool = Tool(
+#                         number=row['CustPartNumber'].upper(),
+#                         manufacturer_name=row['Description'],
+#                         name=row['PartDescription2'] if row['PartDescription2'] is not None else row['PartDescription1'],
+#                         manufacturer_id=manufacturer.id,
+#                         tool_type_id=tool_type.id
+#                     )
+#                     try:
+#                         session.add(new_tool)
+#                         session.commit()
+#                         session.refresh(new_tool)
+#                         tools[new_tool.number] = new_tool
+#                     except Exception as e:
+#                         print(e)
+#                         tool = None
+#                         session.rollback()
+                                        
+#                 workpiece_id = None
+#                 if row.get('Product'):
+#                     workpiece_id = workpieces.get(row['Product'], None)
+
+#                 recipe_id, tool_position_id = None, None
+
+#                 if machine and tool and workpiece_id:
+#                     for recipe in machine.recipes:
+#                         if recipe.workpiece_id == workpiece_id:
+#                             recipe_id = recipe.id
+#                             for tool_position in recipe.tool_positions:
+#                                 if tool_position.tool_id == tool.id:
+#                                     tool_position_id = tool_position.id
+#                                     break
+#                             if recipe_id:
+#                                 break
+
+#                 records.append({
+#                     'datetime': row['OrderDateTime'],
+#                     'number': row['TransactionId'],
+#                     'consumption_type': row['Transaction Type'],
+#                     'quantity': row['IssuedQuantity'],
+#                     'value': float(row['ExtendedPrice']) if row.get('ExtendedPrice') else 0.0,
+#                     'price': float(row['SellPrice']) if row.get('SellPrice') else 0.0,
+#                     'user_id': user_id,
+#                     'machine_id': machine_id,
+#                     'tool_id': tool.id,
+#                     'recipe_id': recipe_id,
+#                     'tool_position_id': tool_position_id,
+#                     'workpiece_id': workpiece_id,
+#                 })
+#                 tool.price = float(row['SellPrice']) if row.get('SellPrice') else 0.0
+#                 if not tool.inventory:
+#                     tool.inventory = 0
+#                 tool.inventory -= row['IssuedQuantity']
+#             except Exception as e:
+#                 print(e)
+
+#             if len(records) > 100:
+#                 result = await write_to_db(records, ToolConsumption, ToolConsumptionCreate, session, result)
+#                 records = []
+        
+#         # Insert all records in a single operation, ignoring duplicates
+#         if records:
+#             result = await write_to_db(records, ToolConsumption, ToolConsumptionCreate, session, result)
+
+#         session.commit()
+        
+
+#     return {"filename": file.filename, "type": "tool_consumption", 'result': result}
 
 
 @router.post("/parts-produced")
