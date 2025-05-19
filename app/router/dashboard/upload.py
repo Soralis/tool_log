@@ -122,9 +122,51 @@ async def write_to_db(records: list, model, create_model, session: Session, resu
 @router.get("/", response_class=HTMLResponse)
 async def upload_page(request: Request):
     """Render the file upload page"""
+    # Also return the last time data was updated
+    update_dates = {}
+    with Session(engine) as session:
+        # Most recent tool consumption upload
+        last_tool_consumption = session.exec(
+            select(ToolConsumption).order_by(ToolConsumption.datetime.desc())
+        ).first()
+        update_dates['tool_consumption'] = last_tool_consumption.datetime if last_tool_consumption else None
+
+        # Most recent parts production upload
+        last_parts_production = session.exec(
+            select(OrderCompletion).order_by(OrderCompletion.date.desc(), OrderCompletion.time.desc())
+        ).first()
+        if last_parts_production:
+            try:
+                update_dates['parts_produced'] = dt.combine(
+                    last_parts_production.date, last_parts_production.time
+                )
+            except (AttributeError, TypeError):
+                update_dates['parts_produced'] = last_parts_production.date
+        else:
+            update_dates['parts_produced'] = None
+
+        # Most recent tool orders upload
+        last_tool_order = session.exec(
+            select(ToolOrder).order_by(ToolOrder.order_date.desc())
+        ).first()
+        update_dates['tool_orders'] = last_tool_order.order_date if last_tool_order else None
+
+        # Most recent order deliveries upload
+        last_order_delivery = session.exec(
+            select(OrderDelivery).order_by(OrderDelivery.delivery_date.desc())
+        ).first()
+        update_dates['order_deliveries'] = last_order_delivery.delivery_date if last_order_delivery else None
+
+        # Placeholder for uploads without timestamps
+        update_dates['tool_inventory'] = None
+        update_dates['hourly_production'] = None
+
     return templates.TemplateResponse(
         "dashboard/upload.html.j2",
-        {"request": request}
+        {
+            "request": request,
+            'update_dates': update_dates
+        }
     )
 
 @router.post("/preview-sheets")
@@ -212,8 +254,8 @@ async def upload_tool_consumption(
                     user_id = users.get(user_number, None)
                 
                 machine, machine_id = None, None
-                if row.get('CostCenter'):
-                    cost_center = str(row['CostCenter'])
+                if row.get('Cost Center'):
+                    cost_center = str(row['Cost Center'])
                     machine = machines[cost_center]
                     machine_id = machine.id
 
@@ -255,11 +297,11 @@ async def upload_tool_consumption(
 
                 records.append({
                     'datetime': row['TransDate'],
-                    'number': row['TransactionId'],
+                    'number': row['TransactionId'] if row.get('TransactionId') else None,
                     'consumption_type': "ISSUE", # row['Transaction Type'], # hardcoded for now untill data contains transaction type
-                    'quantity': row['Qty1'],
-                    'value': float(row['ExtValue']) if row.get('ExtValue') and row['ExtValue'] > 0 else tool.price * row['Qty1'],
-                    'price': float(row['ExtValue']) / row["Qty1"] if row.get('ExtValue') and row['ExtValue'] > 0 else tool.price,
+                    'quantity': row['Qty'],
+                    'value': float(row['Ext Value']) if row.get('Ext Value') and row['Ext Value'] > 0 else tool.price * row['Qty'],
+                    'price': float(row['Ext Value']) / row["Qty"] if row.get('Ext Value') and row['Ext Value'] > 0 else tool.price,
                     'user_id': user_id,
                     'machine_id': machine_id,
                     'tool_id': tool.id,
@@ -267,10 +309,10 @@ async def upload_tool_consumption(
                     'tool_position_id': tool_position_id,
                     'workpiece_id': workpiece_id,
                 })
-                tool.price = float(row['ExtValue']) / row["Qty1"] if row.get('ExtValue') and row['ExtValue'] > 0 else tool.price
+                tool.price = float(row['Ext Value']) / row["Qty"] if row.get('Ext Value') and row['Ext Value'] > 0 else tool.price
                 if not tool.inventory:
                     tool.inventory = 0
-                tool.inventory -= row['Qty1']
+                tool.inventory -= row['Qty']
             except Exception as e:
                 print(e)
 
@@ -740,4 +782,3 @@ async def upload_production(
 
     result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
     return {"filename": file.filename, "type": "tool_consumption", 'result': result}
-

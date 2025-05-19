@@ -6,7 +6,12 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <!-- Tool Consumption Upload Button -->
     <div class="p-6 bg-slate-800 rounded-lg shadow-md">
-      <h2 class="text-xl font-semibold mb-3">Tool Consumption Data</h2>
+      <h2 class="text-xl font-semibold mb-3">
+        Tool Consumption Data
+        {% if update_dates.tool_consumption %}
+          <span class="ml-2 age-label text-sm" data-timestamp="{{ update_dates.tool_consumption.isoformat() }}"></span>
+        {% endif %}
+      </h2>
       <p class="text-gray-200 mb-4">Upload Excel/CSV files containing tool consumption data.</p>
       <button
         onclick="toggleInstructions('consumption')"
@@ -30,7 +35,12 @@
 
     <!-- Parts Produced Upload Button -->
     <div class="p-6 bg-slate-800 rounded-lg shadow-md">
-      <h2 class="text-xl font-semibold mb-3">Parts Production Data</h2>
+      <h2 class="text-xl font-semibold mb-3">
+        Parts Production Data
+        {% if update_dates.parts_produced %}
+          <span class="ml-2 age-label text-sm" data-timestamp="{{ update_dates.parts_produced.isoformat() }}"></span>
+        {% endif %}
+      </h2>
       <p class="text-gray-200 mb-4">Upload Excel file containing parts production data.</p>
       <button
         onclick="toggleInstructions('production')"
@@ -60,7 +70,12 @@
 
     <!-- Tool Orders Upload Button -->
     <div class="p-6 bg-slate-800 rounded-lg shadow-md">
-      <h2 class="text-xl font-semibold mb-3">Tool Orders</h2>
+      <h2 class="text-xl font-semibold mb-3">
+        Tool Orders
+        {% if update_dates.tool_orders %}
+          <span class="ml-2 age-label text-sm" data-timestamp="{{ update_dates.tool_orders.isoformat() }}"></span>
+        {% endif %}
+      </h2>
       <p class="text-gray-200 mb-4">Upload csv file containing Tool Orders.</p>
       <button
         onclick="toggleInstructions('order')"
@@ -83,7 +98,12 @@
 
     <!-- Order Delivery Upload Button -->
     <div class="p-6 bg-slate-800 rounded-lg shadow-md">
-      <h2 class="text-xl font-semibold mb-3">Order Deliveries</h2>
+      <h2 class="text-xl font-semibold mb-3">
+        Order Deliveries
+        {% if update_dates.order_deliveries %}
+          <span class="ml-2 age-label text-sm" data-timestamp="{{ update_dates.order_deliveries.isoformat() }}"></span>
+        {% endif %}
+      </h2>
       <p class="text-gray-200 mb-4">Upload csv file containing Tool Order Deliveries.</p>
       <button
         onclick="toggleInstructions('delivery')"
@@ -106,7 +126,12 @@
 
     <!-- Tool Inventory Upload Button -->
     <div class="p-6 bg-slate-800 rounded-lg shadow-md">
-      <h2 class="text-xl font-semibold mb-3">Tool Inventory</h2>
+      <h2 class="text-xl font-semibold mb-3">
+        Tool Inventory
+        {% if update_dates.tool_inventory %}
+          <span class="ml-2 age-label text-sm" data-timestamp="{{ update_dates.tool_inventory.isoformat() }}"></span>
+        {% endif %}
+      </h2>
       <p class="text-gray-200 mb-4">Upload csv file containing Tool Inventory.</p>
       <button
         onclick="toggleInstructions('inventory')"
@@ -129,7 +154,12 @@
 
     <!-- Hourly Production Upload Button -->
     <div class="p-6 bg-slate-800 rounded-lg shadow-md">
-      <h2 class="text-xl font-semibold mb-3">Hourly Production</h2>
+      <h2 class="text-xl font-semibold mb-3">
+        Hourly Production
+        {% if update_dates.hourly_production %}
+          <span class="ml-2 age-label text-sm" data-timestamp="{{ update_dates.hourly_production.isoformat() }}"></span>
+        {% endif %}
+      </h2>
       <p class="text-gray-200 mb-4">Upload excel file containing hourly Production Data.</p>
       <button
         onclick="toggleInstructions('hourlyProduction')"
@@ -486,5 +516,34 @@
       closeUploadModal();
     }
   });
+
+  // Age label formatting
+  function updateAgeLabels() {
+    document.querySelectorAll('.age-label').forEach(el => {
+      const ts = el.dataset.timestamp;
+      const date = new Date(ts);
+      const now = new Date();
+      const diffMs = now - date;
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      console.log(ts, date, now, diffMs, days)
+      let text;
+      if (days <= 0) {
+        text = 'today';
+      } else if (days === 1) {
+        text = 'yesterday';
+      } else {
+        text = days + ` days ago (${date.toDateString()})`;
+      }
+      el.textContent = text;
+      if (days < 7) {
+        el.classList.add('text-green-400');
+      } else if (days < 30) {
+        el.classList.add('text-yellow-400');
+      } else {
+        el.classList.add('text-red-400');
+      }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', updateAgeLabels);
 </script>
 {% endblock %}
