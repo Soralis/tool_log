@@ -195,6 +195,21 @@
         function hardReload() {
             location.reload(true);
         }
+    // Idle logout timer
+    (function() {
+      let idleTimeout;
+      const logoutUrl = '/login';
+      function resetTimer() {
+        clearTimeout(idleTimeout);
+        idleTimeout = setTimeout(() => {
+          window.location.href = logoutUrl;
+        }, 5 * 60 * 1000);
+      }
+      ['mousemove', 'keydown', 'click', 'touchstart'].forEach(evt =>
+        document.addEventListener(evt, resetTimer, true)
+      );
+      resetTimer();
+    })();
     </script>
 
     {% block extra_head %}{% endblock %}
