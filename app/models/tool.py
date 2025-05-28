@@ -2,7 +2,7 @@ from typing import Optional, List, Dict, TYPE_CHECKING
 from .tool_type import Sentiment
 from pydantic import field_validator
 from sqlmodel import Field, SQLModel, Relationship, Column, JSON
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import UniqueConstraint, event
 from datetime import datetime as dt
 from decimal import Decimal
 from .model_connections import RecipeTool
@@ -305,3 +305,14 @@ class ToolConsumptionCreate(SQLModel):
     tool_position_id: Optional[int]
     user_id: Optional[int]
     workpiece_id: Optional[int]
+
+# Recalculate delivered and fulfilled before insert/update and on relationship change
+@event.listens_for(ToolOrder, "before_insert")
+@event.listens_for(ToolOrder, "before_update")
+def _sync_delivered_and_fulfilled(mapper, connection, target: ToolOrder):
+    target.calculate_delivered_amount()
+
+@event.listens_for(ToolOrder.deliveries, "append")
+@event.listens_for(ToolOrder.deliveries, "remove")
+def _on_delivery_change(target: ToolOrder, value: OrderDelivery, initiator):
+    target.calculate_delivered_amount()
