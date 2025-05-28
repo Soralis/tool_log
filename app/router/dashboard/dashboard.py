@@ -157,6 +157,7 @@ async def low_inventory(request: Request, db: Session = Depends(get_session)):
                             select(Tool)
                             .where(Tool.id.in_(tool_ids))
                             .where(Tool.stop_order == False)
+                            .where(Tool.recipes.any())
                         ).all()
 
     tools = {tool.id: 
@@ -176,7 +177,7 @@ async def low_inventory(request: Request, db: Session = Depends(get_session)):
         if tool_id not in tools:
             continue
         avg_consumption = sum(weeks.values()) / len(weeks)
-        tools[tool_id]['weekly_usage'] = avg_consumption
+        tools[tool_id]['weekly_usage'] = round(avg_consumption, 1)
         tools[tool_id]['supply'] = round(tools[tool_id]['inventory'] / avg_consumption, 1)
 
     orders: list[ToolOrder] = db.exec(
