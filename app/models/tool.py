@@ -109,7 +109,7 @@ class ToolOrder(ToolOrderBase, table=True):
     def calculate_delivered_amount(self) -> int:
         delivered = sum(delivery.quantity for delivery in self.deliveries)
         self.delivered = delivered
-        if delivered == self.quantity:
+        if delivered >= self.quantity:
             self.fulfilled = True
         else:
             self.fulfilled = False
