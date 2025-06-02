@@ -1,9 +1,9 @@
 <div id="toolLifeDetailsModal" class="fixed inset-0 bg-gray-900/95 hidden z-[9999] overflow-y-auto">
-    <div class="min-h-screen p-4" id="modalBackdrop">
+    <div class="min-h-screen p-1 md:p-4" id="modalBackdrop">
         <div class="flex items-center justify-center">
             <div class="relative w-full max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-xl max-h-[90vh] flex flex-col" id="modalContent">
                 <!-- Modal header -->
-                <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                <div class="flex justify-between items-center p-1 md:p-4 border-b border-gray-700">
                     <h2 class="text-2xl font-bold" id="modalTitle">Tool Details</h2>
                     <button onclick="closeToolModal()" class="text-gray-400 hover:text-white">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -12,7 +12,7 @@
                     </button>
                 </div>
                 <!-- Modal content -->
-                <div class="p-4 overflow-y-auto flex-grow">
+                <div class="p-1 md:p-4 overflow-y-auto flex-grow">
                     <div id="modalGrid" class="grid grid-cols-12 auto-rows-[minmax(200px,auto)]">
                         <!-- Content will be dynamically populated -->
                         <div class="col-span-12 flex items-center justify-center text-gray-400">
@@ -31,6 +31,7 @@
 <div class="hidden">
     <h1>We need to include all classes we might just build for the tailwind css JIT to include it in the style.css</h1>
     <div class="col-span-1 col-span-2 col-span-3 col-span-4 col-span-5 col-span-6 col-span-7 col-span-8 col-span-9 col-span-10 col-span-11 col-span-12">
+    <div class="md:col-span-1 md:col-span-2 md:col-span-3 md:col-span-4 md:col-span-5 md:col-span-6 md:col-span-7 md:col-span-8 md:col-span-9 md:col-span-10 md:col-span-11 md:col-span-12"></div>
     </div>
 </div>
 
@@ -101,11 +102,15 @@ document.addEventListener('DOMContentLoaded', initModal);
 function createCard(card) {
     const cardElement = document.createElement('div');
     cardElement.id = card.id;
-    cardElement.className = `col-span-${card.width} row-span-${card.height} bg-gray-800 rounded-lg p-4`;
+    cardElement.className = `col-span-12 md:col-span-${card.width} bg-gray-800 rounded-lg p-1 md:p-4`;
+    console.log(`card`, card.type);
+    if (card.type == 'graph') {
+        cardElement.classList.add(`row-span-${card.height}`); 
+    }
     
     // Add card title
     const titleElement = document.createElement('h3');
-    titleElement.className = 'text-lg font-medium mb-4';
+    titleElement.className = 'md:text-lg font-medium mb-4';
     titleElement.textContent = card.title;
     cardElement.appendChild(titleElement);
     
@@ -129,7 +134,7 @@ function createCard(card) {
         setTimeout(() => { chart.resize(); }, 300);
 
     } else {
-        contentElement.className = 'text-sm space-y-2';
+        contentElement.className = 'md:text-sm space-y-2';
         card.data.forEach(stat => {
             const statRow = document.createElement('div');
             statRow.className = 'flex justify-between items-center border-b border-gray-700 pb-2';
