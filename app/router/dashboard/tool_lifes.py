@@ -6,8 +6,9 @@ from collections import defaultdict
 from app.templates.jinja_functions import templates
 from datetime import datetime
 from sqlmodel import Session, select
+import locale
 from app.database_config import get_session
-from app.models import Tool, ToolLife, Recipe, Machine, ToolPosition
+from app.models import Tool, ToolLife, Recipe, Machine, ToolPosition, ToolConsumption
 from typing import Dict, List, Optional
 from .utils import get_condensed_data
 from . import tool_lifes_cards as tc
@@ -209,6 +210,7 @@ async def get_tool_details(
     # Get tool life records with date filtering
     statement = select(ToolLife).where(ToolLife.tool_id == tool_id)
     if start_date:
+        start_date = start_date.replace(tzinfo=None)
         statement = statement.where(ToolLife.timestamp >= start_date)
     if end_date:
         statement = statement.where(ToolLife.timestamp <= end_date)
@@ -222,7 +224,19 @@ async def get_tool_details(
         )
     statement = statement.order_by(ToolLife.timestamp.asc())
     tool_life_records = db.exec(statement).all()
-    # tool_life_records.reverse()  # Chronological order
+
+    # sum up the consumption values for the tool in the database
+    consumption_records = db.exec(
+        select(ToolConsumption)
+        .where(ToolConsumption.tool_id == tool_id)
+        .where(ToolConsumption.datetime >= start_date if start_date else datetime.min)
+        .where(ToolConsumption.datetime <= end_date if end_date else datetime.max)
+    ).all()
+
+    consumption_value = sum([consumption.value for consumption in consumption_records])
+    consumption_quantity = sum([consumption.quantity for consumption in consumption_records])
+
+    timeframe_in_days = (end_date - start_date).days if start_date and end_date else 0
 
     # Define cards for the modal
     details = {
@@ -287,7 +301,6 @@ async def get_tool_details(
                                     """} for life in channel_data],
                 }
 
-                
                 for record in channel_data:
                     change_reason = record.change_reason.name if record.change_reason else "N/A"
                     if change_reason not in change_reasons:
@@ -301,7 +314,6 @@ async def get_tool_details(
 
                 tool_position: ToolPosition = next((record.tool_position for record in channel_data if record.tool_position), [] )
 
-                expected_life = []
                 tools_per_life = []
 
                 for t_life in tool_position.tool_lifes:
@@ -371,6 +383,10 @@ async def get_tool_details(
         ["Average Life", avg_life],
         ["Median Life", round(median(tool_lifes)) if len(tool_lifes) > 0 else 0],
         ["CPU", f"${round(tool.price / tool.max_uses / avg_life, 2)}"],
+        ["Used Tools", f"{consumption_quantity}"],
+        ["Reported Tools", f"{len(tool_life_records)} ({len(tool_life_records) / consumption_quantity * 100:.1f}%)"],
+        ["Spent", f"{locale.currency(round(consumption_value, 2), grouping=True )}"],
+        ["Yearly Spend", f"{locale.currency(round(consumption_value / timeframe_in_days * 365, 2), grouping=True )}"],
     ]))  
 
     ### Basic Tool Details
