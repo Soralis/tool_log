@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', initModal);
 function createCard(card) {
     const cardElement = document.createElement('div');
     cardElement.id = card.id;
-    cardElement.className = `col-span-12 md:col-span-${card.width} bg-gray-800 rounded-lg p-1 md:p-4`;
+    cardElement.className = `col-span-12 md:col-span-${card.width} md:row-span-${card.height} bg-gray-800 rounded-lg p-1 md:p-4`;
     console.log(`card`, card.type);
     if (card.type == 'graph') {
         cardElement.classList.add(`row-span-${card.height}`); 
