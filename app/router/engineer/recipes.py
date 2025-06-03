@@ -166,6 +166,7 @@ async def get_recipe(recipe_id: int,
             "tool_id": tp.tool_id,
             "tool_count": tp.tool_count,
             "expected_life": tp.expected_life,
+            "min_life": tp.min_life,
             "tool_settings": tp.tool_settings,
             'tool_attributes': tool_attributes,
             "selected": tp.selected

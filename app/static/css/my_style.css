@@ -88,7 +88,7 @@ nav a.active {
     height: 100%;
     overflow: auto;
     background-color: rgba(0,0,0,0.6);
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     display: flex; 
     padding-right: 20px;
@@ -866,8 +866,9 @@ textarea {
 #toast-container {
     position: fixed;
     top: 20px; /* Adjust as needed */
-    left: 50%;
-    transform: translateX(-50%);
+    left: 10%;
+    right: 10%;
+    /* transform: translateX(-10%); */
     z-index: 1005; /* Ensure it's on top */
   }
   
@@ -892,6 +893,11 @@ textarea {
   
   .toast.error {
     background-color: #f44336;
+    color: white;
+  }
+
+  .toast.warning {
+    background-color: #a86c12;
     color: white;
   }
 
@@ -1200,4 +1206,3 @@ textarea {
         height: 50px;
     }
 }
-

@@ -46,6 +46,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let measureToolLife = false; // Track if the selected machine measures tool life
     let stepButtons = {}; // Store buttons for each step
     let currentRecipeName = ''; // Store the current recipe name
+    let selectedToolMinLife = null; // Store min_life for the selected tool position
+    let minLifeWarningShown = false; // Track if the minimum tool life warning has been shown for the current input
 
     // Function to check if current step has input fields and if they all have values
     function currentStepHasInputs() {
@@ -226,6 +228,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.textContent = position.name;
                 button.className = 'px-4 py-8 m-2 bg-blue-700 text-3xl font-bold text-white rounded w-full';
                 button.setAttribute('data-value', position.id);
+                console.log('tool position min life: ', position.min_life)
+                if (position.min_life !== null) {
+                    button.setAttribute('data-min-life', position.min_life);
+                    selectedToolMinLife = position.min_life; // Store the min_life for the first position
+                }
                 button.addEventListener('click', (e) => handleToolPositionClick(e, position.id));
                 toolPositionButtons.appendChild(button);
             });
@@ -256,6 +263,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     formData['reached_life'] = value;
                     formDisplayData['reached_life'] = value;
                     e.target.setCustomValidity('');
+                    // Reset warning flag on input change
+                    minLifeWarningShown = false;
                 } else {
                     e.target.setCustomValidity('Please enter a positive integer');
                 }
@@ -392,6 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.target.classList.add('bg-green-500');
         formData['tool_position_id'] = toolPositionId;
         formDisplayData['tool_position_id'] = e.target.textContent;
+        selectedToolMinLife = e.target.getAttribute('data-min-life'); // Store min_life
 
         fetch(`/operator/tool_life/change-reasons?tool_position_id=${toolPositionId}`)
             .then(response => response.json())
@@ -515,6 +525,24 @@ document.addEventListener('DOMContentLoaded', function() {
     nextBtn.addEventListener('click', () => {
         if (currentStepHasInputs() && !validateCurrentStepInputs()) {
             return; // Don't proceed if inputs are not valid
+        }
+
+        // Specific logic for Step 4 (Reached Life)
+        const reachedLifeStepNumber = measureToolLife ? 4 : -1; // Determine step number for reached_life
+        if (currentStep === reachedLifeStepNumber) {
+            const reachedLifeInput = document.querySelector(`.step[data-step="${currentStep}"] input[name="reached_life"]`);
+            if (reachedLifeInput && selectedToolMinLife !== null) {
+                const reachedLifeValue = parseInt(reachedLifeInput.value);
+                const minLifeValue = parseInt(selectedToolMinLife);
+
+                if (reachedLifeValue < minLifeValue && !minLifeWarningShown) {
+                    showToast(`Warning: Reached life ${reachedLifeValue} is below the minimum life ${minLifeValue} for this tool position. Tap 'Next' again to proceed anyway.`, 'warning');
+                    minLifeWarningShown = true;
+                    return; // Prevent proceeding on first click
+                } else {
+                    minLifeWarningShown = false; // Reset for subsequent valid inputs or next steps
+                }
+            }
         }
         goToNextStep();
     });

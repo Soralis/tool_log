@@ -128,6 +128,12 @@ class RecipeManager {
     }
 
     showToolPositionForm(positionName = '', toolData = null) {
+        // Remove any existing ToolPositionId input to prevent stale IDs
+        const existingIdInput = document.getElementById(this.prefix + 'ToolPositionId');
+        if (existingIdInput) {
+            existingIdInput.remove();
+        }
+
         // Reset and prepare form
         this.toolPositionForm.reset();
         document.getElementById(this.prefix + 'ToolSettings').innerHTML = '';
@@ -161,6 +167,7 @@ class RecipeManager {
             toolSelect.dispatchEvent(new Event('change'));
 
             document.getElementById(this.prefix + 'ExpectedLife').value = toolData.expected_life;
+            document.getElementById(this.prefix + 'MinLife').value = toolData.min_life;
             document.getElementById(this.prefix + 'ToolCount').value = toolData.tool_count;
             
             // Store the tool position ID if it exists
@@ -175,7 +182,9 @@ class RecipeManager {
             // Set tool settings after they're created by the change event
             setTimeout(() => {
                 Object.entries(toolData.tool_settings).forEach(([name, value]) => {
-                    const input = document.querySelector(`#${this.prefix}_${name}`);
+                    // Replace spaces in the name to match the ID created in the change event listener
+                    const inputId = `${this.prefix}_${name.replace(/\s/g, '_')}`;
+                    const input = document.querySelector(`#${inputId}`);
                     if (input) input.value = value;
                 });
             }, 0);
@@ -190,7 +199,10 @@ class RecipeManager {
     initializeEventListeners() {
         // Close buttons
         this.recipeModal.querySelector('.close').onclick = () => this.recipeModal.classList.remove('active');
-        this.toolPositionModal.querySelector('.close').onclick = () => this.toolPositionModal.classList.remove('active');
+        this.toolPositionModal.querySelector('.close').onclick = () => {
+            this.toolPositionModal.classList.remove('active');
+            this.currentEditIndex = null; // Reset edit index on close
+        };
 
         // Add tool position button (main)
         this.addToolPositionBtn.onclick = () => this.showToolPositionForm();
@@ -214,8 +226,8 @@ class RecipeManager {
                 tool.settings.forEach(attr => {
                     const attrDiv = document.createElement('div');
                     attrDiv.innerHTML = `
-                        <label for="${this.prefix}_${attr.name}">${attr.name} (${attr.unit}):</label>
-                        <input type="number" step="any" id="${this.prefix}_${attr.name}" name="${attr.name}" required>
+                        <label for="${this.prefix}_${attr.name.replace(/\s/g, '_')}">${attr.name} (${attr.unit}):</label>
+                        <input type="number" step="any" id="${this.prefix}_${attr.name.replace(/\s/g, '_')}" name="${attr.name}" required>
                     `;
                     toolSettingsDiv.appendChild(attrDiv);
                 });
@@ -243,45 +255,70 @@ class RecipeManager {
 
             // Get the tool position ID if it exists
             const idInput = document.getElementById(this.prefix + 'ToolPositionId');
-            const toolPositionId = idInput ? idInput.value : null;
+            let toolPositionId = idInput ? idInput.value : null;
+            if (toolPositionId !== null) {
+                toolPositionId = parseInt(toolPositionId); // Ensure it's an integer
+            }
 
             const select = group.querySelector('.tool-select');
-            
+            const selectedTool = this.toolsData[toolSelect.value]; // Declare selectedTool here
+
+            // Create the updated/new tool position data
+            const newToolPositionData = {
+                id: toolPositionId,
+                name: positionName, // Add name here for consistency
+                tool_id: parseInt(toolSelect.value),
+                tool_name: toolName,
+                tool_count: parseInt(e.target.tool_count.value),
+                expected_life: parseInt(e.target.expected_life.value),
+                min_life: parseInt(e.target.min_life.value),
+                tool_settings: settings,
+                tool_attributes: selectedTool.attributes,
+                active: true, // New/edited item is always active
+                selected: true // Mark as selected for immediate display
+            };
+
+            // Get all current options from the select, excluding the "Select Active Tool Position" option
+            let currentOptionsData = Array.from(select.options)
+                .filter(option => option.value) // Filter out empty option
+                .map(option => JSON.parse(option.value));
+
             if (this.currentEditIndex !== null) {
-                // Update existing option
-                const wasSelected = select.selectedIndex === this.currentEditIndex;
-                const selectedTool = this.toolsData[toolSelect.value];
-                const newValue = JSON.stringify({
-                    id: toolPositionId,
-                    tool_id: toolSelect.value,
-                    tool_count: parseInt(e.target.tool_count.value),
-                    expected_life: parseInt(e.target.expected_life.value),
-                    tool_settings: settings,
-                    tool_attributes: selectedTool.attributes
-                });
-                
-                select.options[this.currentEditIndex].value = newValue;
-                select.options[this.currentEditIndex].textContent = `${toolName} (Life: ${e.target.expected_life.value})`;
-                
-                if (wasSelected) {
-                    select.value = newValue;
-                    this.handleToolPositionChange(select);
+                // Update existing entry in currentOptionsData
+                // Find the entry by ID and replace it
+                const indexToUpdate = currentOptionsData.findIndex(item => item.id === toolPositionId);
+                if (indexToUpdate !== -1) {
+                    currentOptionsData[indexToUpdate] = newToolPositionData;
+                } else {
+                    // If not found (shouldn't happen for edit), add it
+                    currentOptionsData.push(newToolPositionData);
                 }
             } else {
-                // Add new option
-                const selectedTool = this.toolsData[toolSelect.value];
-                this.addToolPositionToGroup(group, {
-                    id: toolPositionId,
-                    name: positionName,
-                    tool_id: toolSelect.value,
-                    tool_name: toolName,
-                    tool_count: parseInt(e.target.tool_count.value),
-                    expected_life: parseInt(e.target.expected_life.value),
-                    tool_settings: settings,
-                    tool_attributes: selectedTool.attributes,
-                    selected: false
-                });
+                // Add new entry to currentOptionsData
+                currentOptionsData.push(newToolPositionData);
             }
+
+            // Clear existing options in the select dropdown
+            select.innerHTML = '<option value="">Select Active Tool Position</option>';
+
+            // Re-add all updated options to the select dropdown
+            currentOptionsData.forEach(data => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify(data);
+                let label = `${data.tool_name} (Life: ${data.expected_life})`;
+                if (data.active === false) {
+                    label = `(INACTIVE) ${label}`;
+                    option.style.color = '#888';
+                }
+                option.textContent = label;
+                select.appendChild(option);
+                if (data.selected) {
+                    select.value = option.value;
+                }
+            });
+
+            // Trigger change event to update details display
+            select.dispatchEvent(new Event('change'));
 
             this.toolPositionModal.classList.remove('active');
             this.toolPositionForm.reset();
@@ -378,6 +415,7 @@ class RecipeManager {
             tool_id: toolPosition.tool_id,
             tool_count: toolPosition.tool_count,
             expected_life: toolPosition.expected_life,
+            min_life: toolPosition.min_life,
             tool_settings: toolPosition.tool_settings,
             tool_attributes: toolPosition.tool_attributes,
             active: toolPosition.active !== false
@@ -406,6 +444,7 @@ class RecipeManager {
                 <div class="grid grid-cols-2 max-w-full">
                     <div>
                         <p>Expected Life: ${data.expected_life} (${data.tool_count} units)</p>
+                        <p>Minimum Life: ${data.min_life}</p>
                         ${Object.entries(data.tool_settings).map(([name, value]) => {
                             const sett = tool.settings.find(a => a.name === name);
                             return `<p class="tool-setting">${name}: ${value} ${sett ? sett.unit : ''}</p>`;
@@ -438,7 +477,6 @@ class RecipeManager {
         const group = button.closest('.tool-position-group');
         const select = group.querySelector('.tool-select');
         const data = JSON.parse(select.value);
-        console.log('222', data)
         
         // Store the current edit index
         this.currentEditIndex = Array.from(select.options).indexOf(select.selectedOptions[0]);
@@ -448,6 +486,7 @@ class RecipeManager {
             tool_id: data.tool_id,
             tool_count: data.tool_count,
             expected_life: data.expected_life,
+            min_life: data.min_life,
             tool_settings: data.tool_settings,
             tool_attributes: data.tool_attributes
         });
@@ -484,6 +523,7 @@ class RecipeManager {
                         tool_id: data.tool_id,
                         tool_count: data.tool_count,
                         expected_life: data.expected_life,
+                        min_life: data.min_life,
                         tool_settings: data.tool_settings,
                         tool_attributes: data.tool_attributes,
                         active: isSelected ? true : data.active,
@@ -526,6 +566,7 @@ class RecipeManager {
                         tool_name: tool ? tool.name : 'Unknown Tool',
                         tool_count: tp.tool_count,
                         expected_life: tp.expected_life,
+                        min_life: tp.min_life,
                         tool_settings: tp.tool_settings,
                         tool_attributes: tp.tool_attributes || (tool ? tool.attributes : {}),
                         active: tp.active,
