@@ -496,14 +496,18 @@
           document.getElementById('uploadButton').classList.remove('cursor-not-allowed');
           const data = await response.json();
           const stats = data.result;
-          messageDiv.textContent = `File "${data.filename}" uploaded successfully! Processed ${stats.total_records} records (${stats.inserted} inserted, ${stats.skipped} duplicates skipped, ${stats.bad_data} rejected due to invalid data)`;
-          messageDiv.classList.remove('bg-yellow-100', 'border-yellow-400', 'text-yellow-700');
+          messageDiv.textContent = `File "${data.filename}" uploaded successfully! Processed ${stats.total_records} records (${stats.inserted} inserted, ${stats.skipped} duplicates skipped, ${stats.bad_data} rejected due to invalid data (${stats.errors.join(', ')}))`;
+          messageDiv.classList.remove('bg-yellow-100', 'border-yellow-400', 'text-yellow-700', 'bg-red-100', 'border-red-400', 'text-red-700');
           messageDiv.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
         } else {
-          throw new Error('Upload failed');
+          const data = await response.json();
+          messageDiv.textContent = data.error;
+          messageDiv.classList.remove('bg-yellow-100', 'border-yellow-400', 'text-yellow-700', 'bg-green-100', 'border-green-400', 'text-green-700');
+          messageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
         }
       } catch (error) {
-        messageDiv.textContent = 'Upload failed. Please try again.';
+        console.log('Upload error:', error);
+        messageDiv.textContent = `${error}`;
         messageDiv.classList.remove('bg-yellow-100', 'border-yellow-400', 'text-yellow-700');
         messageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
       }

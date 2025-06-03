@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, File, UploadFile, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from sqlmodel import Session, select
 from sqlalchemy.dialects.postgresql import insert
@@ -81,7 +81,7 @@ async def read_excel(file: UploadFile, sheet_names: str = None, header_row: int 
             print("Warning: Invalid header row specified")
             continue
 
-        df.dropna(axis=1, thresh=3, inplace=True)
+        # df.dropna(axis=1, thresh=3, inplace=True)
         dfs.append(df)
 
     final_df = pd.concat(dfs) if dfs else None
@@ -102,6 +102,7 @@ async def write_to_db(records: list, model, create_model, session: Session, resu
             print(f"Data validation error: {e}")
             result['bad_data'] += 1
             result['total_records'] += 1
+            result['errors'].append(str(e))
             continue
 
     if valid_records:
@@ -200,7 +201,7 @@ async def upload_tool_consumption(
     file: UploadFile = File(...),
     sheet_names: str = Form(None),
     header_row: int = Form(None)
-):
+)-> JSONResponse:
     """Handle tool consumption file upload
 
     Returns:
@@ -220,12 +221,31 @@ async def upload_tool_consumption(
     if sheet_names:
         invalid_sheets = [sheet for sheet in sheet_names.split(',') if sheet not in valid_sheets]
         if invalid_sheets:
-            return {"error": f"Invalid sheet names: {', '.join(invalid_sheets)}"}
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"Invalid sheet names: {', '.join(invalid_sheets)}"}
+            )
     
     df = await read_excel(file, sheet_names, header_row)
 
     if df is None:
-        return {"filename": file.filename, "type": "tool_consumption", "error": "Failed to read file"}
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Unsupported file type or failed to read file"}
+        )
+        # return {"filename": file.filename, "type": "tool_consumption", "error": "Failed to read file"}
+    
+    necessary_columns = ['TransDate', 'Qty', 'ExtValue', 'CPN', 'Desc1', 'Employee', 'CostCenter'] # , 'Transaction Type', 'Product'
+    missing_columns = [col for col in necessary_columns if col not in df.columns]
+    if missing_columns:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": f"Missing required columns: {', '.join(missing_columns)}",
+                "filename": file.filename,
+                "type": "tool_consumption"
+            }
+        )
 
     with Session(engine) as session:
         users = session.exec(select(User)).all()
@@ -245,17 +265,20 @@ async def upload_tool_consumption(
 
         # Prepare all valid records
         records = []
-        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
+        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0, 'errors': []}
         for _, row in df.iterrows():
             try:
                 user_id = None
                 if row.get('Employee'):
-                    user_number = row['Employee'].split('-')[1]
+                    try:
+                        user_number = row['Employee'].split('-')[1]
+                    except IndexError:
+                        user_number = None
                     user_id = users.get(user_number, None)
                 
                 machine, machine_id = None, None
-                if row.get('Cost Center'):
-                    cost_center = str(row['Cost Center'])
+                if row.get('CostCenter'):
+                    cost_center = str(row['CostCenter'])
                     machine = machines[cost_center]
                     machine_id = machine.id
 
@@ -300,8 +323,8 @@ async def upload_tool_consumption(
                     'number': row['TransactionId'] if row.get('TransactionId') else None,
                     'consumption_type': "ISSUE", # row['Transaction Type'], # hardcoded for now untill data contains transaction type
                     'quantity': row['Qty'],
-                    'value': float(row['Ext Value']) if row.get('Ext Value') and row['Ext Value'] > 0 else tool.price * row['Qty'],
-                    'price': float(row['Ext Value']) / row["Qty"] if row.get('Ext Value') and row['Ext Value'] > 0 else tool.price,
+                    'value': float(row['ExtValue']) if row.get('ExtValue') and row['ExtValue'] > 0 else tool.price * row['Qty'],
+                    'price': float(row['ExtValue']) / row["Qty"] if row.get('ExtValue') and row['ExtValue'] > 0 else tool.price,
                     'user_id': user_id,
                     'machine_id': machine_id,
                     'tool_id': tool.id,
@@ -309,12 +332,14 @@ async def upload_tool_consumption(
                     'tool_position_id': tool_position_id,
                     'workpiece_id': workpiece_id,
                 })
-                tool.price = float(row['Ext Value']) / row["Qty"] if row.get('Ext Value') and row['Ext Value'] > 0 else tool.price
+                tool.price = float(row['ExtValue']) / row["Qty"] if row.get('ExtValue') and row['ExtValue'] > 0 else tool.price
                 if not tool.inventory:
                     tool.inventory = 0
                 tool.inventory -= row['Qty']
             except Exception as e:
                 print(e)
+                result['bad_data'] += 1
+                result['errors'].append(str(e))
 
             if len(records) > 100:
                 result = await write_to_db(records, ToolConsumption, ToolConsumptionCreate, session, result)
@@ -327,7 +352,10 @@ async def upload_tool_consumption(
         session.commit()
         
 
-    return {"filename": file.filename, "type": "tool_consumption", 'result': result}
+    return JSONResponse(
+        content={"filename": file.filename, "type": "tool_consumption", 'result': result},
+        status_code=200
+    )
 
 
 @router.post("/parts-produced")
@@ -335,14 +363,17 @@ async def upload_parts_produced(
     file: UploadFile = File(...),
     sheet_names: str = Form(None),
     header_row: int = Form(None)
-):
+) -> JSONResponse:
     """Handle parts production file upload"""
     print(f'Processing parts production file: {file.filename}')
 
     df = await read_excel(file, sheet_names, header_row)
 
     if df is None:
-        return {"filename": file.filename, "type": "parts_produced", "error": "Unsupported file type"}
+        return JSONResponse(
+            content={"filename": file.filename, "type": "parts_produced", "error": "Failed to read file"},
+            status_code=400
+        )
         
     with Session(engine) as session:
         # users = session.exec(select(User)).all()
@@ -351,7 +382,7 @@ async def upload_parts_produced(
         
         # Prepare all valid records
         records = []
-        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
+        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0, 'errors': []}
         for _, row in df.iterrows():
             try:
                 records.append({
@@ -368,6 +399,9 @@ async def upload_parts_produced(
                 })
             except Exception as e:
                 print(e)
+                result['bad_data'] += 1
+                result['errors'].append(str(e))
+                result['total_records'] += 1
 
             if len(records) > 100:
                 result = await write_to_db(records, OrderCompletion, OrderCompletionCreate, session, result)
@@ -377,7 +411,10 @@ async def upload_parts_produced(
         if records:
             result = await write_to_db(records, OrderCompletion, OrderCompletionCreate, session, result)
 
-    return {"filename": file.filename, "type": "parts_produced", 'result': result}
+    return JSONResponse(
+        content={"filename": file.filename, "type": "parts_produced", 'result': result},
+        status_code=200
+    )
 
 
 @router.post("/tool-orders")
@@ -385,14 +422,33 @@ async def upload_tool_orders(
     file: UploadFile = File(...),
     sheet_names: str = Form(None),
     header_row: int = Form(None)
-):
+) -> JSONResponse:
     """Handle tool orders file upload"""
     print(f'Processing tool orders file: {file.filename}')
 
     df = await read_excel(file, sheet_names, header_row)
 
     if df is None:
-        return {"filename": file.filename, "type": "tool_order", "error": "Failed to read file"}
+        return JSONResponse(
+            content={"filename": file.filename, "type": "tool_order", "error": "Failed to read file"},
+            status_code=400
+        )
+    
+    necessary_columns = [
+        'PONumber', 'POLine', 'POSuffix', 'OrderQty', 'DueDate', 
+        'OrderDate', 'custpart', 'c_description', 'c_description1', 
+        'VendorNumber', 'VendorName', 'OpenCost', 'TotalCost'
+    ]
+    missing_columns = [col for col in necessary_columns if col not in df.columns]
+    if missing_columns:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": f"Missing required columns: {', '.join(missing_columns)}",
+                "filename": file.filename,
+                "type": "tool_order"
+            }
+        )
 
     with Session(engine) as session:
         tools = session.exec(select(Tool)).all()
@@ -405,7 +461,7 @@ async def upload_tool_orders(
         
         # Prepare all valid records
         records = []
-        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
+        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0, 'errors': []}
 
         for _, row in df.iterrows():
             if not row.get('OrderQty', False):
@@ -429,13 +485,14 @@ async def upload_tool_orders(
                         print(e)
                         manufacturer_id = manufacturers['000000'] # default value if manufacturer is not found
                         result['bad_data'] += 1
+                        result['errors'].append(str(e))
                         session.rollback()
 
                 if not tool_id:
                     new_tool = Tool(
                         number=str(row['custpart']).upper(),
-                        manufacturer_name=f"{row['c_description']} - {row['Textbox18']}",
-                        name=f"{row['c_description']} - {row['Textbox18']}",
+                        manufacturer_name=f"{row['c_description']} - {row['c_description1']}",
+                        name=f"{row['c_description']} - {row['c_description1']}",
                         manufacturer_id=manufacturer_id,
                         tool_type_id=unknown_tool_type.id
                     )
@@ -449,6 +506,7 @@ async def upload_tool_orders(
                         print(e)
                         tool_id = None
                         result['bad_data'] += 1
+                        result['errors'].append(str(e))
                         session.rollback()
                         continue
 
@@ -474,7 +532,10 @@ async def upload_tool_orders(
         if records:
             result = await write_to_db(records, ToolOrder, ToolOrderCreate, session, result)
 
-    return {"filename": file.filename, "type": "tool_consumption", 'result': result}
+    return JSONResponse(
+        content={"filename": file.filename, "type": "tool_order", 'result': result},
+        status_code=200
+    )
 
 
 @router.post("/tool-delivery")
@@ -482,14 +543,29 @@ async def upload_tool_deliveries(
     file: UploadFile = File(...),
     sheet_names: str = Form(None),
     header_row: int = Form(None)
-):
+) -> JSONResponse:
     """Handle tool deliveries file upload"""
     print(f'Processing tool deliveries file: {file.filename}')
 
     df = await read_excel(file, sheet_names, header_row)
 
     if df is None:
-        return {"filename": file.filename, "type": "tool_delivery", "error": "Failed to read file"}
+        return JSONResponse(
+            content={"filename": file.filename, "type": "tool_delivery", "error": "Failed to read file"},
+            status_code=400
+        )
+
+    necessary_columns = ['PONumber', 'POLine', 'custpart', 'OrderQty', 'DueDate', 'OrderDate', 'ReceiptDate', 'ReceivedQty']
+    missing_columns = [col for col in necessary_columns if col not in df.columns]
+    if missing_columns:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": f"Missing required columns: {', '.join(missing_columns)}",
+                "filename": file.filename,
+                "type": "tool_delivery"
+            }
+        )
 
     with Session(engine) as session:
         orders = session.exec(select(ToolOrder)).all()
@@ -503,7 +579,7 @@ async def upload_tool_deliveries(
 
         # Prepare all valid records
         records = []
-        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
+        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0, 'errors': []}
 
         for _, row in df.iterrows():
             try:
@@ -527,6 +603,7 @@ async def upload_tool_deliveries(
                                 tools[new_tool.number] = tool_id
                             except Exception as e:
                                 result['bad_data'] += 1
+                                result['errors'].append(str(e))
                                 session.rollback()
                                 continue
                     
@@ -547,6 +624,7 @@ async def upload_tool_deliveries(
                     except Exception as e:
                         print(e)
                         result['bad_data'] += 1
+                        result['errors'].append(str(e))
                         session.rollback()
                         continue
 
@@ -567,7 +645,10 @@ async def upload_tool_deliveries(
         if records:
             result = await write_to_db(records, OrderDelivery, OrderDeliveryCreate, session, result)
 
-    return {"filename": file.filename, "type": "tool_consumption", 'result': result}
+    return JSONResponse(
+        content={"filename": file.filename, "type": "tool_delivery", 'result': result},
+        status_code=200
+    )
 
 
 @router.post("/tool-inventory")
@@ -575,14 +656,17 @@ async def upload_tool_inventory(
     file: UploadFile = File(...),
     sheet_names: str = Form(None),
     header_row: int = Form(None)
-):
+) -> JSONResponse:
     """Handle tool inventory file upload"""
     print(f'Processing tool inventory file: {file.filename}')
 
     df = await read_excel(file, sheet_names, header_row)
 
     if df is None:
-        return {"filename": file.filename, "type": "tool_delivery", "error": "Failed to read file"}
+        return JSONResponse(
+            content={"filename": file.filename, "type": "tool_inventory", "error": "Failed to read file"},
+            status_code=400
+        )
 
     with Session(engine) as session:      
         tools = session.exec(select(Tool)).all()
@@ -596,6 +680,7 @@ async def upload_tool_inventory(
 
             if not tool:
                 result['bad_data'] += 1
+                result['errors'].append(f"Tool {row.get('Part Number', '')} not found")
                 continue
 
             tool.inventory = row.get('Total', 0)
@@ -604,14 +689,17 @@ async def upload_tool_inventory(
             
         session.commit()
 
-    return {"filename": file.filename, "type": "tool_consumption", 'result': result}
+    return JSONResponse(
+        content={"filename": file.filename, "type": "tool_inventory", 'result': result},
+        status_code=200
+    )
 
 
 @router.post("/hourlyProduction")
 async def upload_production(
     file: UploadFile = File(...),
     sheet_names: str = Form(None),
-):
+) -> JSONResponse:
     try:
         content = await file.read()
         await file.seek(0)  # Reset file pointer for future reads
@@ -619,7 +707,10 @@ async def upload_production(
         wb = openpyxl.load_workbook(xlsx, data_only=True)
     except Exception as e:
         print(f"Error loading Excel file: {e}")
-        return {"filename": file.filename, "type": "production", "error": "Failed to read file"}
+        return JSONResponse(
+            content={"filename": file.filename, "type": "production", "error": "Failed to read file"},
+            status_code=400
+        )
     
     # Read the selected sheet and find inners and outers
     ws = wb[sheet_names]
@@ -663,4 +754,7 @@ async def upload_production(
         pass # TODO: implement saving logic
 
     result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
-    return {"filename": file.filename, "type": "tool_consumption", 'result': result}
+    return JSONResponse(
+        content={"filename": file.filename, "type": "hourly_production", 'result': result},
+        status_code=200
+    )
