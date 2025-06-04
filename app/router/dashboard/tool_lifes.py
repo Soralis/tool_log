@@ -197,9 +197,8 @@ async def get_tool_details(
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
     
-    # Convert date strings to datetime objects
-    # start = datetime.fromisoformat(start_date) if start_date and start_date != 'null' else None
-    end_date = datetime.fromisoformat(end_date) if end_date and end_date != 'null' else datetime.today()
+    # Convert date strings to datetime objects and make them timezone-naive
+    end_date = datetime.fromisoformat(end_date).replace(tzinfo=None) if end_date and end_date != 'null' else datetime.now().replace(tzinfo=None)
 
     selected_operations = json.loads(selected_operations) if selected_operations else []
     selected_products = json.loads(selected_products) if selected_products else []
@@ -331,7 +330,23 @@ async def get_tool_details(
                 stats['expected_life'] = t_life.tool_position.expected_life
                 stats['tools_per_life'] = sum(tools_per_life)/len(tools_per_life) if len(tools_per_life) > 0 else 1
 
-                general_series.append(series)
+                general_series.append(series.copy())
+
+                if t_life.tool_position.min_life and t_life.tool_position.min_life > 0:
+                    # add horizontal line at minimum tool life
+                    series['markLine'] = {
+                        "data": [
+                            {
+                                "yAxis": t_life.tool_position.min_life,
+                                "name": "Minimum Tool Life",
+                                "lineStyle": {
+                                    "color": "red",
+                                    "width": 2,
+                                    "type": "dashed"
+                                }
+                            }
+                        ]
+                    }
 
                 series['name'] = channel
                 series['type'] = "scatter"
@@ -418,8 +433,8 @@ async def get_tool_details(
             ["Lowest Toollife", worst_operators_text]
         ])) 
 
-
     return details
+
 
 async def periodic_data_sender(websocket: WebSocket, db: Session):
     while True:
