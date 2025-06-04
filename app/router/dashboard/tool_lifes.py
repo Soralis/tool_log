@@ -332,11 +332,23 @@ async def get_tool_details(
 
                 general_series.append(series.copy())
 
+                series['markLine'] = {
+                    "data": [
+                        {
+                            "yAxis": t_life.tool_position.expected_life,
+                            "name": "Target Tool Life",
+                            "lineStyle": {
+                                "color": "green",
+                                "width": 2,
+                                "type": "dashed"
+                            }
+                        }
+                    ]
+                }
+
                 if t_life.tool_position.min_life and t_life.tool_position.min_life > 0:
                     # add horizontal line at minimum tool life
-                    series['markLine'] = {
-                        "data": [
-                            {
+                    series['markLine']['data'].append({
                                 "yAxis": t_life.tool_position.min_life,
                                 "name": "Minimum Tool Life",
                                 "lineStyle": {
@@ -344,9 +356,7 @@ async def get_tool_details(
                                     "width": 2,
                                     "type": "dashed"
                                 }
-                            }
-                        ]
-                    }
+                            })
 
                 series['name'] = channel
                 series['type'] = "scatter"
