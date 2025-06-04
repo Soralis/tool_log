@@ -267,6 +267,13 @@ textarea {
     background-color: #2ecc71;
 }
 
+/* Style for recently recorded buttons */
+.recently-recorded {
+    background-color: #364161 !important; /* Greyed out background */
+    border: 2px solid #1a1c3f; /* Slightly lighter grey border */
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3); /* Subtler shadow */
+}
+
 /* Filter styles */
 .filter-container {
     background-color: #34495e;

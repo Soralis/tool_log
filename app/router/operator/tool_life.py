@@ -3,6 +3,8 @@ from sqlmodel import Session, select
 
 from auth import get_current_operator
 
+from datetime import datetime, timedelta
+
 from app.database_config import get_session
 from app.models import ToolLife, Machine, ToolPosition, ChangeReason, User
 
@@ -23,6 +25,16 @@ async def get_tool_life_data(machine_id: int,
     if not current_recipe:
         raise HTTPException(status_code=404, detail="No current recipe for this machine")
 
+    time_threshold = datetime.now() - timedelta(minutes=15)
+    recent_tool_lives = db.exec(
+        select(ToolLife)
+        .where(ToolLife.machine_id == machine.id)
+        .where(ToolLife.recipe_id == current_recipe.id)
+        .where(ToolLife.timestamp >= time_threshold)
+    ).all()
+
+    recent_tool_lives = [{"machine_channel": tl.machine_channel, "tool_position_id": tl.tool_position_id} for tl in recent_tool_lives if tl.tool_position.selected]
+
     tool_positions = [position for position in current_recipe.tool_positions if position.selected]
     measureables = [measureable for measureable in machine.measureables if measureable.active]
 
@@ -30,9 +42,9 @@ async def get_tool_life_data(machine_id: int,
         "machine": machine,
         "current_recipe": current_recipe,
         "tool_positions": tool_positions,
-        "measureables": measureables
+        "measureables": measureables,
+        "recent_tool_lives": recent_tool_lives
     }
-
 
 @router.get("/change-reasons")
 async def get_change_reasons(

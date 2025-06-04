@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentRecipeName = ''; // Store the current recipe name
     let selectedToolMinLife = null; // Store min_life for the selected tool position
     let minLifeWarningShown = false; // Track if the minimum tool life warning has been shown for the current input
+    let recentToolLivesData = []; // Store recent tool lives data
 
     // Function to check if current step has input fields and if they all have values
     function currentStepHasInputs() {
@@ -174,6 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 measureToolLife = data.machine.measures_tool_life;
                 // Store the current recipe name
                 currentRecipeName = data.current_recipe ? data.current_recipe.name : 'No Recipe';
+                recentToolLivesData = data.recent_tool_lives; // Store recent tool lives
                 setupAdditionalSteps(data);
                 goToNextStep();
             })
@@ -209,8 +211,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const button = document.createElement('button');
             button.textContent = `Channel ${i}`;
             button.className = 'px-4 py-8 m-2 bg-blue-700 text-3xl font-bold text-white rounded w-full'
+            // Add recently-recorded class based on recentToolLivesData
+            const isRecentlyRecordedChannel = recentToolLivesData.some(tl => tl.machine_channel === i);
+            if (isRecentlyRecordedChannel) {
+                button.classList.add('recently-recorded');
+            }
+            button.classList.add('machine-channel-button');
             button.setAttribute('data-value', i);
-            button.addEventListener('click', (e) => handleButtonClick(e, 'machine_channel'));
+            button.addEventListener('click', (e) => handleMachineChannelClick(e, 'machine_channel'));
             channelButtons.appendChild(button);
         }
         createGridLayout(channelButtons, data.machine.channels);
@@ -228,12 +236,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.textContent = position.name;
                 button.className = 'px-4 py-8 m-2 bg-blue-700 text-3xl font-bold text-white rounded w-full';
                 button.setAttribute('data-value', position.id);
-                console.log('tool position min life: ', position.min_life)
                 if (position.min_life !== null) {
                     button.setAttribute('data-min-life', position.min_life);
                     selectedToolMinLife = position.min_life; // Store the min_life for the first position
                 }
-                button.addEventListener('click', (e) => handleToolPositionClick(e, position.id));
+                button.addEventListener('click', (e) => handleToolPositionClick(e, position.id, data.tool_positions));
                 toolPositionButtons.appendChild(button);
             });
             createGridLayout(toolPositionButtons, data.tool_positions.length);
@@ -384,6 +391,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function handleMachineChannelClick(e, fieldName) {
+        e.preventDefault();
+        const buttons = e.target.parentNode.querySelectorAll('button');
+        buttons.forEach(btn => btn.classList.remove('bg-green-500'));
+        e.target.classList.add('bg-green-500');
+        formData[fieldName] = e.target.getAttribute('data-value');
+        formDisplayData[fieldName] = e.target.textContent;
+
+        // Update tool position button colors based on selected machine channel
+        updateToolPositionButtonColors(parseInt(formData[fieldName]));
+        goToNextStep();
+    }
+
     function handleButtonClick(e, fieldName) {
         e.preventDefault();
         const buttons = e.target.parentNode.querySelectorAll('button');
@@ -394,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
         goToNextStep();
     }
 
-    function handleToolPositionClick(e, toolPositionId) {
+    function handleToolPositionClick(e, toolPositionId, allToolPositions) {
         e.preventDefault();
         const buttons = e.target.parentNode.querySelectorAll('button');
         buttons.forEach(btn => btn.classList.remove('bg-green-500'));
@@ -481,6 +501,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
+            // If current step is tool position selection, update button colors
+            if (currentStep === 3) {
+                updateToolPositionButtonColors(parseInt(formData['machine_channel']));
+            }
+            
             if (currentStep === totalSteps) {
                 updateSummaryStep();
             }
@@ -546,6 +571,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         goToNextStep();
     });
+
+    function updateToolPositionButtonColors(selectedMachineChannel) {
+        const toolPositionButtons = stepButtons['tool_position_id'];
+        if (!toolPositionButtons) return;
+
+        toolPositionButtons.forEach(button => {
+            button.classList.remove('recently-recorded'); // Remove previous highlights
+            const toolPositionId = parseInt(button.getAttribute('data-value'));
+            
+            const isRecentlyRecorded = recentToolLivesData.some(tl => 
+                tl.machine_channel === selectedMachineChannel && 
+                tl.tool_position_id === toolPositionId
+            );
+
+            if (isRecentlyRecorded) {
+                button.classList.add('recently-recorded');
+            }
+        });
+    }
 
     submitBtn.addEventListener('click', async (e) => {
         e.preventDefault();
