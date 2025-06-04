@@ -73,7 +73,7 @@ class ToolPosition(SQLModel, table=True):
     tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='tool_position', cascade_delete=False)
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
     expected_life: Optional[int] = Field(default=None, gt=0)
-    min_life: Optional[int] = Field(default=None, gt=0)
+    min_life: Optional[int] = Field(default=None, ge=0)
     
     __table_args__ = (
         Index('uq_name_recipe_selected', 'name', 'recipe_id', unique=True,
