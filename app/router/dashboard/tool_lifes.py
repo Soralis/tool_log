@@ -409,7 +409,7 @@ async def get_tool_details(
         ["Median Life", round(median(tool_lifes)) if len(tool_lifes) > 0 else 0],
         ["CPU", f"${round(tool.price / tool.max_uses / avg_life, 2)}"],
         ["Used Tools", f"{consumption_quantity}"],
-        ["Reported Tools", f"{len(tool_life_records)} ({len(tool_life_records) / consumption_quantity * 100:.1f}%)"],
+        ["Reported Tools", f"{len(tool_life_records)} ({len(tool_life_records) / (consumption_quantity if consumption_quantity else 1) * 100:.1f}%)"],
         ["Spent", f"{locale.currency(round(consumption_value, 2), grouping=True )}"],
         ["Yearly Spend", f"{locale.currency(round(consumption_value / timeframe_in_days * 365, 2), grouping=True )}"],
     ]))  
