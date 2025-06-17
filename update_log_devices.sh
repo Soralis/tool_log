@@ -53,12 +53,10 @@ sys.path.insert(0, deploy_root)
 from sqlmodel import Session, select, create_engine
 print("gets here")
 from app.models.log_device import LogDevice
-DB_USER = os.getenv("DB_USER")
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = os.getenv("DB_NAME")
+DB_URL = os.getenv("DATABASE_URL")
 
 # Create database engine
-engine = create_engine(f"postgresql+psycopg://{DB_USER}@{DB_HOST}/{DB_NAME}")
+engine = create_engine(DB_URL)
 
 # Query active devices with IP addresses
 with Session(engine) as session:
