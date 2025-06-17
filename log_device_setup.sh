@@ -63,6 +63,27 @@ sudo apt-get install --no-install-recommends chromium-browser -y
 echo "Cleaning up"
 sudo apt autoremove -y
 
+# Setup SSH access for the control machine
+echo "Setting up SSH authorized key for pi user..."
+SSH_PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCpuGOFaL3W1YAc5bQVVg68zlUKAwL6mLqaVgVNOrRgEkjH+rHuk+1wzGUWgosBenwGBbnl3aWcDGj6XNavJ4EsUbFIdj7JqwieRiuMcOvIeTB+nVvG4vT982MFoXzf0oqXCGMDB5zRkG3QjgcpIvOyTDRvm3sWCs8NE7ALJCAnIcvAjaC2AvrlJG9wHj6Lf5iIpA+3YoIEbWZx2XGbAZ9j7fHa9BLHz3xWTo8VkPdIiqJkSz/5mR4mLIn0cHuKZMqBcft5rckFNU4+NLkw/5vV+j5AMFRZZplmlNQJG/7lHOANgtZGguZz4wOHY2rFqCCB/vBr3UmiVOqOfFGbmwdMV4PDYHkvuBlh7/ZXxjAT93R97n1eis4rUBQMZNTxozuP0YlOkDx9sKqi270EiY4flurGaxd4p06VwfSM/7xIrm0hFF057ywPVm19+c3yC7QjV06ke8hHgNvbXFJSVW5ZJHMmLTla7HgfvWqfT4lcFJsZ3sbV3v7HAjjydfQaX/KtAwUE0FARoHz1pw7ol2CQ4xLQGI+QloUmMn5vfkavhiTtSuGHIe0GWCx9vdE3akH8iSBpwOIxmyK3PWBN8+TQWJjMfLdNcPdl3Vtfw0sOq8Oc0YsHfVy3Tr/dH4HPKQanAoVPA66I52Vq6YyD/zyPc3bTuBY5YMd/boIIacHuuQ== log_devices_key"
+
+# Ensure .ssh directory exists and has correct permissions
+# This script is run as the 'pi' user, so ~ will resolve to /home/pi
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+# Add the public key to authorized_keys if it's not already there
+# and ensure authorized_keys has correct permissions
+touch ~/.ssh/authorized_keys # Ensure the file exists before grep/tee
+if ! grep -qF "$SSH_PUBLIC_KEY" ~/.ssh/authorized_keys; then
+    echo "$SSH_PUBLIC_KEY" >> ~/.ssh/authorized_keys
+    echo "Public key added to ~/.ssh/authorized_keys"
+else
+    echo "Public key already exists in ~/.ssh/authorized_keys"
+fi
+chmod 600 ~/.ssh/authorized_keys
+echo "SSH key setup completed."
+
 # Rotate Touch
 echo "Rotating Touch Input"
 sudo cp /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/
