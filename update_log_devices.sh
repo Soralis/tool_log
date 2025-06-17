@@ -46,18 +46,11 @@ sys.path.insert(0, deploy_root)
 from sqlmodel import Session, select, create_engine
 from app.models.log_device import LogDevice
 import os
+from dotenv import dotenv_values
 
-# Load environment variables from .env file
-try:
-    from dotenv import dotenv_values
-
-except ImportError:
-    print("python-dotenv not installed. Please install it with 'pip install python-dotenv'")
-    sys.exit(1)
-
-db_url = dotenv_values('.env')['DATABASE_URL']
+db_url = dotenv_values('.env').get('DATABASE_URL')
 if not DB_URL:
-    print("Error: DATABASE_URL not found in environment variables or .env file.")
+    print(f"Error: DATABASE_URL not found in environment variables or .env file. {dotenv_values('.env')}")
     sys.exit(1)
 
 # Create database engine
