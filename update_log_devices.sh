@@ -37,7 +37,7 @@ import os, sys
 deploy_root = os.environ.get("DEPLOY_ROOT")
 if not deploy_root:
     deploy_root = os.getcwd()
-# print("Deploy root:", deploy_root)
+print("Deploy root:", deploy_root)
 sys.path.insert(0, deploy_root)
 from sqlmodel import Session, select, create_engine
 from app.models import LogDevice
