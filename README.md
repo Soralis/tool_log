@@ -104,3 +104,4 @@ Now to run the Update connect to the Server via SSH and run the following code (
 ```bash
 /bin/bash /home/pi/tool_log/{running_deployment}/update_log_devices.sh
 ```
+-
