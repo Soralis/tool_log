@@ -78,6 +78,7 @@ fi
 # Count of devices
 DEVICE_COUNT=$(echo "$DEVICES" | wc -l)
 log "Found $DEVICE_COUNT active devices with IP addresses."
+log "Devices:\n$DEVICES"
 
 # Copy log_device_setup.sh to a temporary location
 TMP_SCRIPT="/tmp/log_device_setup.sh"
