@@ -58,7 +58,7 @@ DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
 
 # Create database engine
-engine = create_engine(f"postgresql://{DB_USER}@{DB_HOST}/{DB_NAME}")
+engine = create_engine(f"postgresql+psycopg://{DB_USER}@{DB_HOST}/{DB_NAME}")
 
 # Query active devices with IP addresses
 with Session(engine) as session:
