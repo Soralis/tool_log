@@ -49,13 +49,13 @@ import os
 
 # Load environment variables from .env file
 try:
-    from dotenv import load_dotenv
-    load_dotenv()
+    from dotenv import dotenv_values
+
 except ImportError:
     print("python-dotenv not installed. Please install it with 'pip install python-dotenv'")
     sys.exit(1)
 
-DB_URL = os.getenv("DATABASE_URL")
+db_url = dotenv_values('.env')['DATABASE_URL']
 if not DB_URL:
     print("Error: DATABASE_URL not found in environment variables or .env file.")
     sys.exit(1)
