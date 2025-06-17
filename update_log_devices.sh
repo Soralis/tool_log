@@ -10,7 +10,7 @@ REMOTE_SCRIPT_PATH="/home/pi/log_device_setup.sh"
 SSH_USER="pi"
 
 # SSH key path (if using key-based authentication)
-SSH_KEY_PATH="/home/pi/.ssh/id_rsa"
+SSH_KEY_PATH="/home/pi/.ssh/id_rsa_log_devices"
 
 # SSH options
 SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=5"
