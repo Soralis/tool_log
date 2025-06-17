@@ -50,8 +50,7 @@ from dotenv import dotenv_values
 
 DB_URL = dotenv_values('.env').get('DATABASE_URL')
 if not DB_URL:
-    print(f"Error: DATABASE_URL not found in environment variables or .env file. {dotenv_values('.env')}")
-    sys.exit(1)
+    raise ValueError(f"DATABASE_URL not set. Possible values: {dotenv_values('.env')}")
 
 # Create database engine
 engine = create_engine(DB_URL)
