@@ -28,7 +28,7 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 # Activate virtual environment if it exists
-VENV_PATH="$DEPLOY_ROOT/.venv/bin/activate"
+VENV_PATH="$DEPLOY_ROOT/venv/bin/activate"
 if [ -f "$VENV_PATH" ]; then
     # shellcheck disable=SC1091
     source "$VENV_PATH"
