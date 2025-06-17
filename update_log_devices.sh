@@ -50,7 +50,7 @@ from dotenv import dotenv_values
 
 DB_URL = dotenv_values('.env').get('DATABASE_URL')
 if not DB_URL:
-    raise ValueError(f"DATABASE_URL not set. Possible values: {dotenv_values('.env')}")
+    raise ValueError(f"DATABASE_URL not set. Possible values: {dotenv_values('.env').keys()}")
 
 # Create database engine
 engine = create_engine(DB_URL)
