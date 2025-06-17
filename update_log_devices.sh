@@ -48,7 +48,7 @@ from app.models.log_device import LogDevice
 import os
 from dotenv import dotenv_values
 
-db_url = dotenv_values('.env').get('DATABASE_URL')
+DB_URL = dotenv_values('.env').get('DATABASE_URL')
 if not DB_URL:
     print(f"Error: DATABASE_URL not found in environment variables or .env file. {dotenv_values('.env')}")
     sys.exit(1)
