@@ -48,9 +48,11 @@ from app.models.log_device import LogDevice
 import os
 from dotenv import dotenv_values
 
-DB_URL = dotenv_values('.env').get('DATABASE_URL')
+env_path = os.path.join(deploy_root, '.env')
+config = dotenv_values(env_path)
+DB_URL = config.get('DATABASE_URL')
 if not DB_URL:
-    raise ValueError(f"DATABASE_URL not set. Possible values: {dotenv_values('.env').keys()}")
+    raise ValueError(f"DATABASE_URL not set in {env_path}. Possible values: {config.keys()}")
 
 # Create database engine
 engine = create_engine(DB_URL)
