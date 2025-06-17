@@ -22,17 +22,22 @@ SSH_KEY_PATH="/home/pi/.ssh/id_rsa"
 SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=5"
 DEPLOY_ROOT="$( cd "$(dirname "$0")" && pwd )"
 export DEPLOY_ROOT
-# Activate virtual environment if it exists
-VENV_PATH="$DEPLOY_ROOT/.venv/bin/activate"
-if [ -f "$VENV_PATH" ]; then
-    # shellcheck disable=SC1091
-    source "$VENV_PATH"
-fi
 
 # Function to log messages
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
+# Activate virtual environment if it exists
+VENV_PATH="$DEPLOY_ROOT/.venv/bin/activate"
+if [ -f "$VENV_PATH" ]; then
+    # shellcheck disable=SC1091
+    source "$VENV_PATH"
+    log "Activated virtual environment at $VENV_PATH"
+else
+    log "Virtual environment not found at $VENV_PATH. Continuing without it."
+fi
+
+
 
 # Get list of active log devices with IP addresses
 log "Retrieving list of active log devices..."
