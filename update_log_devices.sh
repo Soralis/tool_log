@@ -3,12 +3,6 @@ set -euo pipefail
 
 # Script to update all connected log devices by running log_device_setup.sh on each device
 
-# Database connection details
-DB_USER="pi"
-DB_NAME="tool_log"
-DB_HOST="localhost"
-export DB_USER DB_HOST DB_NAME
-
 # Path to log_device_setup.sh on the remote devices
 REMOTE_SCRIPT_PATH="/home/pi/log_device_setup.sh"
 
@@ -38,7 +32,6 @@ else
 fi
 
 
-
 # Get list of active log devices with IP addresses
 log "Retrieving list of active log devices..."
 
@@ -51,9 +44,21 @@ if not deploy_root:
 print("Deploy root:", deploy_root)
 sys.path.insert(0, deploy_root)
 from sqlmodel import Session, select, create_engine
-print("gets here")
 from app.models.log_device import LogDevice
+import os
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("python-dotenv not installed. Please install it with 'pip install python-dotenv'")
+    sys.exit(1)
+
 DB_URL = os.getenv("DATABASE_URL")
+if not DB_URL:
+    print("Error: DATABASE_URL not found in environment variables or .env file.")
+    sys.exit(1)
 
 # Create database engine
 engine = create_engine(DB_URL)
