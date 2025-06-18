@@ -36,7 +36,9 @@ EOF"
 fi
 
 # Get Raspberry Pi's MAC address for device name
-DEVICE_NAME=$(ifconfig wlan0 | grep ether | awk '{print $2}')
+# Using /sys/class/net/wlan0/address is more reliable than parsing ifconfig output
+# and avoids issues with ifconfig not being in PATH for non-interactive SSH sessions.
+DEVICE_NAME=$(cat /sys/class/net/wlan0/address)
 
 echo "Using Device MAC Address: $DEVICE_NAME"
 
