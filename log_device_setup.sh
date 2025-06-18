@@ -106,13 +106,13 @@ xrandr --output DSI-1 --rotate left
 xrandr --output DSI-2 --rotate left
 
 # Clear Chromium cache and data
-rm -rf \~/.cache/chromium/
-rm -rf \~/.config/chromium/Default/Cache/
-rm -rf \~/.config/chromium/Default/Code\ Cache/
-rm -rf \~/.config/chromium/Default/Service\ Worker/CacheStorage/
+rm -rf ~/.cache/chromium/
+rm -rf ~/.config/chromium/Default/Cache/
+rm -rf ~/.config/chromium/Default/Code\ Cache/
+rm -rf ~/.config/chromium/Default/Service\ Worker/CacheStorage/
 
-sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/'"'"' \~/.config/chromium/'"'"'Local State'"'"'
-sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"[^"]*"/"exit_type":"Normal"/'"'"' \~/.config/chromium/Default/Preferences
+sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/'"'"' ~/.config/chromium/'"'"'Local State'"'"'
+sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"[^"]*"/"exit_type":"Normal"/'"'"' ~/.config/chromium/Default/Preferences
 
 # Start Chromium with cache-clearing flags
 chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar --incognito --kiosk \
@@ -146,10 +146,8 @@ echo "Heartbeat.sh installed and cron job added"
 
 # Insert Start conditions to bash_profile
 echo "Setting Start Conditions"
-# The following command writes to .bash_profile. If the file is created by this sudo command, it will be owned by root.
+touch /home/pi/.bash_profile
 sudo bash -c 'echo "[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor" > /home/pi/.bash_profile'
-# Ensure .bash_profile is owned by the pi user and group
-sudo chown pi:pi /home/pi/.bash_profile
 
 # Reboot the Raspberry Pi
 sudo reboot
