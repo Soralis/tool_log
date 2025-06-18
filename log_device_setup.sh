@@ -146,8 +146,10 @@ echo "Heartbeat.sh installed and cron job added"
 
 # Insert Start conditions to bash_profile
 echo "Setting Start Conditions"
-touch /home/pi/.bash_profile
+# The following command writes to .bash_profile. If the file is created by this sudo command, it will be owned by root.
 sudo bash -c 'echo "[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor" > /home/pi/.bash_profile'
+# Ensure .bash_profile is owned by the pi user and group
+sudo chown pi:pi /home/pi/.bash_profile
 
 # Reboot the Raspberry Pi
 sudo reboot
