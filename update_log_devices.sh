@@ -160,8 +160,8 @@ done
 # Clean up temporary script file (status dir is cleaned by trap)
 rm "$TMP_SCRIPT"
 
-log "Update process completed."
 log "----------------------------------------"
+log "Update process completed."
 log "SUMMARY OF UPDATES:"
 log "----------------------------------------"
 
