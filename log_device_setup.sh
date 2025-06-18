@@ -106,13 +106,13 @@ xrandr --output DSI-1 --rotate left
 xrandr --output DSI-2 --rotate left
 
 # Clear Chromium cache and data
-rm -rf ~/.cache/chromium/
-rm -rf ~/.config/chromium/Default/Cache/
-rm -rf ~/.config/chromium/Default/Code\ Cache/
-rm -rf ~/.config/chromium/Default/Service\ Worker/CacheStorage/
+rm -rf \~/.cache/chromium/
+rm -rf \~/.config/chromium/Default/Cache/
+rm -rf \~/.config/chromium/Default/Code\ Cache/
+rm -rf \~/.config/chromium/Default/Service\ Worker/CacheStorage/
 
-sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/'"'"' ~/.config/chromium/'"'"'Local State'"'"'
-sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"[^"]*"/"exit_type":"Normal"/'"'"' ~/.config/chromium/Default/Preferences
+sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/'"'"' \~/.config/chromium/'"'"'Local State'"'"'
+sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"[^"]*"/"exit_type":"Normal"/'"'"' \~/.config/chromium/Default/Preferences
 
 # Start Chromium with cache-clearing flags
 chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar --incognito --kiosk \
@@ -122,8 +122,11 @@ chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScro
 EOF'
 
 # Retrieve heartbeat.sh from GitHub and make it executable
+# Ensure pi user can create/own the file, remove if it exists and is root-owned from a previous run
+sudo rm -f /home/pi/heartbeat.sh
 wget -O /home/pi/heartbeat.sh https://raw.githubusercontent.com/Soralis/tool_log/master/heartbeat.sh
-chmod +x /home/pi/heartbeat.sh
+# The file /home/pi/heartbeat.sh should now be owned by the user running this script (assumed to be 'pi').
+chmod +x /home/pi/heartbeat.sh # This should now work if run as 'pi'
 
 # Set Openbox environment
 echo "Setting Openbox Environment"
