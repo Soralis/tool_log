@@ -17,10 +17,57 @@ SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=5"
 DEPLOY_ROOT="$( cd "$(dirname "$0")" && pwd )"
 export DEPLOY_ROOT
 
+# Arrays to store update status
+successful_updates=()
+failed_updates=()
+
 # Function to log messages
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
+
+# Temporary directory for status files from parallel jobs
+STATUS_DIR=$(mktemp -d)
+# Ensure cleanup of the status directory on exit
+trap 'rm -rf -- "$STATUS_DIR"' EXIT
+
+# Function to process a single device update
+# This function will be run in the background for each device
+process_device_update() {
+    local DEVICE_NAME="$1"
+    local IP_ADDRESS="$2"
+    local DEVICE_INFO="$DEVICE_NAME ($IP_ADDRESS)"
+    # Using a subshell for log prefixing to avoid conflicts if log function is complex
+    # and to ensure output is associated with this specific job.
+    # Alternatively, pass PID to log function or prefix echo directly.
+    local LOG_PREFIX="[$(date '+%Y-%m-%d %H:%M:%S')] [Job for $DEVICE_NAME]"
+
+    echo "$LOG_PREFIX Processing device..."
+
+    if ping -c 1 -W 2 "$IP_ADDRESS" > /dev/null 2>&1; then
+        echo "$LOG_PREFIX Device is reachable. Attempting to update..."
+        
+        # Ensure TMP_SCRIPT is accessible; it's defined in the main script
+        if scp $SSH_OPTS -i "$SSH_KEY_PATH" "$TMP_SCRIPT" "${SSH_USER}@${IP_ADDRESS}:$REMOTE_SCRIPT_PATH"; then
+            echo "$LOG_PREFIX Script copied successfully."
+            
+            if ssh $SSH_OPTS -i "$SSH_KEY_PATH" "${SSH_USER}@${IP_ADDRESS}" "chmod +x $REMOTE_SCRIPT_PATH && $REMOTE_SCRIPT_PATH"; then
+                echo "$LOG_PREFIX Update successful."
+                echo "SUCCESS:$DEVICE_INFO" > "$STATUS_DIR/status_${DEVICE_NAME}_${IP_ADDRESS//./_}.txt" # Sanitize IP for filename
+            else
+                echo "$LOG_PREFIX Failed to execute script on device."
+                echo "FAILURE:$DEVICE_INFO - Reason: Script execution failed" > "$STATUS_DIR/status_${DEVICE_NAME}_${IP_ADDRESS//./_}.txt"
+            fi
+        else
+            echo "$LOG_PREFIX Failed to copy script to device."
+            echo "FAILURE:$DEVICE_INFO - Reason: SCP failed" > "$STATUS_DIR/status_${DEVICE_NAME}_${IP_ADDRESS//./_}.txt"
+        fi
+    else
+        echo "$LOG_PREFIX Device is not reachable (ping failed)."
+        echo "FAILURE:$DEVICE_INFO - Reason: Not reachable (ping failed)" > "$STATUS_DIR/status_${DEVICE_NAME}_${IP_ADDRESS//./_}.txt"
+    fi
+}
+
 # Activate virtual environment if it exists
 VENV_PATH="$DEPLOY_ROOT/venv/bin/activate"
 if [ -f "$VENV_PATH" ]; then
@@ -85,33 +132,62 @@ TMP_SCRIPT="/tmp/log_device_setup.sh"
 cp "$DEPLOY_ROOT/log_device_setup.sh" "$TMP_SCRIPT"
 chmod +x $TMP_SCRIPT
 
-# Process each device
+log "Starting parallel updates for all devices..."
+# Process each device in parallel
 while IFS='|' read -r DEVICE_NAME IP_ADDRESS; do
-    log "Processing device: $DEVICE_NAME ($IP_ADDRESS)"
-    
-    # Check if the device is reachable
-    if ping -c 1 -W 2 "$IP_ADDRESS" > /dev/null 2>&1; then
-        log "Device $DEVICE_NAME is reachable. Attempting to update..."
-        
-        # Copy the script to the device
-        if scp $SSH_OPTS -i "$SSH_KEY_PATH" "$TMP_SCRIPT" "${SSH_USER}@${IP_ADDRESS}:$REMOTE_SCRIPT_PATH"; then
-            log "Script copied successfully to $DEVICE_NAME."
-            
-            # Execute the script on the remote device
-            if ssh $SSH_OPTS -i "$SSH_KEY_PATH" "${SSH_USER}@${IP_ADDRESS}" "chmod +x $REMOTE_SCRIPT_PATH && $REMOTE_SCRIPT_PATH"; then
-                log "Update successful for device $DEVICE_NAME."
-            else
-                log "Failed to execute script on device $DEVICE_NAME."
-            fi
-        else
-            log "Failed to copy script to device $DEVICE_NAME."
-        fi
-    else
-        log "Device $DEVICE_NAME is not reachable at $IP_ADDRESS."
-    fi
+    # Export variables needed by the background function
+    export SSH_OPTS SSH_KEY_PATH TMP_SCRIPT SSH_USER REMOTE_SCRIPT_PATH STATUS_DIR
+    process_device_update "$DEVICE_NAME" "$IP_ADDRESS" &
 done <<< "$DEVICES"
 
-# Clean up
+log "All update jobs launched. Waiting for completion..."
+wait # Wait for all background jobs to finish
+
+log "All update jobs completed. Aggregating results..."
+
+# Aggregate results from status files
+for status_file in "$STATUS_DIR"/status_*.txt; do
+    if [ -f "$status_file" ]; then # Check if file exists (in case no devices or other issues)
+        read -r line < "$status_file"
+        if [[ "$line" == SUCCESS:* ]]; then
+            successful_updates+=("${line#SUCCESS:}")
+        elif [[ "$line" == FAILURE:* ]]; then
+            failed_updates+=("${line#FAILURE:}")
+        fi
+    fi
+done
+
+# Clean up temporary script file (status dir is cleaned by trap)
 rm "$TMP_SCRIPT"
 
 log "Update process completed."
+log "----------------------------------------"
+log "SUMMARY OF UPDATES:"
+log "----------------------------------------"
+
+if [ ${#successful_updates[@]} -gt 0 ]; then
+    log "Successful Updates:"
+    # Sort the arrays for consistent output
+    IFS=$'\n' sorted_successful=($(sort <<<"${successful_updates[*]}"))
+    unset IFS
+    for device in "${sorted_successful[@]}"; do
+        log "  - $device"
+    done
+else
+    log "No devices were updated successfully."
+fi
+
+log "" # Empty line for spacing
+
+if [ ${#failed_updates[@]} -gt 0 ]; then
+    log "Failed Updates:"
+    # Sort the arrays for consistent output
+    IFS=$'\n' sorted_failed=($(sort <<<"${failed_updates[*]}"))
+    unset IFS
+    for device in "${sorted_failed[@]}"; do
+        log "  - $device"
+    done
+else
+    log "No devices failed to update."
+fi
+log "----------------------------------------"
