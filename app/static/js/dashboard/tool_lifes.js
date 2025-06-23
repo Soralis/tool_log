@@ -116,12 +116,12 @@ function createChartContainers(graphs) {
 
         // Create a new graph card if it doesn't exist
         const graphCard = document.createElement('div');
-        graphCard.className = 'bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-700 transition-colors graph-card';
+        graphCard.className = 'bg-stone-800 rounded-lg shadow p-4 cursor-pointer hover:bg-stone-700 transition-colors graph-card';
         graphCard.setAttribute('data-graph-id', graph.id);
         
         // Add title
         const title = document.createElement('h3');
-        title.className = 'text-lg font-medium text-gray-300 mb-2';
+        title.className = 'text-lg font-medium text-stone-300 mb-2';
         title.textContent = graph.title;
         graphCard.appendChild(title);
         
