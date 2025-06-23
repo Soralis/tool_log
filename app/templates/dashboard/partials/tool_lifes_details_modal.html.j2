@@ -1,11 +1,11 @@
-<div id="toolLifeDetailsModal" class="fixed inset-0 bg-gray-900/95 hidden z-[9999] overflow-y-auto">
+<div id="toolLifeDetailsModal" class="fixed inset-0 bg-stone-900/95 hidden z-[9999] overflow-y-auto">
     <div class="min-h-screen p-1 md:p-4" id="modalBackdrop">
         <div class="flex items-center justify-center">
-            <div class="relative w-full max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-xl max-h-[90vh] flex flex-col" id="modalContent">
+            <div class="relative w-full max-w-7xl mx-auto bg-stone-800 rounded-lg shadow-xl max-h-[90vh] flex flex-col" id="modalContent">
                 <!-- Modal header -->
-                <div class="flex justify-between items-center p-1 md:p-4 border-b border-gray-700">
+                <div class="flex justify-between items-center p-1 md:p-4 border-b border-stone-700">
                     <h2 class="text-2xl font-bold" id="modalTitle">Tool Details</h2>
-                    <button onclick="closeToolModal()" class="text-gray-400 hover:text-white">
+                    <button onclick="closeToolModal()" class="text-stone-400 hover:text-white">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -15,7 +15,7 @@
                 <div class="p-1 md:p-4 overflow-y-auto flex-grow">
                     <div id="modalGrid" class="grid grid-cols-12 auto-rows-[minmax(200px,auto)]">
                         <!-- Content will be dynamically populated -->
-                        <div class="col-span-12 flex items-center justify-center text-gray-400">
+                        <div class="col-span-12 flex items-center justify-center text-stone-400">
                             <svg class="animate-spin h-8 w-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', initModal);
 function createCard(card) {
     const cardElement = document.createElement('div');
     cardElement.id = card.id;
-    cardElement.className = `col-span-12 md:col-span-${card.width} md:row-span-${card.height} bg-gray-800 rounded-lg p-1 md:p-4`;
+    cardElement.className = `col-span-12 md:col-span-${card.width} md:row-span-${card.height} bg-stone-800 rounded-lg p-1 md:p-4`;
     console.log(`card`, card.type);
     if (card.type == 'graph') {
         cardElement.classList.add(`row-span-${card.height}`); 
@@ -137,9 +137,9 @@ function createCard(card) {
         contentElement.className = 'md:text-sm space-y-2';
         card.data.forEach(stat => {
             const statRow = document.createElement('div');
-            statRow.className = 'flex justify-between items-center border-b border-gray-700 pb-2';
+            statRow.className = 'flex justify-between items-center border-b border-stone-700 pb-2';
             statRow.innerHTML = `
-                <span class="text-gray-400">${stat.label}:</span>
+                <span class="text-stone-400">${stat.label}:</span>
                 <span class="font-medium">${stat.value}</span>
             `;
             contentElement.appendChild(statRow);
@@ -154,7 +154,7 @@ function createCard(card) {
 function resetModalContent() {
     const modalGrid = document.getElementById('modalGrid');
     modalGrid.innerHTML = `
-        <div class="col-span-12 flex items-center justify-center text-gray-400">
+        <div class="col-span-12 flex items-center justify-center text-stone-400">
             <svg class="animate-spin h-8 w-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
