@@ -80,25 +80,37 @@
                                 <button type="button" class="close-modal text-gray-600 hover:text-gray-800 text-2xl w-10 h-10 flex items-center justify-center">×</button>
                             </div>
                             <div class="p-2">
-                                {% for option in relationship_options.machines %}
-                                <button
-                                    type="button"
-                                    class="machine-option w-full flex items-center p-4 border-b"
-                                    data-id="{{ option.id }}"
-                                    data-name="{{ option.name }}">
-                                    <div class="checkbox-container">
-                                        <input type="checkbox" 
-                                            class="form-checkbox h-6 w-6 text-blue-600"
-                                            {% if option.id in related_items.machines|map(attribute='id') %}checked{% endif %}>
-                                    </div>
-                                    <div class="text-container flex justify-between items-center">
-                                        <span class="text-lg">{{ option.name }}</span>
-                                        {% if option.is_connected %}
-                                        <span class="bg-yellow-500 text-black px-2 py-1 rounded text-sm ml-2">Paired</span>
-                                        {% endif %}
-                                    </div>
-                                </button>
-                                {% endfor %}
+                                <div class="mb-4">
+                                    <label for="line-select" class="block font-bold mb-2 text-lg">Filter by Line</label>
+                                    <select id="line-select" class="w-full bg-gray-800 border border-gray-700 rounded py-2 px-3 text-lg">
+                                        <option value="">None</option>
+                                        {% for line in relationship_options.lines %}
+                                            <option value="{{ line.id }}">{{ line.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div id="machine-options-container">
+                                    {% for option in relationship_options.machines %}
+                                    <button
+                                        type="button"
+                                        class="machine-option w-full flex items-center p-4 border-b"
+                                        data-id="{{ option.id }}"
+                                        data-name="{{ option.name }}"
+                                        data-line-id="{{ option.line_id }}">
+                                        <div class="checkbox-container">
+                                            <input type="checkbox" 
+                                                class="form-checkbox h-6 w-6 text-blue-600"
+                                                {% if option.id in related_items.machines|map(attribute='id') %}checked{% endif %}>
+                                        </div>
+                                        <div class="text-container flex justify-between items-center">
+                                            <span class="text-lg">{{ option.name }}</span>
+                                            {% if option.is_connected %}
+                                            <span class="bg-yellow-500 text-black px-2 py-1 rounded text-sm ml-2">Paired</span>
+                                            {% endif %}
+                                        </div>
+                                    </button>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -127,6 +139,7 @@
         const machineInputsContainer = document.getElementById('machineInputsContainer');
         const closeModalButtons = document.querySelectorAll('.close-modal');
         const machineOptions = document.querySelectorAll('.machine-option');
+        const lineSelect = document.getElementById('line-select');
 
         let selectedMachines = [
             {% for machine in related_items.machines %}
@@ -193,6 +206,20 @@
             });
         });
 
+        function filterMachines() {
+            const selectedLineId = lineSelect.value;
+            machineOptions.forEach(option => {
+                const machineLineId = option.dataset.lineId;
+                if (selectedLineId && selectedLineId === machineLineId) {
+                    option.style.display = 'flex';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
+
+        lineSelect.addEventListener('change', filterMachines);
+
         // Close modal when clicking outside
         machineSelectModal.addEventListener('click', (e) => {
             if (e.target === machineSelectModal) {
@@ -202,6 +229,7 @@
 
         // Initialize display
         updateDisplay();
+        filterMachines();
 
         // Form submission
         document.getElementById('logDeviceForm').addEventListener('submit', function(e) {

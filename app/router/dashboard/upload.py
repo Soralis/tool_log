@@ -673,7 +673,7 @@ async def upload_tool_inventory(
         tools = {tool.number: tool for tool in tools}
 
         # Prepare all valid records
-        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0}
+        result = {'total_records': 0, 'inserted': 0, 'bad_data': 0, 'skipped': 0, 'errors': []}
 
         for _, row in df.iterrows():
             tool = tools.get(row.get('Part Number', ''))

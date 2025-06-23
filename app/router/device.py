@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import JSONResponse
-from app.models import LogDevice
+from app.models import LogDevice, Line
 from app.models import Machine, MachineBase
 from sqlmodel import Session, select
 from typing import List
@@ -62,10 +62,16 @@ async def root(request: Request):
             {
                 "id": opt.id, 
                 "name": opt.name,
-                "is_connected": opt.log_device_id is not None
+                "is_connected": opt.log_device_id is not None,
+                "line_id": opt.line_id
             } 
             for opt in options
         ]
+
+        # Fetch all lines
+        lines_statement = select(Line).order_by(Line.name)
+        lines = session.exec(lines_statement).all()
+        relationship_options['lines'] = [{"id": line.id, "name": line.name} for line in lines]
 
         context = {
             "item": item_dict,

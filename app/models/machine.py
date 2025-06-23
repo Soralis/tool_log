@@ -39,7 +39,7 @@ class MeasureableRead(MeasureableBase):
 
 
 class MachineBase(SQLModel):
-    name: str = Field(index=True, unique=True)
+    name: str = Field(index=True)
     description: Optional[str] = None
     cost_center: int = Field(unique=True)
     model: Optional[str] = Field(default=None)
@@ -47,6 +47,8 @@ class MachineBase(SQLModel):
     measures_tool_life: bool = Field(default=False)
     channels: int = Field(gt=0)
     line_id: Optional[int] = Field(default=None, foreign_key='line.id', ondelete='SET NULL')
+
+    __table_args__ = (UniqueConstraint('name', 'line_id'),)
 
 
 class Machine(MachineBase, table=True):

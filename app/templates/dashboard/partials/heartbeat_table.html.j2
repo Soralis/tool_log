@@ -2,6 +2,7 @@
     <thead class="bg-gray-900">
         <tr>
             <th class="px-4 py-2 text-left">Device</th>
+            <th class="px-4 py-2 text-left">Line</th>
             <th class="px-4 py-2 text-left">IP</th>
             <th class="px-4 py-2 text-left">Healthy</th>
             <th class="px-4 py-2 text-left">Stability 24h</th>
@@ -27,6 +28,10 @@
             const deviceCell = row.insertCell();
             deviceCell.classList.add("px-4", "py-2");
             deviceCell.textContent = item.Device;
+
+            const lineCell = row.insertCell();
+            lineCell.classList.add("px-4", "py-2");
+            lineCell.textContent = item.Line;
 
             const IPCell = row.insertCell();
             IPCell.classList.add("px-4", "py-2");

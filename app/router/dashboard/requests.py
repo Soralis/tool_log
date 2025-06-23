@@ -206,6 +206,7 @@ async def get_device_status(db: Session) -> List[Dict]:
 
         device_statuses.append({
             "Device": ', '.join([machine.name for machine in device.machines]) if device.machines else device.name,
+            "Line": ', '.join(set([machine.line.name for machine in device.machines])) if device.machines else device.name,
             "IP": device.ip_address,
             "Healthy": is_healthy,
             "Stability 24h": round(min(stability_24h, 100.0), 2),
