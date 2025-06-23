@@ -858,9 +858,6 @@
   .bg-stone-800 {
     background-color: var(--color-stone-800);
   }
-  .bg-stone-900 {
-    background-color: var(--color-stone-900);
-  }
   .bg-stone-900\/95 {
     background-color: color-mix(in oklab, var(--color-stone-900) 95%, transparent);
   }
@@ -1254,13 +1251,6 @@
       }
     }
   }
-  .hover\:bg-gray-800 {
-    &:hover {
-      @media (hover: hover) {
-        background-color: var(--color-gray-800);
-      }
-    }
-  }
   .hover\:bg-green-700 {
     &:hover {
       @media (hover: hover) {
@@ -1307,13 +1297,6 @@
     &:hover {
       @media (hover: hover) {
         background-color: var(--color-stone-700);
-      }
-    }
-  }
-  .hover\:bg-stone-800 {
-    &:hover {
-      @media (hover: hover) {
-        background-color: var(--color-stone-800);
       }
     }
   }
