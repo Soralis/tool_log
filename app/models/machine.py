@@ -1,6 +1,8 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import Field, SQLModel, Relationship
 from sqlalchemy import UniqueConstraint
+import enum
+
 
 if TYPE_CHECKING:
     from .log_device import LogDevice
@@ -93,9 +95,24 @@ class MachineFilter(SQLModel):
 
 
 
+class Color(str, enum.Enum):
+    RED = "hsl(0, 70%, 60%)"
+    ORANGE = "hsl(30, 70%, 60%)"
+    YELLOW = "hsl(50, 70%, 60%)"
+    LIME = "hsl(80, 60%, 60%)"
+    GREEN = "hsl(120, 70%, 60%)"
+    TEAL = "hsl(160, 60%, 60%)"
+    CYAN = "hsl(190, 70%, 60%)"
+    BLUE = "hsl(220, 70%, 60%)"
+    INDIGO = "hsl(250, 70%, 60%)"
+    VIOLET = "hsl(280, 70%, 60%)"
+    PINK = "hsl(320, 70%, 60%)"
+    GRAY = "hsl(210, 10%, 60%)"
+
 class LineBase(SQLModel):
     description: Optional[str] = None
     name: str = Field(index=True, unique=True)
+    color: Color = Field(default=Color.GRAY)
 
 class Line(LineBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -115,8 +132,8 @@ class LineUpdate(LineCreate):
 class LineRead(SQLModel):
     id: int
     name: str
+    color: Color
 
 class LineFilter(SQLModel):
     name: str
     active: bool
-

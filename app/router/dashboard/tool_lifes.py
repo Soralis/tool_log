@@ -20,8 +20,28 @@ router = APIRouter()
 websocket_filters = {}
 
 def define_machine_colors(machines):
-    num_machines = len(machines)
-    machine_colors = {machine.name: [f"hsl({int(360 * i / num_machines)}, 75%, 50%)", f"hsla({int(360 * i / num_machines)}, 75%, 50%, 0.5)"] for i, machine in enumerate(machines)} if num_machines > 0 else {}
+    machine_colors = {}
+    lines = {}
+    for machine in machines:
+        if machine.line and machine.line.name not in lines:
+            lines[machine.line.name] = []
+        lines[machine.line.name].append(machine)
+    
+    for line_name, machines in lines.items():
+        # Assign colors to machines in the same line
+        machine_length = len(machines)
+        for i, machine in enumerate(machines):
+            if f"{line_name}_{machine.name}" not in machine_colors:
+                # Generate a color based on the index
+                hue = machine.line.color.split(", ")[0].strip('hsl(') if machine.line else 0
+                saturation = machine.line.color.split(", ")[1] if machine.line else 0
+                lightness = (80 * i/machine_length) + 10 # valid values range from 10 to 90
+                machine_colors[f"{line_name}_{machine.name}"] = [
+                    f"hsl({hue}, {saturation}, {lightness}%)",
+                    f"hsla({hue}, {saturation}, {lightness}%, 0.5)"
+                ]
+
+
     return machine_colors
 
 async def get_tool_life_graphs(db: Session, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None,
@@ -102,11 +122,12 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
             ordered_records = {}
             # sort by machine
             for r in records:
-                if r.machine.name not in ordered_records:
-                    ordered_records[r.machine.name] = {}
-                if f"Channel {r.machine_channel}" not in ordered_records[r.machine.name]:
-                    ordered_records[r.machine.name][f"Channel {r.machine_channel}"] = []
-                ordered_records[r.machine.name][f"Channel {r.machine_channel}"].append(r)
+                key = f"{r.machine.line.name}_{r.machine.name}"
+                if key not in ordered_records:
+                    ordered_records[key] = {}
+                if f"Channel {r.machine_channel}" not in ordered_records[key]:
+                    ordered_records[key][f"Channel {r.machine_channel}"] = []
+                ordered_records[key][f"Channel {r.machine_channel}"].append(r)
 
             series = []
 

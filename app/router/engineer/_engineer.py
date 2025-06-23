@@ -3,7 +3,7 @@ from app.templates.jinja_functions import templates
 from app.models import User, UserCreate, UserUpdate, UserRead, UserFilter, UserRole, PaymentType
 from app.models import Shift, ShiftCreate, ShiftUpdate, ShiftRead, ShiftFilter
 from app.models import Machine, MachineCreate, MachineUpdate, MachineRead, MachineFilter
-from app.models import Line, LineCreate, LineUpdate, LineRead, LineFilter
+from app.models import Line, LineCreate, LineUpdate, LineRead, LineFilter, Color
 from app.models import Manufacturer, ManufacturerCreate, ManufacturerUpdate, ManufacturerRead, ManufacturerFilter
 from app.models import Tool, ToolCreate, ToolUpdate, ToolRead, ToolFilter
 from app.models import ToolAttribute, ToolAttributeCreate, ToolAttributeUpdate, ToolAttributeRead
@@ -78,7 +78,7 @@ generic_extra_context = {"tool_type_id": 1}  # Placeholder; adjust as needed.
 users_router = create_generic_router(User, UserRead, UserCreate, UserUpdate, UserFilter, "User", {"enum_fields": {"role": UserRole, "payment_type": PaymentType}})
 shift_router = create_generic_router(Shift, ShiftRead, ShiftCreate, ShiftUpdate, ShiftFilter, "Shift")
 machines_router = create_generic_router(Machine, MachineRead, MachineCreate, MachineUpdate, MachineFilter, "Machine")
-lines_router = create_generic_router(Line, LineRead, LineCreate, LineUpdate, LineFilter, "Line")
+lines_router = create_generic_router(Line, LineRead, LineCreate, LineUpdate, LineFilter, "Line", {"enum_fields": {"color": Color}})
 manufacturers_router = create_generic_router(Manufacturer, ManufacturerRead, ManufacturerCreate, ManufacturerUpdate, ManufacturerFilter, "Manufacturer")
 tool_fixed_mapping = {
     "tool_attributes": {"tool_type_id": (ToolType, "tool_attributes")}
