@@ -98,7 +98,7 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
     machines = db.exec(select(Machine).where(Machine.active == True)).all()
     machines.sort(key=lambda x: x.name)
     machine_colors = define_machine_colors(machines)
-    machine_map = {machine.name: machine for machine in machines}
+    machine_map = {f"{machine.line.name}_{machine.name}": machine for machine in machines}
 
     lines = db.exec(select(Line)).all()
     line_patterns = {line.id: pattern for line, pattern in zip(lines, ['rect', 'circle', 'triangle', 'diamond', 'pin', 'arrow', 'roundRect'])}
@@ -142,7 +142,7 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
             decal_symbols = []
 
             for machine_key in ordered_records:
-                machine_name = machine_key.split('_')[1]
+                machine_name = machine_key
                 machine_obj = machine_map.get(machine_name)
                 for channel in ordered_records[machine_key]:
                     condensed_data, window = get_condensed_data([{'timestamp': tool_life.timestamp, 'reached_life': tool_life.reached_life} 
