@@ -13,7 +13,7 @@ export function initializeGraph(containerId, chartType) {
     if (!container) return;
     
     // Initialize chart using ECharts (assumed to be loaded globally)
-    const chartInstance = echarts.init(container);
+    const chartInstance = echarts.init(container, null, { renderer: 'svg' });
     
     // Set an initial empty option (to be updated later by backend data via websocket)
     const initialOption = {
@@ -21,7 +21,13 @@ export function initializeGraph(containerId, chartType) {
         tooltip: {},
         xAxis: { type: 'category', data: [] },
         yAxis: { type: 'value' },
-        series: []
+        series: [],
+        aria: {
+            enabled: true,
+            decal: {
+                show: true
+            }
+        }
     };
     chartInstance.setOption(initialOption);
     

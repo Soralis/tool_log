@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlmodel import Session, select
 import locale
 from app.database_config import get_session
-from app.models import Tool, ToolLife, Recipe, Machine, ToolPosition, ToolConsumption
+from app.models import Tool, ToolLife, Recipe, Machine, ToolPosition, ToolConsumption, Line
 from typing import Dict, List, Optional
 from .utils import get_condensed_data
 from . import tool_lifes_cards as tc
@@ -27,20 +27,20 @@ def define_machine_colors(machines):
             lines[machine.line.name] = []
         lines[machine.line.name].append(machine)
     
-    for line_name, machines in lines.items():
+    for line_name, machines_in_line in lines.items():
         # Assign colors to machines in the same line
-        machine_length = len(machines)
-        for i, machine in enumerate(machines):
+        num_machines = len(machines_in_line)
+        for i, machine in enumerate(machines_in_line):
             if f"{line_name}_{machine.name}" not in machine_colors:
-                # Generate a color based on the index
-                hue = machine.line.color.split(", ")[0].strip('hsl(') if machine.line else 0
-                saturation = machine.line.color.split(", ")[1] if machine.line else 0
-                lightness = (80 * i/machine_length) + 10 # valid values range from 10 to 90
-                machine_colors[f"{line_name}_{machine.name}"] = [
-                    f"hsl({hue}, {saturation}, {lightness}%)",
-                    f"hsla({hue}, {saturation}, {lightness}%, 0.5)"
-                ]
-
+                # # Generate a color based on the index
+                # hue = 0  # Use a single hue for all lines
+                # saturation = "0%"  # Grayscale
+                # lightness = (50 * i / num_machines) + 40  # valid values range from 40 to 90
+                # machine_colors[f"{line_name}_{machine.name}"] = [
+                #     f"hsl({hue}, {saturation}, {lightness}%)",
+                #     f"hsla({hue}, {saturation}, {lightness}%, 0.5)"
+                # ]
+                machine_colors[f"{line_name}_{machine.name}"] = [f"hsl({int(360 * i / num_machines)}, 75%, 50%)", f"hsla({int(360 * i / num_machines)}, 75%, 50%, 0.5)"]
 
     return machine_colors
 
@@ -60,12 +60,14 @@ async def get_tool_life_graphs(db: Session, start_date: Optional[datetime] = Non
             statement = statement.where(ToolLife.timestamp >= start_date)
         if end_date:
             statement = statement.where(ToolLife.timestamp <= end_date)
-        statement = statement.where(ToolLife.machine_id.in_(selected_operations or []))
-        statement = (
-            statement
-            .join(Recipe, ToolLife.recipe_id == Recipe.id)
-            .where(Recipe.workpiece_id.in_(selected_products or []))
-        )
+        if selected_operations:
+            statement = statement.where(ToolLife.machine_id.in_(selected_operations))
+        if selected_products:
+            statement = (
+                statement
+                .join(Recipe, ToolLife.recipe_id == Recipe.id)
+                .where(Recipe.workpiece_id.in_(selected_products))
+            )
         
         tool_lifes = db.exec(statement).all()
         if tool_lifes:
@@ -96,6 +98,11 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
     machines = db.exec(select(Machine).where(Machine.active == True)).all()
     machines.sort(key=lambda x: x.name)
     machine_colors = define_machine_colors(machines)
+    machine_map = {machine.name: machine for machine in machines}
+
+    lines = db.exec(select(Line)).all()
+    line_patterns = {line.id: pattern for line, pattern in zip(lines, ['rect', 'circle', 'triangle', 'diamond', 'pin', 'arrow', 'roundRect'])}
+
 
     data = {}
     for tool in tools:
@@ -107,12 +114,14 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
         if end_date:
             statement = statement.where(ToolLife.timestamp <= end_date)
 
-        statement = statement.where(ToolLife.machine_id.in_(selected_operations or []))
-        statement = (
-            statement
-            .join(Recipe, ToolLife.recipe_id == Recipe.id)
-            .where(Recipe.workpiece_id.in_(selected_products or []))
-        )
+        if selected_operations:
+            statement = statement.where(ToolLife.machine_id.in_(selected_operations))
+        if selected_products:
+            statement = (
+                statement
+                .join(Recipe, ToolLife.recipe_id == Recipe.id)
+                .where(Recipe.workpiece_id.in_(selected_products))
+            )
             
         statement = statement.order_by(ToolLife.timestamp.asc())
         records = list(db.exec(statement))
@@ -130,12 +139,15 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
                 ordered_records[key][f"Channel {r.machine_channel}"].append(r)
 
             series = []
+            decal_symbols = []
 
-            for machine in ordered_records:
-                for channel in ordered_records[machine]:
+            for machine_key in ordered_records:
+                machine_name = machine_key.split('_')[1]
+                machine_obj = machine_map.get(machine_name)
+                for channel in ordered_records[machine_key]:
                     condensed_data, window = get_condensed_data([{'timestamp': tool_life.timestamp, 'reached_life': tool_life.reached_life} 
-                                                         for tool_life in ordered_records[machine][channel]])
-
+                                                         for tool_life in ordered_records[machine_key][channel]])
+                    decal_symbols.append(line_patterns.get(machine_obj.line_id, 'rect') if machine_obj else 'rect')
                     series.append({
                         "type": "line",
                         "data": condensed_data,
@@ -143,15 +155,28 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
                             "formatter": 'gaygaygay',
                         },
                         # "smooth": True,
-                        "lineStyle": { "color": machine_colors[machine][0] },
-                        "areaStyle": { "color": machine_colors[machine][1] },
+                        "lineStyle": { "color": machine_colors[machine_key][0] },
+                        "areaStyle": { 
+                            "color": machine_colors[machine_key][1],
+                        },
                     })
 
             data[f"tool_{tool.id}"] = {
                 "tooltip": { "trigger": "axis" },
                 "xAxis": {"type": "time"},
                 "yAxis": { "type": "value" },
-                "series": series
+                "series": series,
+                "aria": {
+                    "enabled": True,
+                    "decal": {
+                        "show": True,
+                        "decals": {
+                            "symbol": decal_symbols,
+                            "dashArrayX": 20,
+                            "dashArrayY": 20,
+                        }
+                    }
+                }
             }
     
     return data
