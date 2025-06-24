@@ -139,7 +139,7 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
                 ordered_records[key][f"Channel {r.machine_channel}"].append(r)
 
             series = []
-            decal_symbols = []
+            decal_symbols = set()
 
             for machine_key in ordered_records:
                 machine_name = machine_key
@@ -147,7 +147,7 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
                 for channel in ordered_records[machine_key]:
                     condensed_data, window = get_condensed_data([{'timestamp': tool_life.timestamp, 'reached_life': tool_life.reached_life} 
                                                          for tool_life in ordered_records[machine_key][channel]])
-                    decal_symbols.append(line_patterns.get(machine_obj.line_id, 'rect') if machine_obj else 'rect')
+                    decal_symbols.add(line_patterns.get(machine_obj.line_id, 'rect') if machine_obj else 'rect')
                     series.append({
                         "type": "line",
                         "data": condensed_data,
@@ -171,9 +171,10 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
                     "decal": {
                         "show": True,
                         "decals": {
-                            "symbol": decal_symbols,
+                            "symbol": list(decal_symbols),
                             "dashArrayX": 20,
                             "dashArrayY": 20,
+                            "color": "rgba(0, 0, 0, 0.4)",
                         }
                     }
                 }
