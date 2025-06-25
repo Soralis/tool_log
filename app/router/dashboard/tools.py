@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Query
-from sqlmodel import Session, select, and_, exists, desc, asc
+from sqlmodel import Session, select, and_, exists, desc, asc, func
 from sqlalchemy.orm import selectinload
 from typing import Dict
 from datetime import datetime
@@ -21,7 +21,9 @@ router = APIRouter(
     tags=["Tools"],
 )
 
-def aggregate_tool_metrics(aggregated: dict, line, product, machine, tool_position, tool, start_date: datetime, end_date: datetime, db: Session) -> dict:
+def aggregate_tool_metrics(aggregated: dict, line: Line, product: Workpiece, machine: Machine, 
+                           tool_position: ToolPosition, tool: Tool, start_date: datetime, 
+                           end_date: datetime, db: Session) -> dict:
     """
     Helper function to compute and aggregate tool metrics.
     
@@ -50,11 +52,11 @@ def aggregate_tool_metrics(aggregated: dict, line, product, machine, tool_positi
     if consumptions:
         first_date = min(c.datetime.date() for c in consumptions)
         last_date = max(c.datetime.date() for c in consumptions)
-        total_quantity = sum(c.quantity for c in consumptions)
+        total_consumed_quantity = sum(c.quantity for c in consumptions)
         weeks = ((last_date - first_date).days // 7) + 1
-        weekly = total_quantity / weeks if weeks > 0 else total_quantity
+        weekly = total_consumed_quantity / weeks if weeks > 0 else total_consumed_quantity
     else:
-        total_quantity = 0
+        total_consumed_quantity = 0
         weekly = 0
 
     # Calculate order delivery metrics.
@@ -77,18 +79,18 @@ def aggregate_tool_metrics(aggregated: dict, line, product, machine, tool_positi
     else:
         lifes = [tl for tl in tool.tool_lifes if tl.timestamp.date() >= start_date and tl.timestamp.date() <= end_date]
     
-    percent_consumptions_recorded = round(100 * (len(lifes) / tool.max_uses) / total_quantity) if total_quantity else 100
+    percent_consumptions_recorded = round(100 * (len(lifes) / tool.max_uses) / total_consumed_quantity) if total_consumed_quantity else 100
     
     if lifes:
-        avg_tool_life = sum(t.reached_life for t in lifes) / len(lifes) if len(lifes) > 0 else 0
+        reported_avg_tool_life = sum(t.reached_life for t in lifes) / len(lifes) if len(lifes) > 0 else 0
         if tool_position is not None and hasattr(tool_position, 'tool_count'):
-            cost_per_piece = (tool_position.tool_count * float(tool.price) / tool.max_uses) / avg_tool_life if avg_tool_life > 0 else 0
+            cost_per_piece = (tool_position.tool_count * float(tool.price) / tool.max_uses) / reported_avg_tool_life if reported_avg_tool_life > 0 else 0
         else:
             # For standalone tools or missing tool_position, assume a tool_count of 1.
-            cost_per_piece = (float(tool.price) / tool.max_uses) / avg_tool_life if avg_tool_life > 0 else 0
+            cost_per_piece = (float(tool.price) / tool.max_uses) / reported_avg_tool_life if reported_avg_tool_life > 0 else 0
     else:
         cost_per_piece = 0
-        avg_tool_life = 0
+        reported_avg_tool_life = 0
     
     tool_entry = {
         'tool_id': tool.id,
@@ -104,7 +106,7 @@ def aggregate_tool_metrics(aggregated: dict, line, product, machine, tool_positi
         'order_lead_time': longest_delivery_duration[0],
         'longest_order_size': longest_delivery_duration[1],
         'cost_per_piece': round(cost_per_piece, 2),
-        'average_life': round(avg_tool_life),
+        'average_life': round(reported_avg_tool_life),
         'percent_consumptions_recorded': percent_consumptions_recorded,
     }
     
@@ -554,11 +556,19 @@ async def product_info(product_id:int, start_date:datetime, end_date:datetime, d
 
     operations_data = [operation_info(recipe.machine_id, start_date, end_date, db, condense, max_points) for recipe in recipes]
 
+    order_completions = db.exec(
+        select(func.sum(OrderCompletion.quantity))
+        .where(OrderCompletion.workpiece_id == product.id)
+        .where(OrderCompletion.date >= start_date)
+        .where(OrderCompletion.date <= end_date)
+    ).scalar_one_or_none() or 0
+
     return_data = dotsi.Dict(
         {
             "id": product.id,
             "name": product.name,
             "operations": operations_data,
+            "order_completions": order_completions,
         }
     )
 
@@ -701,4 +711,3 @@ async def get_target_info(
 
 
     return details
-
