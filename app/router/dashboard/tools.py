@@ -374,7 +374,13 @@ async def get_cpu(
                     for tool in tool_position['tools']:
                         total_consumption += tool['weekly_consumption']
                         tool_position_cpp += tool['cost_per_piece'] * tool['weekly_consumption']
-                    tool_position['cost_per_piece'] = round(tool_position_cpp / total_consumption if total_consumption > 0 else 0, 2)
+                    
+                    if total_consumption > 0:
+                        tool_position['cost_per_piece'] = round(tool_position_cpp / total_consumption, 2)
+                    else:
+                        # If no consumption, sum the cost_per_piece of each tool directly.
+                        simple_sum_cpp = sum(tool['cost_per_piece'] for tool in tool_position['tools'])
+                        tool_position['cost_per_piece'] = round(simple_sum_cpp, 2)
                     machine_cpp += tool_position['cost_per_piece']
                 machine['cost_per_piece'] = round(machine_cpp, 2)
                 product_cpp += machine_cpp
