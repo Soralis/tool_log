@@ -1,5 +1,5 @@
 import { initializeDateRange } from './rangeSlider.js';
-import { initializeSelections, setupFilterClickHandlers } from './filterUtils.js';
+import { initializeSelections, setupFilterClickHandlers, loadFilterOptions } from './filterUtils.js';
 import { setupEventListeners } from './modalUtils.js';
 
 // Initialize all functionality when DOM is loaded
@@ -17,4 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup all event listeners
     setupEventListeners();
+
+    // Load filter options dynamically
+    loadFilterOptions();
 });

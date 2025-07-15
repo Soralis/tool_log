@@ -7,7 +7,7 @@ from app.broadcast import broadcast
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
-from app.models import Workpiece, Machine, ToolConsumption, Recipe, ChangeOver, Tool, ToolOrder, OrderDelivery
+from app.models import Workpiece, Machine, ToolConsumption, Recipe, ChangeOver, Tool, ToolOrder, OrderDelivery, Line
 from collections import defaultdict
 
 router = APIRouter()
@@ -15,13 +15,21 @@ router = APIRouter()
 
 @router.get("/api/filter-options")
 async def get_filter_options(request: Request, db: Session = Depends(get_session)):
-    """Get available filter options (products and operations)"""
-    products = db.exec(select(Workpiece)).all()
-    products = {workpiece.name: workpiece.id for workpiece in products}
-    operations = db.exec(select(Machine)).all()
-    operations = {operation.name: operation.id for operation in operations}
+    """Get available filter options (lines, products, and operations)"""
+    # Fetch lines
+    lines_db = db.exec(select(Line)).all()
+    lines = [{ "id": l.id, "name": l.name } for l in lines_db]
+    
+    # Fetch products with associated line
+    products_db = db.exec(select(Workpiece)).all()
+    products = [{ "id": wp.id, "name": wp.name, "line_id": wp.line_id } for wp in products_db]
+
+    # Fetch operations with associated line
+    operations_db = db.exec(select(Machine)).all()
+    operations = [{ "id": m.id, "name": m.name, "line_id": m.line_id } for m in operations_db]
     
     return {
+        "lines": lines,
         "products": products,
         "operations": operations
     }

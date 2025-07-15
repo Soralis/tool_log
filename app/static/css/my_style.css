@@ -134,13 +134,14 @@ nav a.active {
     gap: 15px;
 }
 
-label {
+/* label {
     display: block;
     margin-bottom: 5px;
     font-weight: 600;
     font-size: 14px;
     color: #ecf0f1;
-}
+} */
+
 
 input[type="text"],
 input[type="number"],
