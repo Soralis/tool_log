@@ -108,6 +108,7 @@ def aggregate_tool_metrics(aggregated: dict, line: Line, product: Workpiece, mac
         'cost_per_piece': round(cost_per_piece, 2),
         'average_life': round(reported_avg_tool_life),
         'percent_consumptions_recorded': percent_consumptions_recorded,
+        'total_records': len(lifes),
     }
     
     if line is not None and product is not None and machine is not None:
