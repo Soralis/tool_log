@@ -1,0 +1,13 @@
+{% extends "dashboard/base.html.j2" %}
+
+{% block title %}Opportunities{% endblock %}
+
+{% block content %}
+<div id="opportunities-list" class="space-y-4">
+    <!-- Opportunities will be rendered here -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', path='js/dashboard/opportunities.js') }}"></script>
+{% endblock %}

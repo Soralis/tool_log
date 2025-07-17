@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from . import requests, tools, tool_lifes, dashboard, upload, orders, monetary, reliability, reports
+from . import requests, tools, tool_lifes, dashboard, upload, orders, monetary, reliability, reports, opportunities
 
 
 router = APIRouter()
@@ -14,3 +14,4 @@ router.include_router(orders.router)
 router.include_router(monetary.router)
 router.include_router(reliability.router)
 router.include_router(reports.router)
+router.include_router(opportunities.router)

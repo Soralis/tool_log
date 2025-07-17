@@ -6,8 +6,8 @@ SERVER_IP="10.0.36.192"
 # read -p "Enter the Server IP Address: " SERVER_IP
 
 # WLAN configuration - Edit these values to change network settings
-WLAN_SSID="NUSA226T15 5362"
-WLAN_PASSWORD="83*n200D"
+WLAN_SSID="Non_IoT"
+WLAN_PASSWORD="M@croBlank479"
 CONFIGURE_WLAN=false  # Set to true to apply WLAN configuration
 
 # Configure WLAN if enabled
