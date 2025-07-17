@@ -145,16 +145,12 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
                 machine_name = machine_key
                 machine_obj = machine_map.get(machine_name)
                 for channel in ordered_records[machine_key]:
-                    condensed_data, window = get_condensed_data([{'timestamp': tool_life.timestamp, 'reached_life': tool_life.reached_life} 
+                    condensed_data, _ = get_condensed_data([{'timestamp': tool_life.timestamp, 'reached_life': tool_life.reached_life} 
                                                          for tool_life in ordered_records[machine_key][channel]])
                     decal_symbols.add(line_patterns.get(machine_obj.line_id, 'rect') if machine_obj else 'rect')
                     series.append({
                         "type": "line",
                         "data": condensed_data,
-                        "tooltip": {
-                            "formatter": 'gaygaygay',
-                        },
-                        # "smooth": True,
                         "lineStyle": { "color": machine_colors[machine_key][0] },
                         "areaStyle": { 
                             "color": machine_colors[machine_key][1],
@@ -359,8 +355,10 @@ async def get_tool_details(
                     change_reasons[reason][channel] = round(100 * change_reasons[reason][channel] / len(channel_data), 1)
 
                 tool_position: ToolPosition = next((record.tool_position for record in channel_data if record.tool_position), [] )
-
+                
                 tools_per_life = []
+                used_settings = {}
+                changed_settings_indicators = []
 
                 for t_life in tool_position.tool_lifes:
                     t_life: ToolLife
@@ -373,13 +371,27 @@ async def get_tool_details(
                     tools_per_life.append(t_life.tool_count)
                     if t_life.user and str(t_life.machine_channel) in channel:
                         operators_life[t_life.user.name].append(t_life.reached_life)
+                    for s_name, s_value in t_life.tool_settings.items():
+                        if s_name not in used_settings:
+                            used_settings[s_name] = s_value
+                        elif used_settings[s_name] != s_value:
+                            changed_settings_indicators.append({
+                                'name': s_name,
+                                'value': s_value,
+                                'previous_value': used_settings[s_name],
+                                'timestamp': t_life.timestamp,
+                                })
+                            used_settings[s_name] = s_value
                 
+                tool_settings_units = {setting.name: setting.unit for setting in tool_position.tool.tool_type.tool_settings}
+                stats['current_settings'] = {name: f"{value} {tool_settings_units[name]}" for name, value in tool_position.tool_settings.items()}
                 stats['expected_life'] = t_life.tool_position.expected_life
                 stats['tools_per_life'] = sum(tools_per_life)/len(tools_per_life) if len(tools_per_life) > 0 else 1
 
                 general_series.append(series.copy())
 
                 series['markLine'] = {
+                    "symbol": "none",
                     "data": [
                         {
                             "yAxis": t_life.tool_position.expected_life,
@@ -388,22 +400,45 @@ async def get_tool_details(
                                 "color": "green",
                                 "width": 2,
                                 "type": "dashed"
+                            },
+                            "tooltip": {
+                                "formatter": f"Target Tool Life: {t_life.tool_position.expected_life} pcs"
                             }
                         }
                     ]
                 }
+                for setting in changed_settings_indicators:
+                    formatter = f"{setting['name']}: {setting['previous_value']} → {setting['value']}"
+                    series['markLine']['data'].append({
+                        "name": f"{setting['name']} from {setting['previous_value']} to {setting['value']}",
+                        "xAxis": setting['timestamp'],
+                        "symbol": "none",
+                        "lineStyle": {
+                            "color": "orange",
+                            "type": "dashed"
+                        },
+                        "label": {
+                            "formatter": formatter
+                        },
+                        "tooltip": {
+                            "formatter": formatter
+                        }
+                    })
 
                 if t_life.tool_position.min_life and t_life.tool_position.min_life > 0:
                     # add horizontal line at minimum tool life
                     series['markLine']['data'].append({
-                                "yAxis": t_life.tool_position.min_life,
-                                "name": "Minimum Tool Life",
-                                "lineStyle": {
-                                    "color": "red",
-                                    "width": 2,
-                                    "type": "dashed"
-                                }
-                            })
+                        "yAxis": t_life.tool_position.min_life,
+                        "name": "Minimum Tool Life",
+                        "lineStyle": {
+                            "color": "red",
+                            "width": 2,
+                            "type": "dashed"
+                        },
+                        "tooltip": {
+                            "formatter": f"Minimum Tool Life: {t_life.tool_position.min_life} pcs"
+                        }
+                    })
 
                 series['name'] = channel
                 series['type'] = "scatter"
@@ -478,6 +513,8 @@ async def get_tool_details(
         stats = machine_spec['stats']
         best_operators_text = "<br>".join([f"{o['operator']}: {o['avg_life']} ({o['log_count']})" for o in stats['ranking'][:3]])
         worst_operators_text = "<br>".join([f"{o['operator']}: {o['avg_life']} ({o['log_count']})" for o in stats['ranking'][-3:]])
+        current_settings = "<br>".join([f"{name}: {value}" for name, value in stats['current_settings'].items()])
+
         details['cards'].append(tc.stat_card("Tool Statistics", [
             ["Machine Health", f"{machine_spec['health']} / 10"],
             ["Average Life", stats['avg_life']],
@@ -486,6 +523,7 @@ async def get_tool_details(
             ["Tools per Record", stats['tools_per_life']],
             ["CPU", f"${round(stats['tools_per_life'] * float(tool.price) / tool.max_uses / stats['avg_life'], 2)}"],
             ["Target CPU", f"${round(stats['tools_per_life'] * float(tool.price) / tool.max_uses / stats['expected_life'], 2)}"],
+            ["Current Settings", current_settings],
             ["Highest Toollife", best_operators_text],
             ["Lowest Toollife", worst_operators_text]
         ])) 
