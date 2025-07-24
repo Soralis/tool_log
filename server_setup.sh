@@ -4,7 +4,7 @@ set -e
 # 1. Update and install packages
 echo "Updating package lists and installing prerequisites..."
 sudo apt-get update -y
-sudo apt-get install -y nginx python3-venv weston chromium-browser
+sudo apt-get install -y nginx python3-venv xserver-xorg x11-xserver-utils xinit openbox chromium-browser
 
 # 2. Configure pi-user crontab for deploy and weekly reboot
 echo "Configuring crontab for check_github and weekly reboot..."
@@ -32,35 +32,17 @@ echo "Adding internet_check to crontab..."
 (crontab -l 2>/dev/null | grep -v 'internet_check.sh'; \
  echo "* * * * * /bin/bash /home/pi/internet_check.sh >> /var/log/internet_check.log 2>&1") | crontab -
 
-# 5. Configure Wayland compositor (Weston) and autostart Chromium in kiosk
-echo "Configuring Weston and kiosk..."
-sudo mkdir -p /etc/xdg/weston
-sudo bash -c 'cat > /etc/xdg/weston/weston.ini << EOF
-[core]
-shell=desktop-shell.so
-
-[autolaunch]
-path=/usr/bin/chromium-browser
-args=--noerrdialogs --disable-infobars --incognito --kiosk http://localhost/dashboard/requests
+# 5. Configure Openbox and autostart Chromium in kiosk
+echo "Configuring Openbox and kiosk..."
+sudo mkdir -p /etc/xdg/openbox
+sudo bash -c 'cat > /etc/xdg/openbox/autostart << EOF
+# Start Chromium in kiosk mode on local dashboard
+chromium-browser --noerrdialogs --disable-infobars --incognito --kiosk http://localhost/dashboard/requests
 EOF'
-
-# Create systemd service for Weston on tty1
-sudo bash -c 'cat > /etc/systemd/system/weston.service << EOF
-[Unit]
-Description=Weston Wayland Compositor
-After=network.target
-
-[Service]
-User=pi
-Environment=XDG_RUNTIME_DIR=/run/user/1000
-ExecStart=/usr/bin/weston --tty=1 --socket=wayland-0
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF'
-sudo systemctl daemon-reload
-sudo systemctl enable weston.service
+# Enable autologin and X startup on tty1
+sudo raspi-config nonint do_boot_behaviour B2
+touch /home/pi/.bash_profile
+sudo bash -c 'echo "[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor" > /home/pi/.bash_profile'
 
 # 6. Create nginx site configuration for blue-green deployment
 echo "Writing nginx site config..."
