@@ -4,7 +4,13 @@ set -e
 # 1. Update and install packages
 echo "Updating package lists and installing prerequisites..."
 sudo apt-get update -y
-sudo apt-get install -y nginx python3-venv xserver-xorg x11-xserver-utils xinit openbox chromium-browser
+sudo apt-get install -y nginx python3-venv wayfire chromium-browser
+
+# Enable console autologin and launch Wayfire on tty1
+sudo raspi-config nonint do_boot_behaviour B2
+sudo -u pi bash -c 'cat >> /home/pi/.bash_profile << EOF
+[[ -z \$WAYLAND_DISPLAY && \$XDG_VTNR -eq 1 ]] && exec wayfire
+EOF'
 
 # 2. Configure pi-user crontab for deploy and weekly reboot
 echo "Configuring crontab for check_github and weekly reboot..."
@@ -31,17 +37,6 @@ chmod +x /home/pi/internet_check.sh
 echo "Adding internet_check to crontab..."
 (crontab -l 2>/dev/null | grep -v 'internet_check.sh'; \
  echo "* * * * * /bin/bash /home/pi/internet_check.sh >> /var/log/internet_check.log 2>&1") | crontab -
-
-# 5. Configure Openbox and autostart Chromium in kiosk
-echo "Configuring Openbox and kiosk..."
-sudo mkdir -p /etc/xdg/openbox
-sudo bash -c 'cat > /etc/xdg/openbox/autostart << EOF
-# Start Chromium in kiosk mode on local dashboard
-chromium-browser --noerrdialogs --disable-infobars --incognito --kiosk http://localhost/dashboard/requests
-EOF'
-# Enable autologin and X startup on tty1
-sudo raspi-config nonint do_boot_behaviour B2
-echo "[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor" | sudo tee /home/pi/.bash_profile > /dev/null
 
 # Configure Wayfire autostart for Chromium kiosk
 sudo -u pi mkdir -p /home/pi/.config
