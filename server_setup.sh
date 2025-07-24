@@ -4,7 +4,7 @@ set -e
 # 1. Update and install packages
 echo "Updating package lists and installing prerequisites..."
 sudo apt-get update -y
-sudo apt-get install -y nginx python3.13-venv weston chromium-browser
+sudo apt-get install -y nginx python3-venv weston chromium-browser
 
 # 2. Configure pi-user crontab for deploy and weekly reboot
 echo "Configuring crontab for check_github and weekly reboot..."
