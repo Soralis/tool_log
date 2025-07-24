@@ -38,7 +38,7 @@ echo "Adding internet_check to crontab..."
 (crontab -l 2>/dev/null | grep -v 'internet_check.sh'; \
  echo "* * * * * /bin/bash /home/pi/internet_check.sh >> /var/log/internet_check.log 2>&1") | crontab -
 
-# Configure Wayfire autostart for Chromium kiosk
+# Configure Wayfire autostart for Chromium kiosk.
 sudo -u pi mkdir -p /home/pi/.config
 sudo -u pi bash -c 'cat > /home/pi/.config/wayfire.ini << EOF
 [core]
