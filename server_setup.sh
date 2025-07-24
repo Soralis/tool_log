@@ -39,11 +39,12 @@ echo "Adding internet_check to crontab..."
  echo "* * * * * /bin/bash /home/pi/internet_check.sh >> /var/log/internet_check.log 2>&1") | crontab -
 
 # Configure Wayfire autostart for Chromium kiosk.
-sudo -u pi bash -c 'mkdir -p /home/pi/.config && cat > /home/pi/.config/wayfire.ini << EOF
+sudo mkdir -p /home/pi/.config
+sudo bash -c 'cat > /home/pi/.config/wayfire.ini << EOF
 [core]
 exec = chromium-browser --noerrdialogs --disable-infobars --incognito --kiosk http://localhost/dashboard/requests
-EOF
-'
+EOF'
+sudo chown -R pi:pi /home/pi/.config
 
 # 6. Create nginx site configuration for blue-green deployment
 echo "Writing nginx site config..."
