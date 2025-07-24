@@ -8,7 +8,7 @@ sudo apt-get install -y nginx python3-venv wayfire chromium-browser
 
 # Enable console autologin and launch Wayfire on tty1
 sudo raspi-config nonint do_boot_behaviour B2
-sudo -u pi bash -c 'echo "[[ -z \$WAYLAND_DISPLAY && \$XDG_VTNR -eq 1 ]] && exec wayfire" >> /home/pi/.bash_profile'
+echo '[[ -z $WAYLAND_DISPLAY && $XDG_VTNR -eq 1 ]] && exec wayfire' | sudo -u pi tee -a /home/pi/.bash_profile > /dev/null
 
 # 2. Configure pi-user crontab for deploy and weekly reboot
 echo "Configuring crontab for check_github and weekly reboot..."
