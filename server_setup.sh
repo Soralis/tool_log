@@ -43,6 +43,13 @@ EOF'
 sudo raspi-config nonint do_boot_behaviour B2
 echo "[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor" | sudo tee /home/pi/.bash_profile > /dev/null
 
+# Configure Wayfire autostart for Chromium kiosk
+sudo -u pi mkdir -p /home/pi/.config
+sudo -u pi bash -c 'cat > /home/pi/.config/wayfire.ini << EOF
+[core]
+exec = chromium-browser --noerrdialogs --disable-infobars --incognito --kiosk http://localhost/dashboard/requests
+EOF'
+
 # 6. Create nginx site configuration for blue-green deployment
 echo "Writing nginx site config..."
 sudo bash -c 'cat > /etc/nginx/sites-available/tool_log << EOF
