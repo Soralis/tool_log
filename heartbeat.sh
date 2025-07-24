@@ -27,7 +27,7 @@ else
 fi
 
 # Set server IP address
-SERVER_IP="10.0.36.192"
+SERVER_IP="10.0.36.130"
 # SERVER_IP="10.0.0.38:8000" # for home office
 
 # Heartbeat function
