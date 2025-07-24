@@ -3,7 +3,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!container) return;
 
     try {
-        const response = await fetch("/dashboard/opportunities/api/ranked");
+        const selectedOperations = localStorage.getItem('selectedOperations') || "";
+        const selectedProducts = localStorage.getItem('selectedProducts') || "";
+        const startDate = localStorage.getItem('startDate') || "";
+        let endDate = localStorage.getItem('endDate') || "";
+        if (endDate == null || endDate === "null") {
+            endDate = new Date().toISOString();
+        }
+        const response = await fetch(`http://${window.location.host}/dashboard/opportunities/api/ranked?selected_operations=${selectedOperations}&selected_products=${selectedProducts}&start_date=${startDate}&end_date=${endDate}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
