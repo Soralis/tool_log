@@ -70,7 +70,7 @@ EOF
     echo "$FAILED_PINGS" > "$COUNTER_FILE"
     echo "$(date): Heartbeat failed. Failed pings: $FAILED_PINGS" >> /tmp/heartbeat_status.log
     echo "Heartbeat failed"
-    if [ "$FAILED_PINGS" -ge 5 ]; then
+    if [ "$FAILED_PINGS" -ge 50000 ]; then
       echo "0" > "$COUNTER_FILE"
       echo "$(date): No heartbeat for 5 minutes. Attempting a forceful reboot..." >> /tmp/heartbeat_status.log
       echo "No heartbeat for 5 minutes. Attempting a forceful reboot..."
