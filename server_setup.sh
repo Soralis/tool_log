@@ -1,0 +1,92 @@
+#!/bin/bash
+set -e
+
+# 1. Update and install packages
+echo "Updating package lists and installing prerequisites..."
+sudo apt-get update -y
+sudo apt-get install -y nginx python3.13-venv weston chromium-browser
+
+# 2. Configure pi-user crontab for deploy and weekly reboot
+echo "Configuring crontab for check_github and weekly reboot..."
+(crontab -l 2>/dev/null | grep -v 'check_github.sh'; \
+ echo "*/5 * * * * /bin/bash /home/pi/tool_log/check_github.sh >> /var/log/deploy.log 2>&1"; \
+ echo "0 0 * * 0 /sbin/shutdown -r now") | crontab -
+
+# 3. Create internet connection check script
+echo "Creating internet_check.sh..."
+cat > /home/pi/internet_check.sh << 'EOF'
+#!/bin/bash
+LOG=/var/log/internet_check.log
+TARGET=8.8.8.8
+if ! ping -c1 $TARGET > /dev/null; then
+  echo "$(date): Ping failed, restarting dhcpcd" >> $LOG
+  sudo systemctl restart dhcpcd
+else
+  echo "$(date): Ping OK" >> $LOG
+fi
+EOF
+chmod +x /home/pi/internet_check.sh
+
+# 4. Add internet_check to crontab
+echo "Adding internet_check to crontab..."
+(crontab -l 2>/dev/null | grep -v 'internet_check.sh'; \
+ echo "* * * * * /bin/bash /home/pi/internet_check.sh >> /var/log/internet_check.log 2>&1") | crontab -
+
+# 5. Configure Wayland compositor (Weston) and autostart Chromium in kiosk
+echo "Configuring Weston and kiosk..."
+sudo mkdir -p /etc/xdg/weston
+sudo bash -c 'cat > /etc/xdg/weston/weston.ini << EOF
+[core]
+shell=desktop-shell.so
+
+[autolaunch]
+path=/usr/bin/chromium-browser
+args=--noerrdialogs --disable-infobars --incognito --kiosk http://localhost/dashboard/requests
+EOF'
+
+# Create systemd service for Weston on tty1
+sudo bash -c 'cat > /etc/systemd/system/weston.service << EOF
+[Unit]
+Description=Weston Wayland Compositor
+After=network.target
+
+[Service]
+User=pi
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStart=/usr/bin/weston --tty=1 --socket=wayland-0
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF'
+sudo systemctl daemon-reload
+sudo systemctl enable weston.service
+
+# 6. Create nginx site configuration for blue-green deployment
+echo "Writing nginx site config..."
+sudo bash -c 'cat > /etc/nginx/sites-available/tool_log << EOF
+server {
+    listen 80;
+    server_name _;
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        include /etc/nginx/proxy_params;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+    location /monitoring/ws {
+        proxy_pass http://127.0.0.1:8000;
+        include /etc/nginx/proxy_params;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+    error_log /var/log/nginx/tool_log_error.log;
+    access_log /var/log/nginx/tool_log_access.log;
+}
+EOF'
+sudo ln -sf /etc/nginx/sites-available/tool_log /etc/nginx/sites-enabled/tool_log
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -s reload
+
+echo "Server setup complete. Please reboot to start Weston and apply all changes."
