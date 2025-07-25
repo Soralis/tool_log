@@ -6,10 +6,6 @@ echo "Updating package lists and installing prerequisites..."
 sudo apt-get update -y
 sudo apt-get install -y nginx python3-venv wayfire chromium-browser
 
-# Remove Weston and disable its autostart to prevent failed launches
-sudo apt-get purge -y weston weston-launch || true
-sudo systemctl disable weston.service weston-launch@tty1.service || true
-
 # Enable console autologin and launch Wayfire on tty1
 sudo raspi-config nonint do_boot_behaviour B2
 sudo -u pi touch /home/pi/.bash_profile
@@ -77,4 +73,4 @@ sudo ln -sf /etc/nginx/sites-available/tool_log /etc/nginx/sites-enabled/tool_lo
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -s reload
 
-echo "Server setup complete. Please reboot to start Weston and apply all changes."
+echo "Server setup complete. Please reboot to start Wayfire and apply all changes."

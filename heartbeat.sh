@@ -70,15 +70,26 @@ EOF
     echo "$FAILED_PINGS" > "$COUNTER_FILE"
     echo "$(date): Heartbeat failed. Failed pings: $FAILED_PINGS" >> /tmp/heartbeat_status.log
     echo "Heartbeat failed"
-    if [ "$FAILED_PINGS" -ge 50000 ]; then
+    # Check local network connectivity
+    GATEWAY=$(ip route | awk '/default/ {print $3}' | head -n1)
+    if [ -n "$GATEWAY" ] && ! ping -c1 -W1 $GATEWAY >/dev/null; then
+      echo "$(date): Local network unreachable; restarting WIFI Service..." >> /tmp/heartbeat_status.log
+      echo "Local network unreachable; restarting WIFI Service..."
+      sudo ip link set wlan0 down && sleep 2 && sudo ip link set wlan0 up
+      return
+    fi
+    # If gateway reachable, reset failed pings
+    if [ -n "$GATEWAY" ] && ping -c1 -W1 $GATEWAY >/dev/null; then
+      FAILED_PINGS=0
+      echo "$FAILED_PINGS" > "$COUNTER_FILE"
+      echo "$(date): Local network reachable; failed pings reset to 0." >> /tmp/heartbeat_status.log
+      return
+    fi
+    if [ "$FAILED_PINGS" -ge 5 ]; then
       echo "0" > "$COUNTER_FILE"
       echo "$(date): No heartbeat for 5 minutes. Attempting a forceful reboot..." >> /tmp/heartbeat_status.log
       echo "No heartbeat for 5 minutes. Attempting a forceful reboot..."
       sudo systemctl reboot --force
-    elif [ "$FAILED_PINGS" -eq 2 ]; then
-      echo "$(date): No heartbeat for 2.5 minutes. Restarting WIFI Service..." >> /tmp/heartbeat_status.log
-      echo "No heartbeat for 2.5 minutes. Restarting WIFI Service..."
-      sudo ip link set wlan0 down && sleep 2 && sudo ip link set wlan0 up
     fi
   fi
 }
