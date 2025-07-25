@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+REPO_PATH="/home/pi/tool_log"
+
 # 1. Update and install packages
 echo "Updating package lists and installing prerequisites..."
 sudo apt-get update -y
@@ -38,11 +40,19 @@ echo "Adding internet_check to crontab..."
 (crontab -l 2>/dev/null | grep -v 'internet_check.sh'; \
  echo "* * * * * /bin/bash /home/pi/internet_check.sh >> /var/log/internet_check.log 2>&1") | crontab -
 
-# Configure Wayfire autostart for Chromium kiosk.
+# Configure Wayfire autostart for Chromium kiosk and install browser scripts.
 sudo mkdir -p /home/pi/.config
+sudo install -m755 "$REPO_PATH/2 Server Files/rotate_screen.sh" /usr/local/bin/rotate-screen.sh
+sudo install -m755 "$REPO_PATH/2 Server Files/start_browser.sh" /home/pi/start_browser.sh
+sudo chown pi:pi /home/pi/start_browser.sh
 sudo bash -c 'cat > /home/pi/.config/wayfire.ini << EOF
+[output:DSI-1]
+mode = 800x480@60049
+position = 0,0
+transform = inverted
+
 [core]
-exec = chromium-browser --noerrdialogs --disable-infobars --incognito --kiosk http://localhost/dashboard/requests
+exec = /home/pi/start_browser.sh
 EOF'
 sudo chown -R pi:pi /home/pi/.config
 
