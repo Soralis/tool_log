@@ -125,6 +125,7 @@ sleep 5
 # Check if the new service is running
 if ! systemctl is-active --quiet $NEW_SERVICE; then
     send_error_message "New service $NEW_SERVICE failed to start."
+    sudo systemctl stop $NEW_SERVICE
     exit 1
 fi
 
