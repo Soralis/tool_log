@@ -23,3 +23,6 @@ if [ -f "$DEPLOY_PATH" ]; then
 else
     echo "Error: Deploy script not found at $DEPLOY_PATH"
     exit 1
+fi
+
+exit 0
