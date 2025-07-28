@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define variables
-BASE_DIR="/home/pi/tool_log"
+BASE_DIR="$HOME/tool_log"
 BLUE_DIR="$BASE_DIR/app_blue"
 GREEN_DIR="$BASE_DIR/app_green"
 NGINX_CONFIG="/etc/nginx/sites-available/tool_log"
@@ -93,18 +93,18 @@ else
     fi
 fi
 
-# Make scripts executable
-sudo chmod 700 deploy.sh
-sudo chmod 700 update_log_devices.sh
+# # Make scripts executable
+# sudo chmod 700 deploy.sh
+# sudo chmod 700 update_log_devices.sh
 
 # Navigate to the new directory
 cd "$NEW_DIR"
 
 # Activate the virtual environment or create it if it doesn't exist
-if [ ! -d "venv" ]; then
-    python3.13 -m venv venv
+if [ ! -d ".venv" ]; then
+    python3 -m venv .venv
 fi
-source ./venv/bin/activate
+source ./.venv/bin/activate
 
 # Install dependencies
 pip install --upgrade pip
@@ -138,7 +138,7 @@ if ! curl --silent --fail "$HEALTH_CHECK_URL" > /dev/null; then
 fi
 
 # Update deploy path in deploy_app.sh
-DEPLOY_APP_SCRIPT="/home/pi/tool_log/check_github.sh"
+DEPLOY_APP_SCRIPT="$HOME/tool_log/check_github.sh"
 if [ -f "$DEPLOY_APP_SCRIPT" ]; then
     sudo sed -i "s|DEPLOY_PATH=.*|DEPLOY_PATH=\"$NEW_DIR/deploy.sh\"|" "$DEPLOY_APP_SCRIPT"
 fi

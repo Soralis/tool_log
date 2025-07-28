@@ -40,6 +40,7 @@ sudo cp "$BLUE_DIR/2 Server Files/rotate_screen.sh" /usr/local/bin/rotate_screen
 sudo cp "$BLUE_DIR/2 Server Files/start_active_service.sh" /home/$LOG_USER/tool_log/start_active_service.sh
 sudo cp "$BLUE_DIR/2 Server Files/start_browser.sh" /usr/local/bin/start_browser.sh
 sudo cp "$BLUE_DIR/2 Server Files/wayfire.ini" /home/$LOG_USER/.config/wayfire.ini
+sudo cp "$BLUE_DIR/update_log_devices.sh" /home/$LOG_USER/tool_log/update_log_devices.sh
 
 # Copy new modular scripts
 sudo cp "$BLUE_DIR/2 Server Files/internet_check.sh" /home/$LOG_USER/internet_check.sh
@@ -54,8 +55,11 @@ sudo systemctl daemon-reload
 sudo chmod +x /usr/local/bin/rotate_screen.sh /usr/local/bin/start_browser.sh
 sudo chmod +x /home/$LOG_USER/tool_log/check_github.sh \
                  /home/$LOG_USER/tool_log/start_active_service.sh \
-                 /home/$LOG_USER/internet_check.sh \
-                 /home/$LOG_USER/tool_log/nginx_setup.sh
+                 /home/$LOG_USER/tool_log/internet_check.sh \
+                 /home/$LOG_USER/tool_log/nginx_setup.sh \
+                 /home/$LOG_USER/tool_log/update_log_devices.sh \
+                 "$BLUE_DIR/deploy.sh" \
+                 "$GREEN_DIR/deploy.sh"
 sudo chown -R $LOG_USER:$LOG_USER /home/$LOG_USER/tool_log
 sudo chown root:root /usr/local/bin/rotate_screen.sh /usr/local/bin/start_browser.sh
 
