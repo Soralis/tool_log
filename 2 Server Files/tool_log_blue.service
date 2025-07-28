@@ -1,0 +1,16 @@
+[Unit]
+Description=Tool Log Blue Service
+After=network.target
+
+[Service]
+User=logdeviceserver
+Group=logdeviceserver
+WorkingDirectory=/home/logdeviceserver/tool_log/app_blue
+ExecStart=/home/logdeviceserver/tool_log/app_blue/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=tool_log_blue
+
+[Install]
+WantedBy=multi-user.target
