@@ -11,6 +11,12 @@ echo "Updating package lists and installing prerequisites..."
 sudo apt-get update -y
 sudo apt-get install -y git nginx python3-venv wayfire chromium-browser
 
+# 1.5. Setup PostgreSQL
+echo "Setting up PostgreSQL..."
+sudo cp "$BLUE_DIR/2 Server Files/postgres_setup.sh" /home/$LOG_USER/tool_log/postgres_setup.sh
+sudo chmod +x /home/$LOG_USER/tool_log/postgres_setup.sh
+sudo bash /home/$LOG_USER/tool_log/postgres_setup.sh
+
 # 2. Clone tool_log repository twice (blue/green)
 echo "Cloning tool_log repository into blue and green directories..."
 sudo rm -rf "$BLUE_DIR" "$GREEN_DIR"
@@ -77,3 +83,4 @@ echo "Activating service via start_active_service.sh..."
 sudo bash /home/$LOG_USER/tool_log/start_active_service.sh
 
 echo "Server setup complete. Add .env Files with environment Keys to both app_blue and app_green, then reboot to start Wayfire and apply all changes."
+echo "Use 'sudo nano /home/$LOG_USER/tool_log/app_blue/.env' and 'sudo nano /home/$LOG_USER/tool_log/app_green/.env' to edit the .env files."
