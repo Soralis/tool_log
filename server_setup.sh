@@ -19,12 +19,12 @@ sudo apt-get install -y git nginx python3-venv wayfire chromium-browser
 # sudo -u $LOG_USER git clone "$REPO_URL" "$BLUE_DIR"
 # sudo -u $LOG_USER git clone "$REPO_URL" "$GREEN_DIR"
 
-# # 2.25. Setup PostgreSQL
-# echo "Setting up PostgreSQL..."
-# echo "DEBUG: Copying postgres_setup.sh from: $BLUE_DIR/2 Server Files/postgres_setup.sh to: /home/$LOG_USER/tool_log/postgres_setup.sh"
-# sudo cp "$BLUE_DIR/2 Server Files/postgres_setup.sh" /home/$LOG_USER/tool_log/postgres_setup.sh
-# sudo chmod +x /home/$LOG_USER/tool_log/postgres_setup.sh
-# sudo bash /home/$LOG_USER/tool_log/postgres_setup.sh
+# 2.25. Setup PostgreSQL
+echo "Setting up PostgreSQL..."
+echo "DEBUG: Copying postgres_setup.sh from: $BLUE_DIR/2 Server Files/postgres_setup.sh to: /home/$LOG_USER/tool_log/postgres_setup.sh"
+sudo cp "$BLUE_DIR/2 Server Files/postgres_setup.sh" /home/$LOG_USER/tool_log/postgres_setup.sh
+sudo chmod +x /home/$LOG_USER/tool_log/postgres_setup.sh
+sudo bash /home/$LOG_USER/tool_log/postgres_setup.sh
 
 # # 2.5. Setup Python virtual environments and install dependencies
 # echo "Setting up Python virtual environments and installing dependencies..."
