@@ -64,4 +64,4 @@ sudo -u $LOG_USER bash /home/$LOG_USER/tool_log/start_active_service.sh
 echo "Configuring Nginx via nginx_setup.sh..."
 sudo -u $LOG_USER bash /home/$LOG_USER/tool_log/nginx_setup.sh
 
-echo "Server setup complete. Please reboot to start Wayfire and apply all changes."
+echo "Server setup complete. Add .env Files with environment Keys to both app_blue and app_green, then reboot to start Wayfire and apply all changes."
