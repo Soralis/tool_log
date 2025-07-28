@@ -13,13 +13,13 @@ sudo apt-get install -y postgresql postgresql-contrib
 
 echo "Configuring PostgreSQL user and database..."
 # Check if the user already exists
-if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'" | grep -q 1; then
-    sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
+if ! sudo -u postgres HOME=/tmp psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'" | grep -q 1; then
+    sudo -u postgres HOME=/tmp psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
 fi
 
 # Check if the database already exists
-if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" | grep -q 1; then
-    sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
+if ! sudo -u postgres HOME=/tmp psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" | grep -q 1; then
+    sudo -u postgres HOME=/tmp psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
 fi
 
 echo "PostgreSQL setup complete."
