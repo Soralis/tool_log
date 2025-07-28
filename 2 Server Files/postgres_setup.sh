@@ -23,3 +23,19 @@ if ! sudo -u postgres HOME=/tmp psql -tAc "SELECT 1 FROM pg_database WHERE datna
 fi
 
 echo "PostgreSQL setup complete."
+
+# Find the postgresql.conf file dynamically
+PG_CONF="/etc/postgresql/$(pg_lsclusters | head -n 1 | awk '{print $1}')/main/postgresql.conf"
+
+# Configure listen_addresses
+if [ -f "$PG_CONF" ]; then
+    echo "Configuring listen_addresses in $PG_CONF..."
+    sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" "$PG_CONF"
+    sudo sed -i "s/listen_addresses = 'localhost'/listen_addresses = '*'/" "$PG_CONF" # In case it's uncommented but still 'localhost'
+else
+    echo "WARNING: postgresql.conf not found at expected path. Please configure listen_addresses manually."
+fi
+
+echo "Restarting PostgreSQL service..."
+sudo systemctl restart postgresql@15-main.service
+sudo systemctl status postgresql@15-main.service
