@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+echo "DEBUG: Running postgres_setup.sh"
+
 DB_USER="tool_log_user"
 DB_NAME="tool_log_db"
 DB_PASSWORD="tool_log_password" # IMPORTANT: Change this to a strong, unique password in a production environment!

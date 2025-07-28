@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "DEBUG: Running deploy.sh version 20250728.1"
+
 # Define variables
 BASE_DIR="$HOME/tool_log"
 BLUE_DIR="$BASE_DIR/app_blue"

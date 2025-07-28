@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+echo "DEBUG: Running server_setup.sh version 20250728.1"
+
 LOG_USER="logdeviceserver"
 REPO_URL="https://github.com/Soralis/tool_log.git"
 BLUE_DIR="/home/$LOG_USER/tool_log/app_blue"
@@ -13,6 +15,7 @@ sudo apt-get install -y git nginx python3-venv wayfire chromium-browser
 
 # 1.5. Setup PostgreSQL
 echo "Setting up PostgreSQL..."
+echo "DEBUG: Copying postgres_setup.sh from: $(pwd)/2 Server Files/postgres_setup.sh to: /home/$LOG_USER/tool_log/postgres_setup.sh"
 sudo cp "2 Server Files/postgres_setup.sh" /home/$LOG_USER/tool_log/postgres_setup.sh
 sudo chmod +x /home/$LOG_USER/tool_log/postgres_setup.sh
 sudo bash /home/$LOG_USER/tool_log/postgres_setup.sh
