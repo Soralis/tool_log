@@ -101,3 +101,13 @@ To run collective updates for the log devices, connect to the Server via SSH and
 ```bash
 /bin/bash /home/pi/tool_log/{running_deployment}/update_log_devices.sh
 ```
+
+### Create New Server
+To create a new Server:
+1.  **Install Raspberry Pi OS 64 bit:** Install the OS as with the log devices, but instead of 'pi' use 'logdeviceserver' as name and pick full Raspberry OS 64bit.
+2. **Fetch and run Setup Script** 
+```bash
+    wget -O setup_server.sh https://raw.githubusercontent.com/Soralis/tool_log/master/server_setup.sh
+    chmod +x setup_server.sh
+    sudo ./setup_server.sh
+```

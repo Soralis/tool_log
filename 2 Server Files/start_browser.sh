@@ -6,11 +6,11 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 
 # Wait for X and environment
 sleep 5
+export XDG_RUNTIME_DIR=/run/user/1000
+export WAYLAND_DISPLAY=wayland-0
 
 # Set display and disable screen blanking
 export DISPLAY=:0
-export XAUTHORITY=/home/pi/.Xauthority
-xhost +SI:localuser:root
 xset s off
 xset -dpms
 xset s noblank
@@ -19,7 +19,7 @@ xset s noblank
 #/usr/local/bin/rotate-screen.sh
 
 # Launch Chromium
-chromium-browser \
+sudo -u pi env DISPLAY=$DISPLAY XAUTHORITY=/home/pi/.Xauthority XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR chromium-browser \
     --enable-features=UseOzonePlatform \
     --ozone-platform=wayland \
     --kiosk \
