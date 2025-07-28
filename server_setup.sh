@@ -8,10 +8,10 @@ REPO_URL="https://github.com/Soralis/tool_log.git"
 BLUE_DIR="/home/$LOG_USER/tool_log/app_blue"
 GREEN_DIR="/home/$LOG_USER/tool_log/app_green"
 
-# # 1. Install prerequisites
-# echo "Updating package lists and installing prerequisites..."
-# sudo apt-get update -y
-# sudo apt-get install -y git nginx python3-venv wayfire chromium-browser
+# 1. Install prerequisites
+echo "Updating package lists and installing prerequisites..."
+sudo apt-get update -y
+sudo apt-get install -y git nginx python3-venv wayfire chromium-browser
 
 # # 2. Clone tool_log repository twice (blue/green)
 # echo "Cloning tool_log repository into blue and green directories..."

@@ -7,7 +7,7 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 # Wait for X and environment
 sleep 5
 export XDG_RUNTIME_DIR=/run/user/1000
-export WAYLAND_DISPLAY=wayland-0
+export WAYLAND_DISPLAY=DSI-1
 
 # Set display and disable screen blanking
 export DISPLAY=:0
@@ -19,7 +19,7 @@ xset s noblank
 #/usr/local/bin/rotate-screen.sh
 
 # Launch Chromium
-sudo -u logdeviceserver env DISPLAY=$DISPLAY XAUTHORITY=/home/logdeviceserver/.Xauthority XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR chromium-browser \
+chromium-browser \
     --enable-features=UseOzonePlatform \
     --ozone-platform=wayland \
     --kiosk \
