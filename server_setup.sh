@@ -3,8 +3,8 @@ set -e
 
 LOG_USER="logdeviceserver"
 REPO_URL="https://github.com/Soralis/tool_log.git"
-BLUE_DIR="/home/$logdeviceserver/tool_log/app_blue"
-GREEN_DIR="/home/$logdeviceserver/tool_log/app_green"
+BLUE_DIR="/home/$LOG_USER/tool_log/app_blue"
+GREEN_DIR="/home/$LOG_USER/tool_log/app_green"
 
 # 1. Install prerequisites
 echo "Updating package lists and installing prerequisites..."
