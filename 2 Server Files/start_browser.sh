@@ -9,6 +9,8 @@ sleep 5
 
 # Set display and disable screen blanking
 export DISPLAY=:0
+export XAUTHORITY=/home/pi/.Xauthority
+xhost +SI:localuser:root
 xset s off
 xset -dpms
 xset s noblank
@@ -22,6 +24,7 @@ chromium-browser \
     --ozone-platform=wayland \
     --kiosk \
     --no-first-run \
+    --no-sandbox \
     --disable-pinch \
     --disable-translate \
     --touch-events=enabled \
