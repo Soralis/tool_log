@@ -2,7 +2,7 @@
 # nginx_setup.sh: Configure Nginx for blue-green deployment and reload
 
 SITE_CONF="/etc/nginx/sites-available/tool_log"
-REPO_DIR="/home/pi/tool_log"
+REPO_DIR="/home/logdeviceserver/tool_log"
 
 # Write site configuration
 sudo bash -c "cat > $SITE_CONF << 'EOF'

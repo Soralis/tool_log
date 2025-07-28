@@ -56,12 +56,12 @@ echo "Configuring crontab for periodic tasks..."
  echo "* * * * * /bin/bash /home/$LOG_USER/internet_check.sh >> /var/log/internet_check.log 2>&1"; \
  echo "0 0 * * 0 /sbin/shutdown -r now") | crontab -
 
-# 6. Activate blue-green deployment
-echo "Activating service via start_active_service.sh..."
-sudo -u $LOG_USER bash /home/$LOG_USER/tool_log/start_active_service.sh
-
-# 7. Configure Nginx via modular script
+# 6. Configure Nginx via modular script
 echo "Configuring Nginx via nginx_setup.sh..."
 sudo -u $LOG_USER bash /home/$LOG_USER/tool_log/nginx_setup.sh
+
+# 7. Activate blue-green deployment
+echo "Activating service via start_active_service.sh..."
+sudo -u $LOG_USER bash /home/$LOG_USER/tool_log/start_active_service.sh
 
 echo "Server setup complete. Add .env Files with environment Keys to both app_blue and app_green, then reboot to start Wayfire and apply all changes."

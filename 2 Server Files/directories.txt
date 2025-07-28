@@ -1,9 +1,9 @@
 Copy the content of this folder to the servers directories and activate them if necessary
-Also have this Repository TWICE! Once in /home/pi/tool_log/app_blue and once in /home/pi/tool_log/app_green
+Also have this Repository TWICE! Once in /home/logdeviceserver/tool_log/app_blue and once in /home/logdeviceserver/tool_log/app_green
 
-check_github.sh: /home/pi/tool_log/check_github.sh
+check_github.sh: /home/logdeviceserver/tool_log/check_github.sh
 rotate_screen.sh: /urs/local/bin/rotate_screen.sh
-start_active_service.sh: /home/pi/tool_log/start_active_service.sh 
+start_active_service.sh: /home/logdeviceserver/tool_log/start_active_service.sh 
 start_browser.sh: /usr/local/bin/start_browser.sh
 
-wayfire.ini: /home/pi/.config/wayfire.ini
+wayfire.ini: /home/logdeviceserver/.config/wayfire.ini

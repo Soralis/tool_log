@@ -19,7 +19,7 @@ xset s noblank
 #/usr/local/bin/rotate-screen.sh
 
 # Launch Chromium
-sudo -u pi env DISPLAY=$DISPLAY XAUTHORITY=/home/pi/.Xauthority XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR chromium-browser \
+sudo -u logdeviceserver env DISPLAY=$DISPLAY XAUTHORITY=/home/logdeviceserver/.Xauthority XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR chromium-browser \
     --enable-features=UseOzonePlatform \
     --ozone-platform=wayland \
     --kiosk \
