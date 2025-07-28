@@ -13,7 +13,7 @@ sudo apt-get install -y git nginx python3-venv wayfire chromium-browser
 
 # 1.5. Setup PostgreSQL
 echo "Setting up PostgreSQL..."
-sudo cp "$BLUE_DIR/2 Server Files/postgres_setup.sh" /home/$LOG_USER/tool_log/postgres_setup.sh
+sudo cp "2 Server Files/postgres_setup.sh" /home/$LOG_USER/tool_log/postgres_setup.sh
 sudo chmod +x /home/$LOG_USER/tool_log/postgres_setup.sh
 sudo bash /home/$LOG_USER/tool_log/postgres_setup.sh
 
