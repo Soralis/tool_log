@@ -1,86 +1,67 @@
 #!/bin/bash
 set -e
 
-REPO_PATH="/home/pi/tool_log"
+REPO_URL="https://github.com/Soralis/tool_log.git"
+BLUE_DIR="/home/pi/tool_log/app_blue"
+GREEN_DIR="/home/pi/tool_log/app_green"
+LOG_USER="pi"
 
-# 1. Update and install packages
+# 1. Install prerequisites
 echo "Updating package lists and installing prerequisites..."
 sudo apt-get update -y
-sudo apt-get install -y nginx python3-venv wayfire chromium-browser
+sudo apt-get install -y git nginx python3-venv wayfire chromium-browser
 
-# Enable console autologin and launch Wayfire on tty1
+# 2. Clone tool_log repository twice (blue/green)
+echo "Cloning tool_log repository into blue and green directories..."
+sudo rm -rf "$BLUE_DIR" "$GREEN_DIR"
+sudo -u $LOG_USER git clone "$REPO_URL" "$BLUE_DIR"
+sudo -u $LOG_USER git clone "$REPO_URL" "$GREEN_DIR"
+
+# 3. Install server scripts and configs
+echo "Installing server scripts and configuration files..."
+sudo mkdir -p /home/$LOG_USER/.config
+
+# Copy core scripts
+sudo cp "$BLUE_DIR/2 Server Files/check_github.sh" /home/$LOG_USER/tool_log/check_github.sh
+sudo cp "$BLUE_DIR/2 Server Files/rotate_screen.sh" /usr/local/bin/rotate_screen.sh
+sudo cp "$BLUE_DIR/2 Server Files/start_active_service.sh" /home/$LOG_USER/tool_log/start_active_service.sh
+sudo cp "$BLUE_DIR/2 Server Files/start_browser.sh" /usr/local/bin/start_browser.sh
+sudo cp "$BLUE_DIR/2 Server Files/wayfire.ini" /home/$LOG_USER/.config/wayfire.ini
+
+# Copy new modular scripts
+sudo cp "$BLUE_DIR/2 Server Files/internet_check.sh" /home/$LOG_USER/internet_check.sh
+sudo cp "$BLUE_DIR/2 Server Files/nginx_setup.sh" /home/$LOG_USER/tool_log/nginx_setup.sh
+
+# Set permissions and ownership
+sudo chmod +x /usr/local/bin/rotate_screen.sh /usr/local/bin/start_browser.sh
+sudo chmod +x /home/$LOG_USER/tool_log/check_github.sh \
+                 /home/$LOG_USER/tool_log/start_active_service.sh \
+                 /home/$LOG_USER/internet_check.sh \
+                 /home/$LOG_USER/tool_log/nginx_setup.sh
+sudo chown -R $LOG_USER:$LOG_USER /home/$LOG_USER/tool_log
+sudo chown root:root /usr/local/bin/rotate_screen.sh /usr/local/bin/start_browser.sh
+
+# 4. Enable console autologin and launch Wayfire on tty1
+echo "Configuring autologin and Wayfire startup..."
 sudo raspi-config nonint do_boot_behaviour B2
-sudo -u pi touch /home/pi/.bash_profile
-sudo -u pi chmod 644 /home/pi/.bash_profile
-sudo -u pi bash -c 'echo "[[ -z \$WAYLAND_DISPLAY && \$XDG_VTNR -eq 1 ]] && exec wayfire" >> /home/pi/.bash_profile'
+sudo -u $LOG_USER touch /home/$LOG_USER/.bash_profile
+sudo -u $LOG_USER chmod 644 /home/$LOG_USER/.bash_profile
+sudo -u $LOG_USER bash -c 'grep -qxF "[[ -z \$WAYLAND_DISPLAY && \$XDG_VTNR -eq 1 ]] && exec wayfire" ~/.bash_profile || \
+    echo "[[ -z \$WAYLAND_DISPLAY && \$XDG_VTNR -eq 1 ]] && exec wayfire" >> ~/.bash_profile'
 
-# 2. Configure pi-user crontab for deploy and weekly reboot
-echo "Configuring crontab for check_github and weekly reboot..."
-(crontab -l 2>/dev/null | grep -v 'check_github.sh'; \
- echo "*/5 * * * * /bin/bash /home/pi/tool_log/check_github.sh >> /var/log/deploy.log 2>&1"; \
+# 5. Configure pi-user crontab
+echo "Configuring crontab for periodic tasks..."
+(crontab -l 2>/dev/null | grep -v 'check_github.sh' | grep -v 'internet_check.sh'; \
+ echo "*/5 * * * * /bin/bash /home/$LOG_USER/tool_log/check_github.sh >> /var/log/deploy.log 2>&1"; \
+ echo "* * * * * /bin/bash /home/$LOG_USER/internet_check.sh >> /var/log/internet_check.log 2>&1"; \
  echo "0 0 * * 0 /sbin/shutdown -r now") | crontab -
 
-# 3. Create internet connection check script
-echo "Creating internet_check.sh..."
-cat > /home/pi/internet_check.sh << 'EOF'
-#!/bin/bash
-LOG=/var/log/internet_check.log
-TARGET=8.8.8.8
-if ! ping -c1 $TARGET > /dev/null; then
-  echo "$(date): Ping failed, restarting dhcpcd" >> $LOG
-  sudo systemctl restart dhcpcd
-else
-  echo "$(date): Ping OK" >> $LOG
-fi
-EOF
-chmod +x /home/pi/internet_check.sh
+# 6. Activate blue-green deployment
+echo "Activating service via start_active_service.sh..."
+sudo -u $LOG_USER bash /home/$LOG_USER/tool_log/start_active_service.sh
 
-# 4. Add internet_check to crontab
-echo "Adding internet_check to crontab..."
-(crontab -l 2>/dev/null | grep -v 'internet_check.sh'; \
- echo "* * * * * /bin/bash /home/pi/internet_check.sh >> /var/log/internet_check.log 2>&1") | crontab -
-
-# Configure Wayfire autostart for Chromium kiosk and install browser scripts.
-sudo mkdir -p /home/pi/.config
-sudo install -m755 "$REPO_PATH/2 Server Files/rotate_screen.sh" /usr/local/bin/rotate-screen.sh
-sudo install -m755 "$REPO_PATH/2 Server Files/start_browser.sh" /home/pi/start_browser.sh
-sudo chown pi:pi /home/pi/start_browser.sh
-sudo bash -c 'cat > /home/pi/.config/wayfire.ini << EOF
-[output:DSI-1]
-mode = 800x480@60049
-position = 0,0
-transform = inverted
-
-[core]
-exec = /home/pi/start_browser.sh
-EOF'
-sudo chown -R pi:pi /home/pi/.config
-
-# 6. Create nginx site configuration for blue-green deployment
-echo "Writing nginx site config..."
-sudo bash -c 'cat > /etc/nginx/sites-available/tool_log << EOF
-server {
-    listen 80;
-    server_name _;
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        include /etc/nginx/proxy_params;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-    location /monitoring/ws {
-        proxy_pass http://127.0.0.1:8000;
-        include /etc/nginx/proxy_params;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-    error_log /var/log/nginx/tool_log_error.log;
-    access_log /var/log/nginx/tool_log_access.log;
-}
-EOF'
-sudo ln -sf /etc/nginx/sites-available/tool_log /etc/nginx/sites-enabled/tool_log
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -s reload
+# 7. Configure Nginx via modular script
+echo "Configuring Nginx via nginx_setup.sh..."
+sudo -u $LOG_USER bash /home/$LOG_USER/tool_log/nginx_setup.sh
 
 echo "Server setup complete. Please reboot to start Wayfire and apply all changes."
