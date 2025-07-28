@@ -46,7 +46,7 @@ sudo cp "$BLUE_DIR/2 Server Files/wayfire.ini" /home/$LOG_USER/.config/wayfire.i
 sudo cp "$BLUE_DIR/update_log_devices.sh" /home/$LOG_USER/tool_log/update_log_devices.sh
 
 # Copy new modular scripts
-sudo cp "$BLUE_DIR/2 Server Files/internet_check.sh" /home/$LOG_USER/internet_check.sh
+sudo cp "$BLUE_DIR/2 Server Files/internet_check.sh" /home/$LOG_USER/tool_log/internet_check.sh
 sudo cp "$BLUE_DIR/2 Server Files/nginx_setup.sh" /home/$LOG_USER/tool_log/nginx_setup.sh
 
 # Copy systemd service files
