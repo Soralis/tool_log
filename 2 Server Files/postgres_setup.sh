@@ -38,4 +38,4 @@ fi
 
 echo "Restarting PostgreSQL service..."
 sudo systemctl restart postgresql@15-main.service
-sudo systemctl status postgresql@15-main.service
+# sudo systemctl status postgresql@15-main.service
