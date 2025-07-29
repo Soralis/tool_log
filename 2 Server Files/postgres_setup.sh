@@ -30,10 +30,21 @@ PG_CONF="/etc/postgresql/$(pg_lsclusters | head -n 1 | awk '{print $1}')/main/po
 # Configure listen_addresses
 if [ -f "$PG_CONF" ]; then
     echo "Configuring listen_addresses in $PG_CONF..."
-    sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" "$PG_CONF"
-    sudo sed -i "s/listen_addresses = 'localhost'/listen_addresses = '*'/" "$PG_CONF" # In case it's uncommented but still 'localhost'
+    sudo sed -i "/^#\s*listen_addresses/clisten_addresses = '*'" "$PG_CONF"
 else
     echo "WARNING: postgresql.conf not found at expected path. Please configure listen_addresses manually."
+fi
+
+# Configure pg_hba.conf to allow connections from the Raspberry Pi's IP
+PG_HBA_CONF="/etc/postgresql/$(pg_lsclusters | head -n 1 | awk '{print $1}')/main/pg_hba.conf"
+if [ -f "$PG_HBA_CONF" ]; then
+    echo "Configuring pg_hba.conf in $PG_HBA_CONF..."
+    # Check if the entry already exists to avoid duplicates
+    if ! grep -q "host    all             all             10.0.36.130/32" "$PG_HBA_CONF"; then
+        echo "host    all             all             10.0.36.130/32          scram-sha-256" | sudo tee -a "$PG_HBA_CONF" > /dev/null
+    fi
+else
+    echo "WARNING: pg_hba.conf not found at expected path. Please configure pg_hba.conf manually."
 fi
 
 echo "Restarting PostgreSQL service..."
