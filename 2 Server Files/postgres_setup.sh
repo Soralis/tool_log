@@ -24,8 +24,8 @@ fi
 
 echo "PostgreSQL setup complete."
 
-# Find the postgresql.conf file dynamically
-PG_CONF="/etc/postgresql/$(pg_lsclusters | head -n 1 | awk '{print $1}')/main/postgresql.conf"
+# Hardcode the postgresql.conf file path
+PG_CONF="/etc/postgresql/15/main/postgresql.conf"
 
 # Configure listen_addresses
 if [ -f "$PG_CONF" ]; then
@@ -36,8 +36,8 @@ else
     echo "WARNING: postgresql.conf not found at expected path. Please configure listen_addresses manually."
 fi
 
-# Configure pg_hba.conf to allow connections from all private networks
-PG_HBA_CONF="/etc/postgresql/$(pg_lsclusters | head -n 1 | awk '{print $1}')/main/pg_hba.conf"
+# Hardcode the pg_hba.conf file path
+PG_HBA_CONF="/etc/postgresql/15/main/pg_hba.conf"
 if [ -f "$PG_HBA_CONF" ]; then
     echo "Configuring pg_hba.conf in $PG_HBA_CONF..."
     # Check if the entry already exists to avoid duplicates
