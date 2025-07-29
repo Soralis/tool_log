@@ -13,11 +13,11 @@ echo "Updating package lists and installing prerequisites..."
 sudo apt-get update -y
 sudo apt-get install -y git nginx python3-venv wayfire chromium-browser
 
-# # 2. Clone tool_log repository twice (blue/green)
-# echo "Cloning tool_log repository into blue and green directories..."
-# sudo rm -rf "$BLUE_DIR" "$GREEN_DIR"
-# sudo -u $LOG_USER git clone "$REPO_URL" "$BLUE_DIR"
-# sudo -u $LOG_USER git clone "$REPO_URL" "$GREEN_DIR" # asd
+# 2. Clone tool_log repository twice (blue/green)
+echo "Cloning tool_log repository into blue and green directories..."
+sudo rm -rf "$BLUE_DIR" "$GREEN_DIR"
+sudo -u $LOG_USER git clone "$REPO_URL" "$BLUE_DIR"
+sudo -u $LOG_USER git clone "$REPO_URL" "$GREEN_DIR" # asd
 
 # 2.25. Setup PostgreSQL
 echo "Setting up PostgreSQL..."
@@ -26,12 +26,12 @@ sudo cp "$BLUE_DIR/2 Server Files/postgres_setup.sh" /home/$LOG_USER/tool_log/po
 sudo chmod +x /home/$LOG_USER/tool_log/postgres_setup.sh
 sudo bash /home/$LOG_USER/tool_log/postgres_setup.sh
 
-# # 2.5. Setup Python virtual environments and install dependencies
-# echo "Setting up Python virtual environments and installing dependencies..."
-# sudo -u $LOG_USER python3 -m venv "$BLUE_DIR/.venv"
-# sudo -u $LOG_USER "$BLUE_DIR/.venv/bin/pip" install -r "$BLUE_DIR/requirements.txt"
-# sudo -u $LOG_USER python3 -m venv "$GREEN_DIR/.venv"
-# sudo -u $LOG_USER "$GREEN_DIR/.venv/bin/pip" install -r "$GREEN_DIR/requirements.txt"
+# 2.5. Setup Python virtual environments and install dependencies
+echo "Setting up Python virtual environments and installing dependencies..."
+sudo -u $LOG_USER python3 -m venv "$BLUE_DIR/.venv"
+sudo -u $LOG_USER "$BLUE_DIR/.venv/bin/pip" install -r "$BLUE_DIR/requirements.txt"
+sudo -u $LOG_USER python3 -m venv "$GREEN_DIR/.venv"
+sudo -u $LOG_USER "$GREEN_DIR/.venv/bin/pip" install -r "$GREEN_DIR/requirements.txt"
 
 # 3. Install server scripts and configs
 echo "Installing server scripts and configuration files..."
