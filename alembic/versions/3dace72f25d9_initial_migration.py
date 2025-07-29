@@ -85,14 +85,6 @@ def upgrade() -> None:
     sa.UniqueConstraint('name', 'workpiece_id', 'machine_id')
     )
     op.create_index(op.f('ix_recipe_name'), 'recipe', ['name'], unique=False)
-    op.create_foreign_key(None, 'machine', 'recipe', ['current_recipe_id'], ['id'], ondelete='SET NULL')
-    op.create_foreign_key(None, 'recipe', 'machine', ['machine_id'], ['id'], ondelete='CASCADE')
-    op.create_foreign_key(None, 'toolposition', 'recipe', ['recipe_id'], ['id'], ondelete='CASCADE')
-    op.create_foreign_key(None, 'toolconsumption', 'toolposition', ['tool_position_id'], ['id'], ondelete='SET NULL')
-    op.create_foreign_key(None, 'toollife', 'toolposition', ['tool_position_id'], ['id'], ondelete='SET NULL')
-    op.create_foreign_key(None, 'note', 'toollife', ['tool_life_id'], ['id'], ondelete='CASCADE')
-    op.create_foreign_key(None, 'note', 'toolorder', ['tool_order_id'], ['id'], ondelete='CASCADE')
-    op.create_foreign_key(None, 'note', 'orderdelivery', ['order_delivery_id'], ['id'], ondelete='CASCADE')
     op.create_table('requestlog',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('method', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -411,6 +403,14 @@ def upgrade() -> None:
     op.create_index(op.f('ix_note_order_delivery_id'), 'note', ['order_delivery_id'], unique=False)
     op.create_index(op.f('ix_note_tool_life_id'), 'note', ['tool_life_id'], unique=False)
     op.create_index(op.f('ix_note_tool_order_id'), 'note', ['tool_order_id'], unique=False)
+    op.create_foreign_key(None, 'machine', 'recipe', ['current_recipe_id'], ['id'], ondelete='SET NULL')
+    op.create_foreign_key(None, 'recipe', 'machine', ['machine_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(None, 'toolposition', 'recipe', ['recipe_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(None, 'toolconsumption', 'toolposition', ['tool_position_id'], ['id'], ondelete='SET NULL')
+    op.create_foreign_key(None, 'toollife', 'toolposition', ['tool_position_id'], ['id'], ondelete='SET NULL')
+    op.create_foreign_key(None, 'note', 'toollife', ['tool_life_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(None, 'note', 'toolorder', ['tool_order_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(None, 'note', 'orderdelivery', ['order_delivery_id'], ['id'], ondelete='CASCADE')
     # ### end Alembic commands ###
 
 
