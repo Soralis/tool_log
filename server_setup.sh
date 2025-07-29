@@ -11,7 +11,18 @@ GREEN_DIR="/home/$LOG_USER/tool_log/app_green"
 # 1. Install prerequisites
 echo "Updating package lists and installing prerequisites..."
 sudo apt-get update -y
-sudo apt-get install -y git nginx python3-venv wayfire chromium-browser
+sudo apt-get install -y git nginx python3-venv wayfire chromium-browser build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python3-openssl
+
+# 1.5. Install Python 3.13.3
+echo "Installing Python 3.13.3..."
+wget https://www.python.org/ftp/python/3.13.3/Python-3.13.3.tgz
+tar -xf Python-3.13.3.tgz
+cd Python-3.13.3
+./configure --enable-optimizations
+make -j$(nproc)
+sudo make altinstall
+cd ..
+rm -rf Python-3.13.3 Python-3.13.3.tgz
 
 # 2. Clone tool_log repository twice (blue/green)
 echo "Cloning tool_log repository into blue and green directories..."
@@ -28,9 +39,9 @@ sudo bash /home/$LOG_USER/tool_log/postgres_setup.sh
 
 # 2.5. Setup Python virtual environments and install dependencies
 echo "Setting up Python virtual environments and installing dependencies..."
-sudo -u $LOG_USER python3 -m venv "$BLUE_DIR/.venv"
+sudo -u $LOG_USER python3.13 -m venv "$BLUE_DIR/.venv"
 sudo -u $LOG_USER "$BLUE_DIR/.venv/bin/pip" install -r "$BLUE_DIR/requirements.txt"
-sudo -u $LOG_USER python3 -m venv "$GREEN_DIR/.venv"
+sudo -u $LOG_USER python3.13 -m venv "$GREEN_DIR/.venv"
 sudo -u $LOG_USER "$GREEN_DIR/.venv/bin/pip" install -r "$GREEN_DIR/requirements.txt"
 
 # 3. Install server scripts and configs
