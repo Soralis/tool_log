@@ -87,6 +87,12 @@ def upgrade() -> None:
     op.create_index(op.f('ix_recipe_name'), 'recipe', ['name'], unique=False)
     op.create_foreign_key(None, 'machine', 'recipe', ['current_recipe_id'], ['id'], ondelete='SET NULL')
     op.create_foreign_key(None, 'recipe', 'machine', ['machine_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(None, 'toolposition', 'recipe', ['recipe_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(None, 'toolconsumption', 'toolposition', ['tool_position_id'], ['id'], ondelete='SET NULL')
+    op.create_foreign_key(None, 'toollife', 'toolposition', ['tool_position_id'], ['id'], ondelete='SET NULL')
+    op.create_foreign_key(None, 'note', 'toollife', ['tool_life_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(None, 'note', 'toolorder', ['tool_order_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(None, 'note', 'orderdelivery', ['order_delivery_id'], ['id'], ondelete='CASCADE')
     op.create_table('requestlog',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('method', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -331,7 +337,6 @@ def upgrade() -> None:
     sa.Column('expected_life', sa.Integer(), nullable=True),
     sa.Column('min_life', sa.Integer(), nullable=True),
     sa.CheckConstraint('(selected = true)::int <= 1', name='check_single_selected'),
-    sa.ForeignKeyConstraint(['recipe_id'], ['recipe.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['tool_id'], ['tool.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -362,7 +367,6 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['machine_id'], ['machine.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['recipe_id'], ['recipe.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['tool_id'], ['tool.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['tool_position_id'], ['toolposition.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['workpiece_id'], ['workpiece.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id'),
@@ -388,7 +392,6 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['machine_id'], ['machine.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['recipe_id'], ['recipe.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['tool_id'], ['tool.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['tool_position_id'], ['toolposition.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -402,9 +405,6 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['order_delivery_id'], ['orderdelivery.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['tool_life_id'], ['toollife.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['tool_order_id'], ['toolorder.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
