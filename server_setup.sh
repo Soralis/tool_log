@@ -17,7 +17,7 @@ sudo apt-get install -y git nginx python3-venv wayfire chromium-browser
 echo "Cloning tool_log repository into blue and green directories..."
 sudo rm -rf "$BLUE_DIR" "$GREEN_DIR"
 sudo -u $LOG_USER git clone "$REPO_URL" "$BLUE_DIR"
-sudo -u $LOG_USER git clone "$REPO_URL" "$GREEN_DIR" # asd
+sudo -u $LOG_USER git clone "$REPO_URL" "$GREEN_DIR"
 
 # 2.25. Setup PostgreSQL
 echo "Setting up PostgreSQL..."
