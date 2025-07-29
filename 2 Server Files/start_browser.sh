@@ -1,37 +1,4 @@
 #!/bin/bash
 
-# Debug logging
-LOG_FILE="/tmp/browser-launch.log"
-exec > >(tee -a "$LOG_FILE") 2>&1
-
-echo "Executing start_browser.sh at $(date)"
-
-# Wait for X and environment
-sleep 5
-export XDG_RUNTIME_DIR=/run/user/1000
-export WAYLAND_DISPLAY=DSI-1
-
-# Set display and disable screen blanking
-export DISPLAY=:0
-xset s off
-xset -dpms
-xset s noblank
-
-# Rotate screen
-#/usr/local/bin/rotate-screen.sh #dff
-
-# Launch Chromium
-echo "Attempting to launch Chromium..."
-chromium-browser \
-    --enable-features=UseOzonePlatform \
-    --ozone-platform=wayland \
-    --kiosk \
-    --no-first-run \
-    --no-sandbox \
-    --disable-pinch \
-    --disable-translate \
-    --touch-events=enabled \
-    --overscroll-history-navigation=0 \
-    --app=http://localhost/dashboard/requests \
-    --disable-text-selection \
-    --blink-settings=disableScrollbars=true
+# Launch Chromium for Wayland
+/usr/bin/chromium-browser --kiosk --ozone-platform=wayland --start-maximized http://10.0.36.130/dashboard/requests &
