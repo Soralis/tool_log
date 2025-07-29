@@ -4,6 +4,8 @@
 LOG_FILE="/tmp/browser-launch.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
+echo "Executing start_browser.sh at $(date)"
+
 # Wait for X and environment
 sleep 5
 export XDG_RUNTIME_DIR=/run/user/1000
@@ -19,6 +21,7 @@ xset s noblank
 #/usr/local/bin/rotate-screen.sh #dff
 
 # Launch Chromium
+echo "Attempting to launch Chromium..."
 chromium-browser \
     --enable-features=UseOzonePlatform \
     --ozone-platform=wayland \
