@@ -80,7 +80,6 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('active', sa.Boolean(), nullable=False),
-    sa.ForeignKeyConstraint(['workpiece_id'], ['workpiece.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name', 'workpiece_id', 'machine_id')
     )
@@ -411,6 +410,7 @@ def upgrade() -> None:
     op.create_foreign_key(None, 'note', 'toollife', ['tool_life_id'], ['id'], ondelete='CASCADE')
     op.create_foreign_key(None, 'note', 'toolorder', ['tool_order_id'], ['id'], ondelete='CASCADE')
     op.create_foreign_key(None, 'note', 'orderdelivery', ['order_delivery_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(None, 'recipe', 'workpiece', ['workpiece_id'], ['id'], ondelete='CASCADE')
     # ### end Alembic commands ###
 
 
