@@ -52,20 +52,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_manufacturer_name'), 'manufacturer', ['name'], unique=True)
-    op.create_table('recipe',
-    sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('workpiece_id', sa.Integer(), nullable=False),
-    sa.Column('machine_id', sa.Integer(), nullable=False),
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('active', sa.Boolean(), nullable=False),
-    sa.ForeignKeyConstraint(['machine_id'], ['machine.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['workpiece_id'], ['workpiece.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('name', 'workpiece_id', 'machine_id')
-    )
-    op.create_index(op.f('ix_recipe_name'), 'recipe', ['name'], unique=False)
     op.create_table('machine',
     sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -79,7 +65,6 @@ def upgrade() -> None:
     sa.Column('active', sa.Boolean(), nullable=False),
     sa.Column('log_device_id', sa.Integer(), nullable=True),
     sa.Column('current_recipe_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['current_recipe_id'], ['recipe.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['line_id'], ['line.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['log_device_id'], ['logdevice.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id'),
@@ -87,6 +72,21 @@ def upgrade() -> None:
     sa.UniqueConstraint('name', 'line_id')
     )
     op.create_index(op.f('ix_machine_name'), 'machine', ['name'], unique=False)
+    op.create_table('recipe',
+    sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.Column('workpiece_id', sa.Integer(), nullable=False),
+    sa.Column('machine_id', sa.Integer(), nullable=False),
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('active', sa.Boolean(), nullable=False),
+    sa.ForeignKeyConstraint(['workpiece_id'], ['workpiece.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name', 'workpiece_id', 'machine_id')
+    )
+    op.create_index(op.f('ix_recipe_name'), 'recipe', ['name'], unique=False)
+    op.create_foreign_key(None, 'machine', 'recipe', ['current_recipe_id'], ['id'], ondelete='SET NULL')
+    op.create_foreign_key(None, 'recipe', 'machine', ['machine_id'], ['id'], ondelete='CASCADE')
     op.create_table('requestlog',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('method', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
