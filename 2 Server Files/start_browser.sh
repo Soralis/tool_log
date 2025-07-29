@@ -16,7 +16,7 @@ xset -dpms
 xset s noblank
 
 # Rotate screen
-#/usr/local/bin/rotate-screen.sh # gay
+#/usr/local/bin/rotate-screen.sh
 
 # Launch Chromium
 chromium-browser \
