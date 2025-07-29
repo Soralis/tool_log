@@ -43,27 +43,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_logdevice_name'), 'logdevice', ['name'], unique=True)
-    op.create_table('machine',
-    sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('cost_center', sa.Integer(), nullable=False),
-    sa.Column('model', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('manufacturer', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('measures_tool_life', sa.Boolean(), nullable=False),
-    sa.Column('channels', sa.Integer(), nullable=False),
-    sa.Column('line_id', sa.Integer(), nullable=True),
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('active', sa.Boolean(), nullable=False),
-    sa.Column('log_device_id', sa.Integer(), nullable=True),
-    sa.Column('current_recipe_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['current_recipe_id'], ['recipe.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['line_id'], ['line.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['log_device_id'], ['logdevice.id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('cost_center'),
-    sa.UniqueConstraint('name', 'line_id')
-    )
-    op.create_index(op.f('ix_machine_name'), 'machine', ['name'], unique=False)
     op.create_table('manufacturer',
     sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('number', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -87,6 +66,27 @@ def upgrade() -> None:
     sa.UniqueConstraint('name', 'workpiece_id', 'machine_id')
     )
     op.create_index(op.f('ix_recipe_name'), 'recipe', ['name'], unique=False)
+    op.create_table('machine',
+    sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.Column('cost_center', sa.Integer(), nullable=False),
+    sa.Column('model', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.Column('manufacturer', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.Column('measures_tool_life', sa.Boolean(), nullable=False),
+    sa.Column('channels', sa.Integer(), nullable=False),
+    sa.Column('line_id', sa.Integer(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('active', sa.Boolean(), nullable=False),
+    sa.Column('log_device_id', sa.Integer(), nullable=True),
+    sa.Column('current_recipe_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['current_recipe_id'], ['recipe.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['line_id'], ['line.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['log_device_id'], ['logdevice.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('cost_center'),
+    sa.UniqueConstraint('name', 'line_id')
+    )
+    op.create_index(op.f('ix_machine_name'), 'machine', ['name'], unique=False)
     op.create_table('requestlog',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('method', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
