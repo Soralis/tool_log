@@ -102,7 +102,7 @@ To run collective updates for the log devices, connect to the Server via SSH and
 /bin/bash /home/pi/tool_log/{running_deployment}/update_log_devices.sh
 ```
 
-### Create New Server
+## Create New Server
 To create a new Server:
 1.  **Install Raspberry Pi OS 64 bit:** Install the OS as with the log devices, but instead of 'pi' use 'logdeviceserver' as name and pick full Raspberry OS 64bit.
 2. **Fetch and run Setup Script** 
@@ -110,4 +110,13 @@ To create a new Server:
     wget -O setup_server.sh https://raw.githubusercontent.com/Soralis/tool_log/master/server_setup.sh
     chmod +x setup_server.sh
     sudo ./setup_server.sh
+```
+3. **Adjust environment Variables** Create one file for the environment variables per deploy path (blue and green). You need to define the variables SECRET_KEY,
+ALGORITHM, DEVICE_TOKEN_EXPIRE_DAYS, OPERATOR_TOKEN_EXPIRE_MINUTES and DATABASE_URL. For creation use:
+```bash
+sudo nano /home/logdeviceserver/tool_log/app_blue/.env
+```
+and
+```bash
+sudo nano /home/logdeviceserver/tool_log/app_green/.env
 ```
