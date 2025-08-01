@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LOG=/var/log/internet_check.log
+LOG="$HOME/internet_check.log"
 TARGET=8.8.8.8
 
 if ! ping -c1 "$TARGET" > /dev/null; then
