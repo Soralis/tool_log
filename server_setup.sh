@@ -65,6 +65,11 @@ sudo cp "$BLUE_DIR/2 Server Files/tool_log_blue.service" /etc/systemd/system/too
 sudo cp "$BLUE_DIR/2 Server Files/tool_log_green.service" /etc/systemd/system/tool_log_green.service
 sudo systemctl daemon-reload
 
+# Setup log rotation
+sudo cp "$BLUE_DIR/2 Server Files/tool_log_logrotate" /etc/logrotate.d/tool_log
+sudo mkdir -p /home/$LOG_USER/tool_log/logs
+sudo chown $LOG_USER:$LOG_USER /home/$LOG_USER/tool_log/logs
+
 # Set permissions and ownership
 sudo chmod +x /usr/local/bin/rotate_screen.sh /usr/local/bin/start_browser.sh
 sudo chmod +x /home/$LOG_USER/tool_log/check_github.sh \
