@@ -87,10 +87,10 @@ sudo -u $LOG_USER bash -c 'grep -qxF "[[ -z \$WAYLAND_DISPLAY && \$XDG_VTNR -eq 
 
 # 5. Configure pi-user crontab
 echo "Configuring crontab for periodic tasks..."
-(crontab -l 2>/dev/null | grep -v 'check_github.sh' | grep -v 'internet_check.sh'; \
- echo "*/5 * * * * /bin/bash /home/$LOG_USER/tool_log/check_github.sh >> /var/log/deploy.log 2>&1"; \
- echo "* * * * * /bin/bash /home/$LOG_USER/internet_check.sh >> /var/log/internet_check.log 2>&1"; \
- echo "0 0 * * 0 /sbin/shutdown -r now") | crontab -
+sudo -u $LOG_USER bash -c "(crontab -l 2>/dev/null | grep -v 'check_github.sh' | grep -v 'internet_check.sh'; \
+ echo '*/5 * * * * /bin/bash /home/$LOG_USER/tool_log/check_github.sh >> /home/$LOG_USER/tool_log/logs/deploy.log 2>&1'; \
+ echo '* * * * * /bin/bash /home/$LOG_USER/tool_log/internet_check.sh >> /home/$LOG_USER/tool_log/logs/internet_check.log 2>&1'; \
+ echo '0 0 * * 0 /sbin/shutdown -r now') | crontab -"
 
 # 6. Configure Nginx via modular script
 echo "Configuring Nginx via nginx_setup.sh..."
