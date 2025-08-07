@@ -384,7 +384,7 @@ async def get_tool_details(
                             used_settings[s_name] = s_value
                 
                 tool_settings_units = {setting.name: setting.unit for setting in tool_position.tool.tool_type.tool_settings}
-                stats['current_settings'] = {name: f"{value} {tool_settings_units[name]}" for name, value in tool_position.tool_settings.items()}
+                stats['current_settings'] = {name: f"{value} {tool_settings_units.get(name, "(N/A)")}" for name, value in tool_position.tool_settings.items()}
                 stats['expected_life'] = t_life.tool_position.expected_life
                 stats['tools_per_life'] = sum(tools_per_life)/len(tools_per_life) if len(tools_per_life) > 0 else 1
 
