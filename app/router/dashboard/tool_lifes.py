@@ -407,21 +407,31 @@ async def get_tool_details(
                         }
                     ]
                 }
+                # Group settings changes by timestamp
+                grouped_settings = defaultdict(list)
                 for setting in changed_settings_indicators:
-                    formatter = f"{setting['name']}: {setting['previous_value']} → {setting['value']}"
+                    grouped_settings[setting['timestamp']].append(setting)
+
+                # Create markLines for each timestamp
+                for timestamp, settings in grouped_settings.items():
+                    formatters = [f"{s['name']}: {s['previous_value']} → {s['value']}" for s in settings]
+                    
+                    label_formatter = "\n".join(formatters)
+                    tooltip_formatter = "<br>".join(formatters)
+                    
                     series['markLine']['data'].append({
-                        "name": f"{setting['name']} from {setting['previous_value']} to {setting['value']}",
-                        "xAxis": setting['timestamp'],
+                        "name": ", ".join([s['name'] for s in settings]) + " changed",
+                        "xAxis": timestamp,
                         "symbol": "none",
                         "lineStyle": {
                             "color": "orange",
                             "type": "dashed"
                         },
                         "label": {
-                            "formatter": formatter
+                            "formatter": label_formatter
                         },
                         "tooltip": {
-                            "formatter": formatter
+                            "formatter": tooltip_formatter
                         }
                     })
 
