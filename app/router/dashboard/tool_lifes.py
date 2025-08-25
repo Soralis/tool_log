@@ -496,12 +496,17 @@ async def get_tool_details(
     ### Tool statistics overall
     avg_life = round(sum(tool_lifes) / len(tool_lifes)) if len(tool_lifes) > 0 else 0
 
+    # Calculate average weekly demand
+    timeframe_in_weeks = timeframe_in_days / 7 if timeframe_in_days > 0 else 1
+    avg_weekly_demand = round(consumption_quantity / timeframe_in_weeks, 1)
+
     details['cards'].append(tc.stat_card("Tool Statistics", [
         ["Average Life", avg_life],
         ["Median Life", round(median(tool_lifes)) if len(tool_lifes) > 0 else 0],
         ["CPU", f"${round(tool.price / tool.max_uses / avg_life, 2)}"],
         ["Used Tools", f"{consumption_quantity}"],
-        ["Reported Tools", f"{len(tool_life_records)} ({len(tool_life_records) / (consumption_quantity if consumption_quantity else 1) * 100:.1f}%)"],
+        ["Avg. weekly demand", f"{avg_weekly_demand} pc"],
+        ["Reported Changes", f"{len(tool_life_records)} ({(len(tool_life_records) / tool.max_uses) / (consumption_quantity if consumption_quantity else 1) * 100:.1f}%)"],
         ["Spent", f"{locale.currency(round(consumption_value, 2), grouping=True )}"],
         ["Yearly Spend", f"{locale.currency(round(consumption_value / timeframe_in_days * 365, 2), grouping=True )}"],
     ]))  
@@ -513,7 +518,7 @@ async def get_tool_details(
         ["Manufacturer", tool.manufacturer.name],
         ["CPN", tool.cpn_number],
         ["ERP", tool.erp_number],
-        ["Price", tool.price]
+        ["Price", f"{locale.currency(tool.price, grouping=True)}"]
     ]))  
 
     ### Machine specific stats and graphs
@@ -530,7 +535,7 @@ async def get_tool_details(
             ["Average Life", stats['avg_life']],
             ["Median Life", stats['median_life']],
             ["Target Life", stats['expected_life']],
-            ["Tools per Record", stats['tools_per_life']],
+            ["Tools per Record", stats['tools_per_life'] / tool.max_uses],
             ["CPU", f"${round(stats['tools_per_life'] * float(tool.price) / tool.max_uses / stats['avg_life'], 2)}"],
             ["Target CPU", f"${round(stats['tools_per_life'] * float(tool.price) / tool.max_uses / stats['expected_life'], 2)}"],
             ["Current Settings", current_settings],
