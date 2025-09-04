@@ -316,8 +316,10 @@ async def get_cpu(
 
     # Process recipe-based tools.
     statement = select(Recipe).where(Recipe.active == True)
-    statement = statement.where(Recipe.machine_id.in_(selected_operations))
-    statement = statement.where(Recipe.workpiece_id.in_(selected_products))
+    if selected_operations:
+        statement = statement.where(Recipe.machine_id.in_(selected_operations))
+    if selected_products:
+        statement = statement.where(Recipe.workpiece_id.in_(selected_products))
     statement = statement.where(exists()
                                 .where(Recipe.id == ChangeOver.recipe_id)
                                 .where(ChangeOver.timestamps >= start_date)

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, Depends, Query
+from fastapi.responses import JSONResponse
 from sqlmodel import Session, select, func
 from datetime import datetime, timedelta
 from app.database_config import get_session
@@ -28,7 +29,7 @@ async def reports_data(
     start_date: datetime = Query(...),
     end_date: datetime = Query(...),
     db: Session = Depends(get_session),
-):
+)-> JSONResponse:
     """
     Retrieve report data: cost per piece, finished counts current and previous windows.
     """
@@ -101,4 +102,4 @@ async def reports_data(
                     "reason": reason
                 })
 
-    return {"data": report_rows}
+    return JSONResponse(content={"data": report_rows})
