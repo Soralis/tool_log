@@ -1,0 +1,67 @@
+{% set workpiece = workpiece if (workpiece is defined) else {'headers': ['Part'], 'rows': [], 'summary': []} %}
+{% set operation = operation if (operation is defined) else {'headers': ['Machine'], 'rows': [], 'summary': []} %}
+<div class="bg-gray-800 rounded-lg p-6 shadow-lg text-white">
+    <h3 class="text-xl font-semibold mb-4">Spend by Month</h3>
+    
+    <div class="mb-8">
+        <h4 class="text-lg font-semibold mb-4">Spend by Part</h4>
+        <div id="spendByPartTable" class="overflow-auto">
+            <table class="min-w-full bg-gray-700 rounded">
+                <thead>
+                    <tr class="bg-gray-600">
+                        {% for header in workpiece.headers %}
+                            <th class="px-4 py-2 text-left">{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in workpiece.rows %}
+                        <tr class="border-b border-gray-600 hover:bg-gray-600">
+                            {% for cell in row %}
+                                <td class="px-4 py-2">{{ cell }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                        <tr class="bg-blue-600 font-bold">
+                            {% for i in range(workpiece.headers|length) %}
+                                <td class="px-4 py-2">
+                                    {{ workpiece.summary[i] if (workpiece.summary and i < workpiece.summary|length) else '' }}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div>
+        <h4 class="text-lg font-semibold mb-4">Spend by Machine</h4>
+        <div id="spendByMachineTable" class="overflow-auto">
+            <table class="min-w-full bg-gray-700 rounded">
+                <thead>
+                    <tr class="bg-gray-600">
+                        {% for header in operation.headers %}
+                            <th class="px-4 py-2 text-left">{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in operation.rows %}
+                        <tr class="border-b border-gray-600 hover:bg-gray-600">
+                            {% for cell in row %}
+                                <td class="px-4 py-2">{{ cell }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                        <tr class="bg-blue-600 font-bold">
+                            {% for i in range(operation.headers|length) %}
+                                <td class="px-4 py-2">
+                                    {{ operation.summary[i] if (operation.summary and i < operation.summary|length) else '' }}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
