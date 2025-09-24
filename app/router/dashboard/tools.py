@@ -432,6 +432,7 @@ async def tool_info(tool_id:int, start_date:datetime, end_date:datetime, db, con
     # Fetch related recipes
     recipes = db.exec(
         select(Recipe)
+        .where(Recipe.active == True)
         .join(RecipeTool, RecipeTool.recipe_id == Recipe.id)
         .where(RecipeTool.tool_id == tool.id)
     ).all()
@@ -525,6 +526,7 @@ async def operation_info(operation_id:int, start_date:datetime, end_date:datetim
     recipes = db.exec(
         select(Recipe)
         .where(Recipe.machine_id == operation.id)
+        .where(Recipe.active == True)
     ).all()
 
     tool_positions_data = [position_info(tool_position.id, start_date, end_date, db, condense, max_points) for recipe in recipes for tool_position in recipe.tool_positions]
@@ -561,6 +563,7 @@ async def product_info(product_id:int, start_date:datetime, end_date:datetime, d
     recipes = db.exec(
         select(Recipe)
         .where(Recipe.workpiece_id == product.id)
+        .where(Recipe.active == True)
     ).all()
 
     operations_data = [operation_info(recipe.machine_id, start_date, end_date, db, condense, max_points) for recipe in recipes]

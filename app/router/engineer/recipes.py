@@ -28,6 +28,7 @@ async def get_item_list(request: Request,
     offset = int(request.query_params.get("offset", 0))
     limit = int(request.query_params.get("limit", 25))
     statement = (select(Recipe)
+                 .where(Recipe.active == True)
                  .join(Recipe.machine)
                  .order_by(Recipe.name, Machine.name)
                  .offset(offset)
@@ -135,7 +136,7 @@ async def get_recipe(recipe_id: int,
                      user: User = Depends(get_current_operator),
                      session: Session = Depends(get_session)):
     # Query for the recipe
-    recipe_query = select(Recipe).where(Recipe.id == recipe_id)
+    recipe_query = select(Recipe).where(Recipe.id == recipe_id).where(Recipe.active == True)
     recipe = session.exec(recipe_query).first()
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
@@ -296,11 +297,12 @@ async def update_recipe(
 def delete_item(item_id: int,
                 session: Session = Depends(get_session)
                 ):
-    statement = select(Recipe).where(Recipe.id == item_id)
+    statement = select(Recipe).where(Recipe.id == item_id).where(Recipe.active == True)
     item = session.exec(statement).one_or_none()
     if not item:
         raise HTTPException(status_code=404, detail="Recipe not found")
     # switch status
     item.active = not item.active
     session.commit()
+    print("WTF?")
     return Response(status_code=status.HTTP_202_ACCEPTED)
