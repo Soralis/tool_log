@@ -30,7 +30,8 @@ async def get_item_list(request: Request,
     statement = (select(Recipe)
                  .where(Recipe.active == True)
                  .join(Recipe.machine)
-                 .order_by(Recipe.name, Machine.name)
+                 .join(Recipe.workpiece)
+                 .order_by(Workpiece.name, Machine.name)
                  .offset(offset)
                  .limit(limit))
 
@@ -59,7 +60,7 @@ async def get_item_list(request: Request,
                 trimmed[field] = getattr(item, field, None)
         return trimmed
     items = [trim_item(item, fields) for item in items]
-    
+    #
     # For full page load, return the complete template
     return templates.TemplateResponse(
         request=request,
@@ -162,7 +163,6 @@ async def get_recipe(recipe_id: int,
     # Convert to dict for JSON response
     recipe_dict = {
         "id": recipe.id,
-        "name": recipe.name,
         "description": recipe.description,
         "workpiece_id": recipe.workpiece_id,
         "machine_id": recipe.machine_id,

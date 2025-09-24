@@ -57,6 +57,7 @@ async def get_ranked_opportunities(
         statement = (
             statement
             .join(Recipe, ToolPosition.recipe_id == Recipe.id)
+            .join(Recipe.workpiece)
             .where(Recipe.workpiece_id.in_(selected_products))
         )
     statement = statement.order_by(ToolLife.timestamp.asc())
@@ -108,7 +109,7 @@ async def get_ranked_opportunities(
         opportunities.append({
             "tool_position_id": pos.id,
             "tool_name": tool.name if tool else "",
-            "recipe_name": pos.recipe.name,
+            "recipe_name": pos.recipe.workpiece.name,
             "workpiece_name": pos.recipe.workpiece.name,
             "current_mean_life": round(current_mean, 2),
             "expected_life": pos.expected_life,

@@ -375,7 +375,7 @@ class RecipeManager {
             e.preventDefault();
             const formData = new FormData(e.target);
             const recipe = {
-                name: formData.get('name'),
+                // name: formData.get('name'),
                 description: formData.get('description'),
                 cycle_time: formData.get('cycle_time') ? parseInt(formData.get('cycle_time')) : null,
                 workpiece_id: parseInt(formData.get('workpiece_id')),
@@ -580,7 +580,7 @@ class RecipeManager {
         await RecipeManager.loadData();
 
         document.getElementById('editRecipeId').value = recipeData.id;
-        document.getElementById(this.prefix + 'Name').value = recipeData.name;
+        // document.getElementById(this.prefix + 'Name').value = recipeData.name;
         document.getElementById(this.prefix + 'Description').value = recipeData.description;
         document.getElementById(this.prefix + 'CycleTime').value = recipeData.cycle_time || '';
 

@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 measureToolLife = data.machine.measures_tool_life;
                 // Store the current recipe name
-                currentRecipeName = data.current_recipe ? data.current_recipe.name : 'No Recipe';
+                currentRecipeName = data.current_recipe ? data.current_recipe.workpiece?.name : 'No Recipe';
                 recentToolLivesData = data.recent_tool_lives; // Store recent tool lives
                 setupAdditionalSteps(data);
                 goToNextStep();

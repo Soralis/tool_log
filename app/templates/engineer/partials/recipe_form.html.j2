@@ -8,15 +8,6 @@
             <input type="hidden" id="editRecipeId" name="recipe_id">
             {% endif %}
             
-            <label for="{{ prefix }}Name">Name:</label>
-            <input type="text" id="{{ prefix }}Name" name="name" required>
-            
-            <label for="{{ prefix }}Description">Description:</label>
-            <textarea id="{{ prefix }}Description" name="description"></textarea>
-
-            <label for="{{ prefix }}CycleTime">Cycle Time (seconds):</label>
-            <input type="number" id="{{ prefix }}CycleTime" name="cycle_time" min="1">
-
             <label for="{{ prefix }}Line">Line:</label>
             <select id="{{ prefix }}Line" name="line_id">
                 <option value="">Select Line</option>
@@ -27,6 +18,12 @@
                 <option value="">Select Workpiece</option>
             </select>
             
+            <label for="{{ prefix }}Description">Description:</label>
+            <textarea id="{{ prefix }}Description" name="description"></textarea>
+
+            <label for="{{ prefix }}CycleTime">Cycle Time (seconds):</label>
+            <input type="number" id="{{ prefix }}CycleTime" name="cycle_time" min="1">
+
             <label for="{{ prefix }}Machine">Machine:</label>
             <select id="{{ prefix }}Machine" name="machine_id" required>
                 <option value="">Select Machine</option>

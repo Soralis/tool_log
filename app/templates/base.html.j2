@@ -73,6 +73,7 @@
             try {
                 const response = await fetch(`/operator/change_over/${machineId}`);
                 const data = await response.json();
+                console.log(data)
                 const recipeSelect = document.getElementById(`${prefix}recipe-select`);
                 const recipeForm = document.getElementById(`${prefix}recipe-form`);
                 
@@ -81,7 +82,8 @@
                     data.forEach(recipe => {
                         const option = document.createElement('option');
                         option.value = recipe.id;
-                        option.textContent = recipe.name;
+                        console.log(recipe);
+                        option.textContent = recipe.workpiece?.name;
                         recipeSelect.appendChild(option);
                     });
                     recipeForm && recipeForm.classList.remove('hidden');

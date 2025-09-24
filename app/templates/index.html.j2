@@ -296,7 +296,7 @@
             {% if machines %}
                 {% for machine in machines %}
                     <div class="text-3xl font-bold">
-                        {{ machine.name }}: {{ machine.current_recipe.name }}
+                        {{ machine.name }}: {% if machine.current_recipe and machine.current_recipe.workpiece %}{{ machine.current_recipe.workpiece.name }}{% endif %}
                     </div>
                 {% endfor %}
                 <button onclick="openModal('changeover')" class="w-full py-8 text-4xl font-bold rounded-lg bg-blue-500 hover:bg-blue-700 text-white my-4">Changeover</button>

@@ -99,7 +99,7 @@ async def machine_status_websocket(websocket: WebSocket):
 
     machines = [{"machine_id": machine.id,
                  "machine_name": machine.name,
-                 "current_workpiece": machine.current_recipe.name if machine.current_recipe else None,
+                 "current_workpiece": machine.current_recipe.workpiece.name if machine.current_recipe and machine.current_recipe.workpiece else None,
                  "timestamp": changeovers[machine.id].timestamps.strftime("%Y-%m-%d %H:%M") if machine.current_recipe else None
                  } for machine in machines]
     # sort machines by machine name
