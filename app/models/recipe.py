@@ -17,6 +17,7 @@ class RecipeBase(SQLModel):
     description: Optional[str] = None
     workpiece_id: int = Field(foreign_key='workpiece.id', ondelete='CASCADE')
     machine_id: int = Field(foreign_key='machine.id', ondelete='CASCADE')
+    cycle_time: Optional[int] = Field(default=None, gt=0)  # in seconds
 
     __table_args__ = (UniqueConstraint('name', 'workpiece_id', 'machine_id'),)
 

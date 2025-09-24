@@ -4,11 +4,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.exceptions import HTTPException
 from app.templates.jinja_functions import templates
 from sqlmodel import Session, select
-from app.models import Recipe, RecipeRead, ToolPosition
-from app.models import Workpiece
-from app.models import Machine
-from app.models import Tool
-from app.models import User
+from app.models import Recipe, RecipeRead, ToolPosition, Workpiece, Machine, Tool, User, Line
 from app.database_config import get_session
 from auth import get_current_operator
 
@@ -78,20 +74,32 @@ async def get_item_list(request: Request,
     )
 
 @router.get("/workpieces")
-async def get_workpieces(q: str = "", session: Session = Depends(get_session)):
+async def get_workpieces(q: str = "", line_id: int = None, session: Session = Depends(get_session)):
     query = select(Workpiece)
     if q:
         query = query.where(Workpiece.name.contains(q))
+    if line_id:
+        query = query.where(Workpiece.line_id == line_id)
     workpieces = session.exec(query).all()
     return workpieces
 
 @router.get("/machines")
-async def get_machines(q: str = "", session: Session = Depends(get_session)):
+async def get_machines(q: str = "", line_id: int = None, session: Session = Depends(get_session)):
     query = select(Machine)
     if q:
         query = query.where(Machine.name.contains(q))
+    if line_id:
+        query = query.where(Machine.line_id == line_id)
     machines = session.exec(query).all()
     return machines
+
+@router.get("/lines")
+async def get_lines(q: str = "", session: Session = Depends(get_session)):
+    query = select(Line)
+    if q:
+        query = query.where(Line.name.contains(q))
+    lines = session.exec(query).all()
+    return lines
 
 @router.get("/tools")
 async def get_tools(q: str = "", session: Session = Depends(get_session)):
@@ -140,6 +148,16 @@ async def get_recipe(recipe_id: int,
     )
     tool_positions = session.exec(tool_positions_query).all()
 
+    # Determine a line association for the recipe if possible
+    line_id = None
+    try:
+        if getattr(recipe, "workpiece", None) and recipe.workpiece:
+            line_id = recipe.workpiece.line_id
+        elif getattr(recipe, "machine", None) and recipe.machine:
+            line_id = recipe.machine.line_id
+    except Exception:
+        line_id = None
+
     # Convert to dict for JSON response
     recipe_dict = {
         "id": recipe.id,
@@ -147,6 +165,8 @@ async def get_recipe(recipe_id: int,
         "description": recipe.description,
         "workpiece_id": recipe.workpiece_id,
         "machine_id": recipe.machine_id,
+        "line_id": line_id,
+        "cycle_time": recipe.cycle_time,
         "tool_positions": []
     }
 

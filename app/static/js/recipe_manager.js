@@ -2,6 +2,7 @@
 class RecipeManager {
     // Static cache for dropdown data
     static dropdownCache = {
+        lines: null,
         workpieces: null,
         machines: null,
         tools: null,
@@ -24,12 +25,14 @@ class RecipeManager {
         // Start loading and store the promise
         this.dropdownCache.loading = (async () => {
             try {
-                const [workpiecesResponse, machinesResponse, toolsResponse] = await Promise.all([
+                const [linesResponse, workpiecesResponse, machinesResponse, toolsResponse] = await Promise.all([
+                    fetch('/engineer/recipes/lines'),
                     fetch('/engineer/recipes/workpieces'),
                     fetch('/engineer/recipes/machines'),
                     fetch('/engineer/recipes/tools')
                 ]);
 
+                this.dropdownCache.lines = await linesResponse.json();
                 this.dropdownCache.workpieces = await workpiecesResponse.json();
                 this.dropdownCache.machines = await machinesResponse.json();
                 this.dropdownCache.tools = await toolsResponse.json();
@@ -81,21 +84,55 @@ class RecipeManager {
             }
         });
 
+        const lineSelect = document.getElementById(this.prefix + 'Line');
         const workpieceSelect = document.getElementById(this.prefix + 'Workpiece');
         const machineSelect = document.getElementById(this.prefix + 'Machine');
 
-        if (workpieceSelect) {
-            workpieceSelect.innerHTML = '<option value="">Select Workpiece</option>';
-            RecipeManager.dropdownCache.workpieces.forEach(wp => {
-                workpieceSelect.appendChild(new Option(wp.name, wp.id));
+        // Populate line select
+        if (lineSelect) {
+            lineSelect.innerHTML = '<option value="">Select Line</option>';
+            (RecipeManager.dropdownCache.lines || []).forEach(line => {
+                lineSelect.appendChild(new Option(line.name, line.id));
+            });
+
+            // When line changes, load filtered workpieces and machines
+            lineSelect.addEventListener('change', (e) => {
+                const lineId = e.target.value || '';
+                this.fetchAndPopulateWorkpieces(lineId);
+                this.fetchAndPopulateMachines(lineId);
             });
         }
 
-        if (machineSelect) {
+        // Initially populate workpieces and machines (no filter)
+        this.fetchAndPopulateWorkpieces();
+        this.fetchAndPopulateMachines();
+    }
+
+    async fetchAndPopulateWorkpieces(lineId = '') {
+        const workpieceSelect = document.getElementById(this.prefix + 'Workpiece');
+        if (!workpieceSelect) return;
+        try {
+            const url = lineId ? `/engineer/recipes/workpieces?line_id=${encodeURIComponent(lineId)}` : '/engineer/recipes/workpieces';
+            const resp = await fetch(url);
+            const list = await resp.json();
+            workpieceSelect.innerHTML = '<option value="">Select Workpiece</option>';
+            list.forEach(wp => workpieceSelect.appendChild(new Option(wp.name, wp.id)));
+        } catch (e) {
+            console.error('Error loading workpieces:', e);
+        }
+    }
+
+    async fetchAndPopulateMachines(lineId = '') {
+        const machineSelect = document.getElementById(this.prefix + 'Machine');
+        if (!machineSelect) return;
+        try {
+            const url = lineId ? `/engineer/recipes/machines?line_id=${encodeURIComponent(lineId)}` : '/engineer/recipes/machines';
+            const resp = await fetch(url);
+            const list = await resp.json();
             machineSelect.innerHTML = '<option value="">Select Machine</option>';
-            RecipeManager.dropdownCache.machines.forEach(m => {
-                machineSelect.appendChild(new Option(m.name, m.id));
-            });
+            list.forEach(m => machineSelect.appendChild(new Option(m.name, m.id)));
+        } catch (e) {
+            console.error('Error loading machines:', e);
         }
     }
 
@@ -340,6 +377,7 @@ class RecipeManager {
             const recipe = {
                 name: formData.get('name'),
                 description: formData.get('description'),
+                cycle_time: formData.get('cycle_time') ? parseInt(formData.get('cycle_time')) : null,
                 workpiece_id: parseInt(formData.get('workpiece_id')),
                 machine_id: parseInt(formData.get('machine_id')),
             };
@@ -535,14 +573,39 @@ class RecipeManager {
         return positions;
     }
 
-    populateEditForm(recipeData) {
+    async populateEditForm(recipeData) {
         if (!this.isEdit) return;
+
+        // Ensure dropdown data is loaded
+        await RecipeManager.loadData();
 
         document.getElementById('editRecipeId').value = recipeData.id;
         document.getElementById(this.prefix + 'Name').value = recipeData.name;
         document.getElementById(this.prefix + 'Description').value = recipeData.description;
-        document.getElementById(this.prefix + 'Workpiece').value = recipeData.workpiece_id;
-        document.getElementById(this.prefix + 'Machine').value = recipeData.machine_id;
+        document.getElementById(this.prefix + 'CycleTime').value = recipeData.cycle_time || '';
+
+        // Set the line (if available) and fetch filtered workpieces/machines
+        const lineId = recipeData.line_id || '';
+        const lineSelect = document.getElementById(this.prefix + 'Line');
+        if (lineSelect) {
+            lineSelect.value = lineId;
+        }
+
+        // Populate workpieces and machines filtered by the selected line
+        await Promise.all([
+            this.fetchAndPopulateWorkpieces(lineId),
+            this.fetchAndPopulateMachines(lineId)
+        ]);
+
+        // Set selected workpiece and machine after population
+        if (recipeData.workpiece_id) {
+            const wpSelect = document.getElementById(this.prefix + 'Workpiece');
+            if (wpSelect) wpSelect.value = recipeData.workpiece_id;
+        }
+        if (recipeData.machine_id) {
+            const mSelect = document.getElementById(this.prefix + 'Machine');
+            if (mSelect) mSelect.value = recipeData.machine_id;
+        }
         
         this.toolPositionGroups.innerHTML = '';
         

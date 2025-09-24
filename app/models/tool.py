@@ -160,7 +160,7 @@ class OrderDeliveryCreate(OrderDeliveryBase):
 
 class OrderDeliveryUpdate(OrderDeliveryCreate):
     id: int
-    delivery_date: Optional[dt] = Field(default=None)
+    # delivery_date: Optional[dt] = Field(default=None)
 
 class OrderDeliveryRead(SQLModel):
     id: int
@@ -177,6 +177,7 @@ class ToolLife(ToolLifeBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     timestamp: dt = Field(default_factory=dt.now, nullable=False)
     tool_settings: Dict = Field(default_factory=dict, sa_column=Column(JSON))
+    cycle_time: Optional[int] = Field(default=None, gt=0)  # in seconds
     additional_measurements: Dict = Field(default_factory=dict, sa_column=Column(JSON))
     tool_count: int = Field(default=1)
 

@@ -47,6 +47,7 @@ class MachineBase(SQLModel):
     model: Optional[str] = Field(default=None)
     manufacturer: Optional[str] = Field(default=None)
     measures_tool_life: bool = Field(default=False)
+    burden_rate: int = Field(gt=0)
     channels: int = Field(gt=0)
     line_id: Optional[int] = Field(default=None, foreign_key='line.id', ondelete='SET NULL')
 

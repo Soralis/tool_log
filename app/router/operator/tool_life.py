@@ -94,6 +94,7 @@ async def create_tool_life(
             tool_position_id = toolposition.id,
             tool_id = toolposition.tool_id,
             change_reason_id = int(form_data.pop('change_reason_id')),
+            cycle_time = machine.current_recipe.cycle_time,
             )
         
         additional_measurements = {}
