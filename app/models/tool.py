@@ -20,7 +20,6 @@ class ToolBase(SQLModel):
     name: str = Field(index=True)
     number: str = Field(index=True, unique=True)
     erp_number: Optional[str] = Field(default=None, index=True, unique=True)
-    cpn_number: Optional[str] = Field(default=None, index=True, unique=True)
     description: Optional[str] = None
     
     tool_type_id: int = Field(foreign_key='tooltype.id', ondelete='CASCADE')

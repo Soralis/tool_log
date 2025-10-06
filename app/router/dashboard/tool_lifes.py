@@ -516,7 +516,7 @@ async def get_tool_details(
         ["Type", f"{tool.tool_type.name} ({'perishable' if tool.tool_type.perishable else 'durable'})"],
         ["Description", tool.description],
         ["Manufacturer", tool.manufacturer.name],
-        ["CPN", tool.cpn_number],
+        ["Number", tool.number],
         ["ERP", tool.erp_number],
         ["Price", f"{locale.currency(tool.price, grouping=True)}"]
     ]))  

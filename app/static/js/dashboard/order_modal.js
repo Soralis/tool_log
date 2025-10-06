@@ -331,7 +331,7 @@ function setToolCard(tool) {
             <hr class="col-span-2 bg-slate-300" />
             <div><p>Manufacturer: ${tool.manufacturer}</p></div>
             <div><p>Current Inventory: ${tool.inventory}</p></div>
-            <div><p>CPN Number: ${tool.cpn_number}</p></div>
+            <div><p>Number: ${tool.number}</p></div>
             <div><p>ERP Number: ${tool.erp_number}</p></div>
             <hr class="col-span-2 bg-gray-700" />
             <div class="col-span-2 text-sm"><p>${tool.description}</p></div>
@@ -345,7 +345,7 @@ function setToolCard(tool) {
             <hr class="col-span-2 bg-slate-300" />
             <div><p>Manufacturer: ${tool.manufacturer}</p></div>
             <div><p>Current Inventory: ${tool.inventory}</p></div>
-            <div><p>CPN Number: ${tool.cpn_number}</p></div>
+            <div><p>Number: ${tool.number}</p></div>
             <div><p>ERP Number: ${tool.erp_number}</p></div>
             <hr class="col-span-2 bg-gray-700" />
             <div class="col-span-2 text-sm"><p>${tool.description}</p></div>
