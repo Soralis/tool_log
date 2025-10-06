@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request, HTTPException, status, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import ValidationError
 from sqlmodel import Session, select, inspect, SQLModel, func
-from sqlalchemy import Integer, String, Boolean, Float, DateTime, or_
+from sqlalchemy import Integer, String, Boolean, Float, DateTime, or_, cast
 from sqlalchemy.orm import joinedload, RelationshipProperty
 from sqlalchemy.sql import sqltypes
 from sqlmodel.sql.sqltypes import AutoString
@@ -209,14 +209,48 @@ def create_generic_router(
             offset = 0
             router.last_search = search_value
 
-        # If searching, build ilike clauses across all string-like columns on the model
+        # If searching, build clauses across searchable columns on the model.
+        # Exclude Enum columns since PostgreSQL does not support ILIKE between enum and text.
+        # For numeric columns (int/float) cast to text so the user can search numbers as strings.
         if search_value:
             try:
-                str_cols = [c.name for c in inspect(model).columns if isinstance(c.type, (sqltypes.String, AutoString))]
+                search_clauses = []
+                for c in inspect(model).columns:
+                    # Skip Enum types entirely
+                    if isinstance(c.type, sqltypes.Enum):
+                        continue
+
+                    col_attr = getattr(model, c.name)
+
+                    # Textual SQL types: use ilike directly
+                    if isinstance(c.type, (sqltypes.String, AutoString)):
+                        search_clauses.append(col_attr.ilike(f"%{search_value}%"))
+                        continue
+
+                    # Numeric SQL types: cast to text then ilike
+                    if isinstance(c.type, (sqltypes.Integer, sqltypes.Float, Integer, Float)):
+                        try:
+                            search_clauses.append(cast(col_attr, String).ilike(f"%{search_value}%"))
+                        except Exception:
+                            # If cast fails for any reason, skip this column
+                            continue
+                        continue
+
+                    # Fallback: if the underlying python type is str, use ilike
+                    py_type = getattr(c.type, "python_type", None)
+                    if py_type is str:
+                        search_clauses.append(col_attr.ilike(f"%{search_value}%"))
+                        continue
+
+                    # Last resort: attempt to cast to text and use ilike
+                    try:
+                        search_clauses.append(cast(col_attr, String).ilike(f"%{search_value}%"))
+                    except Exception:
+                        # ignore columns we cannot search
+                        continue
             except Exception:
-                str_cols = []
-            if str_cols:
-                search_clauses = [getattr(model, col).ilike(f"%{search_value}%") for col in str_cols]
+                search_clauses = []
+            if search_clauses:
                 statement = statement.where(or_(*search_clauses))
 
         # Apply filters to the statement
