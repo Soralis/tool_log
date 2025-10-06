@@ -465,6 +465,39 @@ textarea {
     text-decoration: underline;
   }
 
+  /* Layout for list header: title (filter button) and search input inline */
+  .list-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+  }
+
+  .list-header .search-container {
+      /* Keep the search close to the title */
+      margin-left: 6px;
+      display: inline-block;
+  }
+
+  .list-header .search-container input[type="search"] {
+      width: 260px;
+      max-width: 40vw;
+      padding: 8px 10px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: 1px solid #556;
+      background-color: #3a3a3a;
+      color: #ecf0f1;
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+
+  .list-header .search-container input[type="search"]:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52,152,219,0.07);
+  }
+
 .overlay-button {
     position: absolute;
     top: 10px;

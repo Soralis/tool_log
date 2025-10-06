@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request, HTTPException, status, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import ValidationError
 from sqlmodel import Session, select, inspect, SQLModel, func
-from sqlalchemy import Integer, String, Boolean, Float, DateTime
+from sqlalchemy import Integer, String, Boolean, Float, DateTime, or_
 from sqlalchemy.orm import joinedload, RelationshipProperty
 from sqlalchemy.sql import sqltypes
 from sqlmodel.sql.sqltypes import AutoString
@@ -62,6 +62,8 @@ def create_generic_router(
     fixed_field_callback: Optional[Callable[[], List[Dict[str, Any]]]] = None
 ):
     router = APIRouter()
+    # Store the last search value per-router so we can reset pagination when the search changes
+    router.last_search = None
 
     router.context = {
         'model': create_model,
@@ -195,9 +197,27 @@ def create_generic_router(
         
         filters = request.query_params
         statement = select(model).options(*get_joinedload_options(model, read_model))
-        offset = int(request.query_params.get("offset", 0))
-        limit = int(request.query_params.get("limit", 10))
-        statement = statement.offset(offset).limit(limit)
+        # Search support: read `search` query param and build OR across string-like columns
+        search_value = request.query_params.get("search")
+        # Read offset/limit from client (if provided). We'll reset offset to 0 when search changes.
+        raw_offset = request.query_params.get("offset")
+        offset = int(raw_offset) if raw_offset is not None else 0
+        limit = int(request.query_params.get("limit", 50))
+
+        # If the search value changed since the last request for this router, reset pagination.
+        if getattr(router, "last_search", None) != search_value:
+            offset = 0
+            router.last_search = search_value
+
+        # If searching, build ilike clauses across all string-like columns on the model
+        if search_value:
+            try:
+                str_cols = [c.name for c in inspect(model).columns if isinstance(c.type, (sqltypes.String, AutoString))]
+            except Exception:
+                str_cols = []
+            if str_cols:
+                search_clauses = [getattr(model, col).ilike(f"%{search_value}%") for col in str_cols]
+                statement = statement.where(or_(*search_clauses))
 
         # Apply filters to the statement
         def get_column_type(model, key):
@@ -219,12 +239,12 @@ def create_generic_router(
             return str
         
         for key, value in filters.items():
-            if value and key not in ['with_filter', 'offset', 'limit']:
+            if value and key not in ['with_filter', 'offset', 'limit', 'search']:
                 statement = statement.where(
                     getattr(model, key).in_(
                         [get_column_type(model, key)(x) for x in value.split(',')]
                     )
-                ).options(*get_joinedload_options(model, read_model))
+                )
         with Session(engine) as session:
             try:
                 order_field = read_model._order_by.default
@@ -239,8 +259,34 @@ def create_generic_router(
                 ordering = ordering.desc()
             else:
                 ordering = ordering.asc()
-            items = session.exec(statement.order_by(ordering).limit(limit).offset(offset)).unique().all()
-            has_more = len(items) == limit
+
+            # First select primary keys (ids) using the filtered statement so filters/search are respected.
+            # Use distinct() to avoid duplicate ids caused by joins and limit+1 to detect has_more.
+            # Include the ordering column in SELECT to satisfy PostgreSQL's DISTINCT requirement
+            order_attr = getattr(model, order_field)
+            id_stmt = statement.with_only_columns(model.id, order_attr).distinct().order_by(ordering).offset(offset).limit(limit + 1)
+            id_results = session.exec(id_stmt).all()
+            # Extract just the IDs (first element of each tuple)
+            ids = [r[0] if isinstance(r, (list, tuple)) else r for r in id_results]
+
+            # Preserve order and uniqueness
+            unique_ids = []
+            for i in ids:
+                if i not in unique_ids:
+                    unique_ids.append(i)
+
+            has_more = len(unique_ids) > limit
+            page_ids = unique_ids[:limit]
+
+            if page_ids:
+                # Load full model instances for the page ids with joinedload options
+                items_stmt = select(model).options(*get_joinedload_options(model, read_model)).where(model.id.in_(page_ids))
+                items_fetched = session.exec(items_stmt).all()
+                items_by_id = {getattr(it, "id"): it for it in items_fetched}
+                # Restore original order
+                items = [items_by_id[i] for i in page_ids if i in items_by_id]
+            else:
+                items = []
 
         # Trim the full items according to the read_model,
         # extracting nested attributes from related models using the '__' separator.

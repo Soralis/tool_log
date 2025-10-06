@@ -45,9 +45,18 @@
     <button id="filterButton" class="header-button" onclick="openModal('filter')">
         <h2>{{ item_type.replace('_', ' ') }} List</h2>
     </button>
+    <div class="search-container">
+        <input id="searchInput" name="search" type="search" placeholder="Search {{ item_type.replace('_', ' ') }}s..."
+               class="form-control"
+               hx-get="/engineer/{{ item_type|lower() }}s/list"
+               hx-target="#{{ item_type }}-list"
+               hx-trigger="keyup changed delay:400ms"
+               hx-include="#searchInput, #filterForm"
+               hx-swap="innerHTML" />
+    </div>
 </div>
 
-<div id="{{ item_type }}-list" hx-get="/engineer/{{ item_type|lower() }}s/list" hx-trigger="load, Added from:body, Deleted from:body, Edited from:body">
+<div id="{{ item_type }}-list" hx-get="/engineer/{{ item_type|lower() }}s/list" hx-trigger="load, Added from:body, Deleted from:body, Edited from:body" hx-include="#searchInput, #filterForm">
     <!-- {{ item_type }} list will be loaded here -->
 </div>
 
