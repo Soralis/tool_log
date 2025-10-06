@@ -86,11 +86,14 @@ nav a.active {
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
+    overflow: hidden; /* prevent the overlay from scrolling; modal-content will scroll */
     background-color: rgba(0,0,0,0.6);
     justify-content: center;
     /* display: flex;  */
     padding-right: 20px;
+    -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+    overscroll-behavior: contain;      /* prevent scroll chaining to the page */
+    touch-action: none; /* disable panning on the overlay so scrolling is handled by modal-content */
 }
 
 .modal-content {
@@ -103,10 +106,25 @@ nav a.active {
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     position: relative;
+    max-height: calc(100vh - 40px); /* keep modal content inside viewport */
+    overflow-y: auto;               /* allow scroll inside modal */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;   /* prevent scroll chaining to the page */
+    overscroll-behavior-y: none;    /* stop vertical overscroll escape */
+    touch-action: pan-y;            /* allow vertical pan inside modal only */
 }
 
 .modal.active {
     visibility: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Optional helper if you later want to add a small JS toggle:
+   body.modal-open { overflow: hidden; } */
+body.modal-open {
+    overflow: hidden;
 }
 
 .close {

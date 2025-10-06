@@ -9,7 +9,7 @@
                 <span class="item-detail">
                     {% for field in item %}
                         {% if field != 'id' and field != 'active' %}
-                                {{ item[field] }} - 
+                                {{ item[field] if item[field] is not none else '' }} - 
                         {% endif %}
                     {% endfor %}
                 </span>

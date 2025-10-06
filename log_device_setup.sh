@@ -120,6 +120,9 @@ sed -i '"'"'s/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"[^"]
 chromium-browser --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar --incognito --kiosk \
   --disable-application-cache \
   --disable-cache \
+  --disable-pinch \
+  --touch-events=enabled \
+  --overscroll-history-navigation=0 \
   --disable \$KIOSK_URL
 EOF'
 

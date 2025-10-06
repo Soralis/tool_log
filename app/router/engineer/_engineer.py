@@ -56,12 +56,17 @@ def fixed_field_callback(mapping: dict, calling_model, extra: dict = None):
                     if fixed_item and hasattr(fixed_item, fixed_relation):
                         fixed_fields = []
                         for attr in getattr(fixed_item, fixed_relation):
-                            
+                            # Retrieve stored value for this fixed field instance (if any)
+                            val = next((sf.value for sf in getattr(instance, fixed_field) if getattr(sf, f"{fixed_field.rstrip('s')}_id") == attr.id), None)
+                            # Normalize string "None" (and case variants) to actual None so templates don't render the literal "None"
+                            if isinstance(val, str) and val.lower() == 'none':
+                                val = None
+
                             fixed_fields.append({
                                 "name": attr.name,
                                 "unit": attr.unit,
                                 "field_id": attr.id,
-                                "value": next((sf.value for sf in getattr(instance, fixed_field) if getattr(sf, f"{fixed_field.rstrip('s')}_id") == attr.id), None),
+                                "value": val,
                                 "required": True
                             })
                         options[fixed_field] = fixed_fields
