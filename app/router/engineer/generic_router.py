@@ -446,6 +446,8 @@ def create_generic_router(
 
         # Convert datetime.time to datetime.datetime
         for key, value in item.__dict__.items():
+            if not value:
+                item.__dict__[key] = None
             if isinstance(value, time):
                 item.__dict__[key] = datetime.combine(datetime.today(), value)
         
@@ -457,22 +459,27 @@ def create_generic_router(
             except Exception as e:
                 # return JSONResponse(content={'message': f'{item_type} Database conflict: {str(e)}'}, status_code=status.HTTP_409_CONFLICT)
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-
-            db_additions = []
-            for field_name in references_dict:
-                if field_name in create_model.model_fields and references_dict[field_name]:
-                    # Handle new models
-                    related_model_info = model_mapping.get(field_name.replace("_","").rstrip("s").lower())
-                    related_model = related_model_info['model']
-                    for new_model in references_dict[field_name]:
-                        new_model[item_type.lower() + "_id"] = item.id
+            
+            # Handle references to new related items
+            for relation_name, new_items in references_dict.items():
+                relation_list = getattr(item, relation_name)
+                related_model_info = model_mapping.get(relation_name.replace("_","").rstrip('s').lower())
+                if related_model_info:
+                    seen_names = set()
+                    related_create_model = related_model_info['create']
+                    for new_item_data in new_items:
+                        if new_item_data['name'] in seen_names:
+                            continue
+                        seen_names.add(new_item_data['name'])
+                        new_item_data[f'{item_type.lower()}_id'] = item.id
+                        # new_item_data['user_id'] = user.id
                         try:
-                            validated_new_refer_model = related_model(**new_model)
-                            db_additions.append(validated_new_refer_model)
+                            validated_new_item = related_create_model(**new_item_data)
+                            new_item = related_model_info['model'](**validated_new_item.model_dump())
+                            relation_list.append(new_item)
                         except ValidationError as e:
-                            raise HTTPException(status_code=422, detail=str(e))
+                            raise HTTPException(status_code=422, detail=f"Validation error in {relation_name}: {str(e)}")
 
-            session.add_all(db_additions)
             try:
                 session.commit()
                 session.refresh(item)
