@@ -23,7 +23,7 @@
                                 {% if field_name != 'id' and not field_name.endswith('_id') %}
                                     <div class="info-field">
                                         <strong>{{ field_name|replace('_', ' ')|capitalize() }}:</strong>
-                                        {{ value }}
+                                        {{ value if value is not none else '' }}
                                     </div>
                                 {% endif %}
                             {% endfor %}
