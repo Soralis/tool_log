@@ -511,24 +511,31 @@ def create_generic_router(
             
             # Update main item fields
             try:
-                # Build a complete payload containing every field from the update model.
-                # If a field was not present in the form it will be explicitly set to None
-                # so that deletions from the UI are propagated to the database.
-                full_form: Dict[str, Any] = {}
-                for field_name in update_model.model_fields.keys():
-                    if field_name in form_dict:
-                        # use the value submitted in the form (checkbox handling was done in get_form_data)
-                        full_form[field_name] = form_dict[field_name]
-                    else:
-                        # field not present in the submitted form -> clear it
-                        full_form[field_name] = None
-
-                # Validate the assembled payload so types/coercions are applied
-                validated_data = update_model(**full_form)
+                # # Build a complete payload containing every field from the update model.
+                # # If a field was not present in the form it will be explicitly set to None
+                # # so that deletions from the UI are propagated to the database.
+                # full_form: Dict[str, Any] = {}
+                # for field_name in update_model.model_fields.keys():
+                #     if field_name in form_dict:
+                #         # use the value submitted in the form (checkbox handling was done in get_form_data)
+                #         full_form[field_name] = form_dict[field_name]
+                #     else:
+                #         # field not present in the submitted form -> clear it 
+                #         # MUST respect list, bool, str, int, float, datetime types
+                #         field_info = update_model.model_fields[field_name]
+                #         if get_origin(field_info.annotation) is list:
+                #             full_form[field_name] = []
+                #         elif field_info.annotation is bool:
+                #             full_form[field_name] = False
+                #         else:
+                #             full_form[field_name] = None
+                # # Validate the assembled payload so types/coercions are applied
+                validated_data = update_model(**form_dict)
 
                 # Apply all validated fields (except id) to the DB item.
                 for key, value in validated_data.model_dump().items():
-                    if key != 'id':
+                    # if key != 'id':
+                    if key in form_dict and key != 'id':
                         setattr(item, key, value)
             except ValidationError as e:
                 raise HTTPException(status_code=422, detail=str(e))
@@ -556,8 +563,12 @@ def create_generic_router(
                 relation_list = getattr(item, relation_name)
                 related_model_info = model_mapping.get(relation_name.replace("_","").rstrip('s').lower())
                 if related_model_info:
+                    seen_names = set()
                     related_create_model = related_model_info['create']
                     for new_item_data in new_items:
+                        if new_item_data['name'] in seen_names:
+                            continue
+                        seen_names.add(new_item_data['name'])
                         new_item_data[f'{item_type.lower()}_id'] = item_id
                         new_item_data['user_id'] = user.id
                         try:
