@@ -5,6 +5,7 @@ from fastapi.exceptions import HTTPException
 from app.templates.jinja_functions import templates
 from sqlmodel import Session, select
 from sqlalchemy import or_
+from sqlalchemy.orm import selectinload
 from app.models import Recipe, RecipeRead, ToolPosition, Workpiece, Machine, Tool, User, Line
 from app.database_config import get_session
 from auth import get_current_operator
@@ -39,13 +40,14 @@ async def get_item_list(request: Request,
                  .offset(offset)
                  .limit(limit))
 
-    # Apply text search (searches description, workpiece name and machine name)
+    # Apply text search (searches description, workpiece name and machine name) - case insensitive
     if search:
+        like_term = f"%{search}%"
         statement = statement.where(
             or_(
-                Recipe.description.contains(search),
-                Workpiece.name.contains(search),
-                Machine.name.contains(search)
+                Recipe.description.ilike(like_term),
+                Workpiece.name.ilike(like_term),
+                Machine.name.ilike(like_term)
             )
         )
 
@@ -129,7 +131,8 @@ async def get_filter(request: Request, session: Session = Depends(get_session)):
 async def get_workpieces(q: str = "", line_id: int = None, session: Session = Depends(get_session)):
     query = select(Workpiece)
     if q:
-        query = query.where(Workpiece.name.contains(q))
+        like_term = f"%{q}%"
+        query = query.where(Workpiece.name.ilike(like_term))
     if line_id:
         query = query.where(Workpiece.line_id == line_id)
     workpieces = session.exec(query).all()
@@ -139,7 +142,8 @@ async def get_workpieces(q: str = "", line_id: int = None, session: Session = De
 async def get_machines(q: str = "", line_id: int = None, session: Session = Depends(get_session)):
     query = select(Machine)
     if q:
-        query = query.where(Machine.name.contains(q))
+        like_term = f"%{q}%"
+        query = query.where(Machine.name.ilike(like_term))
     if line_id:
         query = query.where(Machine.line_id == line_id)
     machines = session.exec(query).all()
@@ -149,7 +153,8 @@ async def get_machines(q: str = "", line_id: int = None, session: Session = Depe
 async def get_lines(q: str = "", session: Session = Depends(get_session)):
     query = select(Line)
     if q:
-        query = query.where(Line.name.contains(q))
+        like_term = f"%{q}%"
+        query = query.where(Line.name.ilike(like_term))
     lines = session.exec(query).all()
     return lines
 
@@ -347,12 +352,22 @@ async def update_recipe(
 def delete_item(item_id: int,
                 session: Session = Depends(get_session)
                 ):
-    statement = select(Recipe).where(Recipe.id == item_id).where(Recipe.active == True)
-    item = session.exec(statement).one_or_none()
+    item = session.exec(
+        select(Recipe)
+        .where(Recipe.id == item_id)
+        .where(Recipe.active == True)
+        .options(
+            selectinload(Recipe.tool_lifes)
+        )
+    ).one_or_none()
     if not item:
         raise HTTPException(status_code=404, detail="Recipe not found")
-    # switch status
-    item.active = not item.active
+    
+    if item.tool_lifes and len(item.tool_lifes) > 0:
+        # switch status
+        item.active = not item.active
+    else:
+        # delete recipe
+        session.delete(item)
     session.commit()
-    print("WTF?")
     return Response(status_code=status.HTTP_202_ACCEPTED)
