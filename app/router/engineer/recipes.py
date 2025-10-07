@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.exceptions import HTTPException
 from app.templates.jinja_functions import templates
 from sqlmodel import Session, select
+from sqlalchemy import or_
 from app.models import Recipe, RecipeRead, ToolPosition, Workpiece, Machine, Tool, User, Line
 from app.database_config import get_session
 from auth import get_current_operator
@@ -17,16 +18,19 @@ async def home(request: Request,
     return templates.TemplateResponse(
             request=request,
             name="engineer/recipes.html.j2",
-            context={'user': user}
+            context={'user': user, 'item_type': 'Recipe'}
         )
 
 @router.get("/list", response_class=HTMLResponse)
 async def get_item_list(request: Request,
                         session: Session = Depends(get_session)
                         ):
-    filters = request.query_params
-    offset = int(request.query_params.get("offset", 0))
-    limit = int(request.query_params.get("limit", 25))
+    params = request.query_params
+    search = params.get("search", "").strip()
+    offset = int(params.get("offset", 0))
+    limit = int(params.get("limit", 25))
+
+    # Base statement: only active recipes, joined to machine and workpiece for ordering and searching
     statement = (select(Recipe)
                  .where(Recipe.active == True)
                  .join(Recipe.machine)
@@ -35,10 +39,30 @@ async def get_item_list(request: Request,
                  .offset(offset)
                  .limit(limit))
 
-    # Apply filters to the statement
-    for key, value in filters.items():
-        if value and key not in ['with_filter', 'offset', 'limit']:
-            statement = statement.where(getattr(Recipe, key).in_(value.split(',')))
+    # Apply text search (searches description, workpiece name and machine name)
+    if search:
+        statement = statement.where(
+            or_(
+                Recipe.description.contains(search),
+                Workpiece.name.contains(search),
+                Machine.name.contains(search)
+            )
+        )
+
+    # Apply other filters (skip pagination and 'search' itself)
+    for key, value in params.items():
+        if value and key not in ['with_filter', 'offset', 'limit', 'search']:
+            vals = [int(val) for val in value.split(',')]
+            # Line filter needs to apply to workpiece OR machine line association
+            if key == 'line_id':
+                statement = statement.where(or_(Workpiece.line_id.in_(vals), Machine.line_id.in_(vals)))
+            # Direct recipe fields (e.g., workpiece_id, machine_id) can be applied to Recipe
+            elif key in ['workpiece_id', 'machine_id'] and hasattr(Recipe, key):
+                statement = statement.where(getattr(Recipe, key).in_(vals))
+            else:
+                # Fallback: attempt to apply on Recipe if attribute exists
+                if hasattr(Recipe, key):
+                    statement = statement.where(getattr(Recipe, key).in_(vals))
 
     items = session.exec(statement).fetchall()
     has_more = len(items) == limit
@@ -60,18 +84,44 @@ async def get_item_list(request: Request,
                 trimmed[field] = getattr(item, field, None)
         return trimmed
     items = [trim_item(item, fields) for item in items]
-    #
-    # For full page load, return the complete template
+
+    # For full page load or htmx partials, return the list partial
     return templates.TemplateResponse(
         request=request,
         name="engineer/partials/list.html.j2",
         context={
-            "items": items, 
-            'item_type': 'Recipe', 
+            "items": items,
+            'item_type': 'Recipe',
             "has_more": has_more,
             "next_offset": offset + limit,
             "limit": limit,
             "offset": offset
+        }
+    )
+
+@router.get("/filter", response_class=HTMLResponse)
+async def get_filter(request: Request, session: Session = Depends(get_session)):
+    """
+    Returns the filter partial for recipes. The partial expects a 'filter_options'
+    dict mapping field -> list of options (each option should either be a simple
+    value or an object with 'id' and 'name').
+    """
+    lines = session.exec(select(Line).order_by(Line.name)).all()
+    workpieces = session.exec(select(Workpiece).order_by(Workpiece.name)).all()
+    machines = session.exec(select(Machine).order_by(Machine.name)).all()
+
+    filter_options = {
+        'line_id': [{'id': l.id, 'name': l.name} for l in lines],
+        'workpiece_id': [{'id': w.id, 'name': w.name} for w in workpieces],
+        'machine_id': [{'id': m.id, 'name': m.name} for m in machines]
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="engineer/partials/filter.html.j2",
+        context={
+            'filter_options': filter_options,
+            'item_type': 'Recipe'
         }
     )
 

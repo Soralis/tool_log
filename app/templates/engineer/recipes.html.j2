@@ -5,13 +5,32 @@
 <h1>Recipe Manager</h1>
 <button id="createRecipeBtn" class="btn-submit">Create Recipe</button>
 
-<div class="list-header">
-    <button id="filterButton" class="header-button" onclick="openModal('create')">
-        <h2>Recipe List</h2>
-    </button>
+<div id="filterModal" class="modal">
+    <div class="modal-content">
+        <span class="close" data-modal="filterModal" onclick="closeModal('filterModal')">&times;</span>
+        <h2>Filter Recipes</h2>
+        <div id="filter-container" hx-get="/engineer/recipes/filter" hx-trigger="load">
+            <!-- Filter will be loaded here -->
+        </div>
+    </div>
 </div>
 
-<div id="{{ item_type }}-list" hx-get="/engineer/recipes/list" hx-trigger="load, Added from:body, Deleted from:body, Edited from:body">
+<div class="list-header">
+    <button id="filterButton" class="header-button" onclick="openModal('filter')">
+        <h2>Recipe List</h2>
+    </button>
+    <div class="search-container">
+        <input id="searchInput" name="search" type="search" placeholder="Search recipes..."
+               class="form-control"
+               hx-get="/engineer/recipes/list"
+               hx-target="#{{ item_type }}-list"
+               hx-trigger="keyup changed delay:400ms"
+               hx-include="#searchInput, #filterForm"
+               hx-swap="innerHTML" />
+    </div>
+</div>
+
+<div id="{{ item_type }}-list" hx-get="/engineer/recipes/list" hx-trigger="load, Added from:body, Deleted from:body, Edited from:body" hx-include="#searchInput, #filterForm">
     <!-- {{ item_type }} list will be loaded here -->
 </div>
 

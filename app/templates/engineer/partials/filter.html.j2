@@ -6,7 +6,7 @@
                 {% if options|length == 2 and True in options and False in options %}
                     <input type="checkbox" id="{{ field }}" name="{{ field }}" value="true">
                 {% else %}
-                    <select id="{{ field }}" name="{{ field }}">
+                    <select id="{{ field }}" name="{{ field }}" onchange="this.form.dispatchEvent(new Event('change', {bubbles: true}))">
                        <option value="">All</option> <!-- Add an "All" option -->
                         {% for option in options %}
                             {% if option.id is defined and option.name is defined %}
