@@ -87,10 +87,67 @@
         document.getElementById('recipeModal').classList.add('active');
     };
 
-    // Handle clicking on a recipe in the list
+    // Handle clicking on a recipe in the list (supports copy and edit)
     document.addEventListener('click', async function(e) {
+        console.log('list click handler invoked', e.target); // DEBUG
+
+        // Handle "Copy" button first
+        const copyBtn = e.target.closest('.copy-button');
+        if (copyBtn) {
+            console.log('copy-button clicked', copyBtn); // DEBUG
+            e.preventDefault();
+            e.stopPropagation();
+            // Ensure no other listeners run for this event
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+            // Prevent htmx from handling this interaction if necessary
+            const listItem = copyBtn.closest('.list-item');
+            const htmx = window.htmx || {};
+            if (listItem && htmx && htmx.trigger) {
+                try {
+                    htmx.trigger(listItem, 'htmx:abort');
+                } catch (hxErr) {
+                    console.warn('htmx abort failed', hxErr);
+                }
+            }
+
+            const recipeId = copyBtn.dataset && copyBtn.dataset.id;
+            console.log('copy recipeId:', recipeId); // DEBUG
+            if (!recipeId) {
+                console.error('No recipe id found on copy button');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/engineer/recipes/${recipeId}`);
+                console.log('fetch response ok?', response.ok); // DEBUG
+                if (response.ok) {
+                    const recipeData = await response.json();
+                    console.log('recipe data received for copy:', recipeData); // DEBUG
+                    if (window.createRecipeManager) {
+                        await window.createRecipeManager.populateCreateFormFromRecipe(recipeData);
+                        document.getElementById('recipeModal').classList.add('active');
+                        console.log('Create modal opened with copied data'); // DEBUG
+                    } else {
+                        showToast('Create recipe manager not found', 'error');
+                        console.error('createRecipeManager not found on window');
+                    }
+                } else {
+                    const text = await response.text().catch(() => 'no body');
+                    console.error('Error fetching recipe for copy', response.status, text);
+                    showToast('Error loading recipe details', 'error');
+                }
+            } catch (err) {
+                console.error('Error while fetching recipe for copy:', err);
+                showToast('An error occurred while loading the recipe', 'error');
+            }
+            return;
+        }
+
+        // Existing handler for clicking a list-item to open edit/info
         const listItem = e.target.closest('.list-item');
         if (listItem && !e.target.closest('.delete-button')) {
+            console.log('list-item clicked', listItem); // DEBUG
             // Prevent htmx from handling the click
             const htmx = window.htmx || {};
             if (htmx.trigger) {

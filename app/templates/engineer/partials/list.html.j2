@@ -15,13 +15,20 @@
                 </span>
             </div>
             <div class="item-actions">
-                <button class="action-button delete-button overlay-button"
+                <button type="button" class="action-button copy-button"
+                        data-id="{{ item.id }}"
+                        onclick="console.log('copy-button clicked for {{ item.id }}')"
+                        title="Copy as new {{ item_type|lower }}">
+                    📄
+                </button>
+
+                <button type="button" class="action-button delete-button"
                         hx-delete="/engineer/{{ item_type.lower() }}s/{{ item.id }}"
                         hx-confirm="Are you sure you want to delete this {{ item_type }}?"
                         hx-trigger="click"
                         hx-target="#{{ item_type }}-{{ item.id }}"
                         hx-swap="delete"
-                        onclick="event.stopPropagation()">
+                        onclick="console.log('delete-button clicked for {{ item.id }}')">
                     🗑️
                 </button>
             </div>

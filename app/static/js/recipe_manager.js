@@ -573,6 +573,76 @@ class RecipeManager {
         return positions;
     }
 
+    async populateCreateFormFromRecipe(recipeData) {
+        // Only valid for the create manager (not the edit manager)
+        if (this.isEdit) return;
+
+        // Ensure dropdown data is loaded
+        await RecipeManager.loadData();
+
+        // Reset the form and tool groups
+        this.recipeForm.reset();
+        this.toolPositionGroups.innerHTML = '';
+
+        // Basic fields
+        document.getElementById(this.prefix + 'Description').value = recipeData.description || '';
+        document.getElementById(this.prefix + 'CycleTime').value = recipeData.cycle_time || '';
+
+        // Set the line (if available) and fetch filtered workpieces/machines
+        const lineId = recipeData.line_id || '';
+        const lineSelect = document.getElementById(this.prefix + 'Line');
+        if (lineSelect) {
+            lineSelect.value = lineId;
+        }
+
+        // Populate workpieces and machines filtered by the selected line
+        await Promise.all([
+            this.fetchAndPopulateWorkpieces(lineId),
+            this.fetchAndPopulateMachines(lineId)
+        ]);
+
+        // Set selected workpiece and machine after population
+        if (recipeData.workpiece_id) {
+            const wpSelect = document.getElementById(this.prefix + 'Workpiece');
+            if (wpSelect) wpSelect.value = recipeData.workpiece_id;
+        }
+        if (recipeData.machine_id) {
+            const mSelect = document.getElementById(this.prefix + 'Machine');
+            if (mSelect) mSelect.value = recipeData.machine_id;
+        }
+
+        // Build tool position groups. Ensure IDs are removed so new positions are created independently.
+        const positionGroups = {};
+        (recipeData.tool_positions || []).forEach(tp => {
+            if (!positionGroups[tp.name]) {
+                positionGroups[tp.name] = [];
+            }
+            positionGroups[tp.name].push(tp);
+        });
+
+        Object.entries(positionGroups).forEach(([name, positions]) => {
+            const group = this.createToolPositionGroup(name);
+
+            positions.forEach(tp => {
+                const tool = this.toolsData[tp.tool_id];
+                // Pass id as undefined so JSON.stringify omits it and the server treats the tool position as new
+                this.addToolPositionToGroup(group, {
+                    id: undefined,
+                    name: tp.name,
+                    tool_id: tp.tool_id,
+                    tool_name: tool ? tool.name : 'Unknown Tool',
+                    tool_count: tp.tool_count,
+                    expected_life: tp.expected_life,
+                    min_life: tp.min_life,
+                    tool_settings: tp.tool_settings,
+                    tool_attributes: tp.tool_attributes || (tool ? tool.attributes : {}),
+                    active: tp.active,
+                    selected: tp.selected
+                });
+            });
+        });
+    }
+
     async populateEditForm(recipeData) {
         if (!this.isEdit) return;
 
