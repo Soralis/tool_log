@@ -5,8 +5,11 @@ from sqlmodel import Field, SQLModel, Relationship
 if TYPE_CHECKING:
     from .recipe import Recipe
     from .user import User
-    from .tool import ToolConsumption
+    from .tool import ToolConsumption, ToolLife
     from .machine import Line
+    from .model_connections import WorkpieceGroupMembership, WorkpieceLine, WorkpieceGroupLine
+else:
+    from .model_connections import WorkpieceGroupMembership, WorkpieceLine, WorkpieceGroupLine
 
 
 class WorkpieceBase(SQLModel):
@@ -14,7 +17,6 @@ class WorkpieceBase(SQLModel):
     description: Optional[str] = None
     material: Optional[str] = None
     dimensions: Optional[str] = None
-    line_id: Optional[int] = Field(foreign_key='line.id', ondelete='SET NULL')
 
 
 class Workpiece(WorkpieceBase, table=True):
@@ -24,8 +26,18 @@ class Workpiece(WorkpieceBase, table=True):
     recipes: List['Recipe'] = Relationship(back_populates='workpiece', cascade_delete=True)
     order_completions: List['OrderCompletion'] = Relationship(back_populates='workpiece', cascade_delete=False)
     tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='workpiece', cascade_delete=False)
-    line: Optional['Line'] = Relationship(back_populates='workpieces')
+    tool_lifes: List['ToolLife'] = Relationship(back_populates='workpiece', cascade_delete=False)
     productions: List['Production'] = Relationship(back_populates='workpiece', cascade_delete=False)
+    
+    # Many-to-many relationships
+    groups: List['WorkpieceGroup'] = Relationship(
+        back_populates='workpieces',
+        link_model=WorkpieceGroupMembership
+    )
+    lines: List['Line'] = Relationship(
+        back_populates='workpieces',
+        link_model=WorkpieceLine
+    )
 
 class WorkpieceCreate(WorkpieceBase):
     pass
@@ -43,9 +55,30 @@ class WorkpieceRead(SQLModel):
     line__name: str
 
 class WorkpieceFilter(SQLModel):
-    name: str = None
-    active: bool = None
+    name: str
+    active: bool
     line_id: int
+
+
+class WorkpieceGroup(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(unique=True)
+    description: Optional[str] = None
+    
+    # Many-to-many relationships
+    workpieces: List['Workpiece'] = Relationship(
+        back_populates='groups',
+        link_model=WorkpieceGroupMembership
+    )
+    lines: List['Line'] = Relationship(
+        back_populates='workpiece_groups',
+        link_model=WorkpieceGroupLine
+    )
+    
+    # One-to-many relationships
+    recipes: List['Recipe'] = Relationship(back_populates='workpiece_group')
+    tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='workpiece_group')
+    tool_lifes: List['ToolLife'] = Relationship(back_populates='workpiece_group')
 
 
 class OrderCompletionBase(SQLModel):
@@ -114,8 +147,8 @@ class ProductionRead(SQLModel):
     comment: Optional[str] = None
 
 class ProductionFilter(SQLModel):
-    date: dt.date = None
-    line_id: int = None
-    workpiece_id: int = None
-    start_time: dt.time = None
-    end_time: dt.time = None
+    date: Optional[dt.date] = None
+    line_id: Optional[int] = None
+    workpiece_id: Optional[int] = None
+    start_time: Optional[dt.time] = None
+    end_time: Optional[dt.time] = None

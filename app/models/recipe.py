@@ -7,18 +7,26 @@ from .model_connections import RecipeTool
 
 if TYPE_CHECKING:
     from .machine import Machine
-    from .workpiece import Workpiece
+    from .workpiece import Workpiece, WorkpieceGroup
     from .tool import Tool, ToolLife, ToolConsumption
     from .change_over import ChangeOver
 
 
 class RecipeBase(SQLModel):
     description: Optional[str] = None
-    workpiece_id: int = Field(foreign_key='workpiece.id', ondelete='CASCADE')
+    workpiece_id: Optional[int] = Field(foreign_key='workpiece.id', ondelete='CASCADE', default=None)
+    workpiece_group_id: Optional[int] = Field(foreign_key='workpiecegroup.id', ondelete='CASCADE', default=None)
     machine_id: int = Field(foreign_key='machine.id', ondelete='CASCADE')
     cycle_time: Optional[int] = Field(default=None, gt=0)  # in seconds
 
-    __table_args__ = (UniqueConstraint('workpiece_id', 'machine_id'),)
+    __table_args__ = (
+        CheckConstraint(
+            '(workpiece_id IS NOT NULL)::int + (workpiece_group_id IS NOT NULL)::int = 1',
+            name='check_workpiece_xor_group'
+        ),
+        UniqueConstraint('workpiece_id', 'machine_id', name='uq_workpiece_machine'),
+        UniqueConstraint('workpiece_group_id', 'machine_id', name='uq_group_machine'),
+    )
 
 
 class Recipe(RecipeBase, table=True):
@@ -27,7 +35,8 @@ class Recipe(RecipeBase, table=True):
     active: bool = Field(default=True, nullable=False)
     tool_positions: List['ToolPosition'] = Relationship(back_populates='recipe', cascade_delete=True)
     machine: 'Machine' = Relationship(back_populates='recipes', sa_relationship_kwargs={"foreign_keys": "[Recipe.machine_id]"})
-    workpiece: 'Workpiece' = Relationship(back_populates='recipes')
+    workpiece: Optional['Workpiece'] = Relationship(back_populates='recipes')
+    workpiece_group: Optional['WorkpieceGroup'] = Relationship(back_populates='recipes')
     tools: List['Tool'] = Relationship(back_populates='recipes', link_model=RecipeTool, cascade_delete=False)
     tool_lifes: List['ToolLife'] = Relationship(back_populates='recipe', cascade_delete=False)
     change_overs: List['ChangeOver'] = Relationship(back_populates='recipe', cascade_delete=True)    

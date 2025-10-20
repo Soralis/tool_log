@@ -9,7 +9,10 @@ if TYPE_CHECKING:
     from .tool import ToolLife, ToolConsumption
     from .recipe import Recipe
     from .change_over import ChangeOver
-    from .workpiece import Workpiece, Production
+    from .workpiece import Workpiece, Production, WorkpieceGroup
+    from .model_connections import WorkpieceLine, WorkpieceGroupLine
+else:
+    from .model_connections import WorkpieceLine, WorkpieceGroupLine
 
 
 class MeasureableBase(SQLModel):
@@ -120,7 +123,14 @@ class Line(LineBase, table=True):
     active: bool = Field(default=True, nullable=False)
 
     machines: List['Machine'] = Relationship(back_populates='line', cascade_delete=False)
-    workpieces: List['Workpiece'] = Relationship(back_populates='line', cascade_delete=False)
+    workpieces: List['Workpiece'] = Relationship(
+        back_populates='lines',
+        link_model=WorkpieceLine
+    )
+    workpiece_groups: List['WorkpieceGroup'] = Relationship(
+        back_populates='lines',
+        link_model=WorkpieceGroupLine
+    )
     productions: List['Production'] = Relationship(back_populates='line', cascade_delete=False)
 
 class LineCreate(LineBase):

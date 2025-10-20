@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from .machine import Machine
     from .user import User
     from .manufacturer import Manufacturer
-    from .workpiece import Workpiece
+    from .workpiece import Workpiece, WorkpieceGroup
     from .tool_type import ToolType, ChangeReason, Sentiment
     from .model_connections import ToolAttributeValue
 
@@ -187,6 +187,8 @@ class ToolLife(ToolLifeBase, table=True):
     recipe_id: Optional[int] = Field(foreign_key='recipe.id', ondelete='SET NULL')
     change_reason_id: Optional[int] = Field(foreign_key='changereason.id', ondelete='SET NULL')
     tool_position_id: Optional[int] = Field(foreign_key='toolposition.id', ondelete='SET NULL')
+    workpiece_id: Optional[int] = Field(foreign_key='workpiece.id', ondelete='SET NULL', default=None)
+    workpiece_group_id: Optional[int] = Field(foreign_key='workpiecegroup.id', ondelete='SET NULL', default=None)
 
     user: 'User' = Relationship(back_populates='tool_lifes')
     machine: 'Machine' = Relationship(back_populates='tool_lifes')
@@ -196,6 +198,8 @@ class ToolLife(ToolLifeBase, table=True):
     change_reason: 'ChangeReason' = Relationship(back_populates='tool_lifes')
     tool_position: 'ToolPosition' = Relationship(back_populates='tool_lifes')
     notes: List['Note'] = Relationship(back_populates='tool_life', cascade_delete=True)
+    workpiece: Optional['Workpiece'] = Relationship(back_populates='tool_lifes')
+    workpiece_group: Optional['WorkpieceGroup'] = Relationship(back_populates='tool_lifes')
 
 
 class ToolLifeCreate(ToolLifeBase):
@@ -281,13 +285,15 @@ class ToolConsumption(SQLModel, table=True):
     tool_position_id: Optional[int] = Field(foreign_key='toolposition.id', default=None, ondelete='SET NULL')
     user_id: Optional[int] = Field(foreign_key='user.id', default=None, ondelete='SET NULL')
     workpiece_id: Optional[int] = Field(foreign_key='workpiece.id', ondelete='SET NULL', default=None)
+    workpiece_group_id: Optional[int] = Field(foreign_key='workpiecegroup.id', ondelete='SET NULL', default=None)
 
     machine: 'Machine' = Relationship(back_populates='tool_consumptions')
     tool: 'Tool' = Relationship(back_populates='tool_consumptions')
     recipe: 'Recipe' = Relationship(back_populates='tool_consumptions')
     tool_position: 'ToolPosition' = Relationship(back_populates='tool_consumptions')
     user: 'User' = Relationship(back_populates='tool_consumptions')
-    workpiece: 'Workpiece' = Relationship(back_populates='tool_consumptions')
+    workpiece: Optional['Workpiece'] = Relationship(back_populates='tool_consumptions')
+    workpiece_group: Optional['WorkpieceGroup'] = Relationship(back_populates='tool_consumptions')
 
     __table_args__ = (UniqueConstraint('tool_id', 'datetime'),)
 

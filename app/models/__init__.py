@@ -31,6 +31,7 @@ from .user import (User, UserBase, UserCreate, UserUpdate, UserRead, UserFilter,
 from .change_over import ChangeOver, ChangeOverBase, ChangeOverCreate, ChangeOverUpdate, ChangeOverRead, ChangeOverFilter
 
 from .workpiece import (Workpiece, WorkpieceBase, WorkpieceCreate, WorkpieceUpdate, WorkpieceRead, WorkpieceFilter,
+                        WorkpieceGroup,
                         OrderCompletion, OrderCompletionCreate, OrderCompletionUpdate, OrderCompletionRead,
                         Production, ProductionCreate, ProductionUpdate, ProductionRead, ProductionFilter,
                         )
@@ -78,7 +79,7 @@ __all__ = [
     "ChangeOver", "ChangeOverBase", "ChangeOverCreate", "ChangeOverUpdate", "ChangeOverRead", "ChangeOverFilter",
     
     # Workpiece
-    "Workpiece", "WorkpieceBase", "WorkpieceCreate", "WorkpieceUpdate", "WorkpieceRead", "WorkpieceFilter",
+    "Workpiece", "WorkpieceBase", "WorkpieceCreate", "WorkpieceUpdate", "WorkpieceRead", "WorkpieceFilter", "WorkpieceGroup",
     "OrderCompletion", "OrderCompletionCreate", "OrderCompletionUpdate", "OrderCompletionRead",
     "Production", "ProductionCreate", "ProductionUpdate", "ProductionRead", "ProductionFilter",
     

@@ -264,7 +264,7 @@ async def get_unique_tool_data(
             'number': tool.number,
             'type': tool.tool_type.name,
             'manufacturer': tool.manufacturer.name,
-            'line': tool.recipes[0].workpiece.line.name if tool.recipes else "Unknown",
+            'line': tool.recipes[0].workpiece.lines[0].name if tool.recipes and tool.recipes[0].workpiece and tool.recipes[0].workpiece.lines else "Unknown",
             'weekly_consumption': round(weekly_consumption, 1),
             'inventory': f"{tool.inventory} ({round(tool.inventory/weekly_consumption, 1) if weekly_consumption and weekly_consumption > 0 else '∞'} Weeks)" if tool.inventory else "N/A",
             'order_lead_time': 15,

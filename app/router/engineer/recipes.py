@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 from sqlalchemy import or_
 from sqlalchemy.orm import selectinload
 from app.models import Recipe, RecipeRead, ToolPosition, Workpiece, Machine, Tool, User, Line
+from app.models.model_connections import WorkpieceLine
 from app.database_config import get_session
 from auth import get_current_operator
 
@@ -57,7 +58,9 @@ async def get_item_list(request: Request,
             vals = [int(val) for val in value.split(',')]
             # Line filter needs to apply to workpiece OR machine line association
             if key == 'line_id':
-                statement = statement.where(or_(Workpiece.line_id.in_(vals), Machine.line_id.in_(vals)))
+                # Join to WorkpieceLine for workpiece line filtering, or use machine.line_id
+                statement = statement.where(or_(WorkpieceLine.line_id.in_(vals), Machine.line_id.in_(vals)))
+                statement = statement.outerjoin(WorkpieceLine, Workpiece.id == WorkpieceLine.workpiece_id)
             # Direct recipe fields (e.g., workpiece_id, machine_id) can be applied to Recipe
             elif key in ['workpiece_id', 'machine_id'] and hasattr(Recipe, key):
                 statement = statement.where(getattr(Recipe, key).in_(vals))
@@ -134,7 +137,7 @@ async def get_workpieces(q: str = "", line_id: int = None, session: Session = De
         like_term = f"%{q}%"
         query = query.where(Workpiece.name.ilike(like_term))
     if line_id:
-        query = query.where(Workpiece.line_id == line_id)
+        query = query.join(WorkpieceLine).where(WorkpieceLine.line_id == line_id)
     workpieces = session.exec(query).all()
     return workpieces
 
@@ -209,7 +212,9 @@ async def get_recipe(recipe_id: int,
     line_id = None
     try:
         if getattr(recipe, "workpiece", None) and recipe.workpiece:
-            line_id = recipe.workpiece.line_id
+            # Get first line from workpiece's many-to-many relationship
+            if recipe.workpiece.lines:
+                line_id = recipe.workpiece.lines[0].id
         elif getattr(recipe, "machine", None) and recipe.machine:
             line_id = recipe.machine.line_id
     except Exception:

@@ -5,6 +5,21 @@ if TYPE_CHECKING:
     from .tool_type import ToolAttribute
 
 
+class WorkpieceGroupMembership(SQLModel, table=True):
+    workpiece_id: int = Field(foreign_key='workpiece.id', primary_key=True, ondelete='CASCADE')
+    group_id: int = Field(foreign_key='workpiecegroup.id', primary_key=True, ondelete='CASCADE')
+
+
+class WorkpieceLine(SQLModel, table=True):
+    workpiece_id: int = Field(foreign_key='workpiece.id', primary_key=True, ondelete='CASCADE')
+    line_id: int = Field(foreign_key='line.id', primary_key=True, ondelete='CASCADE')
+
+
+class WorkpieceGroupLine(SQLModel, table=True):
+    group_id: int = Field(foreign_key='workpiecegroup.id', primary_key=True, ondelete='CASCADE')
+    line_id: int = Field(foreign_key='line.id', primary_key=True, ondelete='CASCADE')
+
+
 class RecipeTool(SQLModel, table=True):
     recipe_id: Optional[int] = Field(
         default=None, foreign_key='recipe.id', primary_key=True
