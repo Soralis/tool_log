@@ -40,7 +40,8 @@ class Workpiece(WorkpieceBase, table=True):
     )
 
 class WorkpieceCreate(WorkpieceBase):
-    pass
+    groups: List[int] = []  # List of workpiece group IDs
+    lines: List[int] = []  # List of line IDs
 
 
 class WorkpieceUpdate(WorkpieceCreate):
@@ -80,6 +81,22 @@ class WorkpieceGroup(SQLModel, table=True):
     tool_consumptions: List['ToolConsumption'] = Relationship(back_populates='workpiece_group')
     tool_lifes: List['ToolLife'] = Relationship(back_populates='workpiece_group')
 
+class WorkpieceGroupCreate(SQLModel):
+    name: str
+    description: Optional[str] = None
+    workpieces: List[int] = []  # List of workpiece IDs
+    lines: List[int] = []  # List of line IDs
+
+class WorkpieceGroupUpdate(WorkpieceGroupCreate):
+    id: int
+
+class WorkpieceGroupRead(SQLModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+
+class WorkpieceGroupFilter(SQLModel):
+    name: str 
 
 class OrderCompletionBase(SQLModel):
     quantity: int = Field(nullable=False)

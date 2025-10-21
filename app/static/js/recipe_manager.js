@@ -4,6 +4,7 @@ class RecipeManager {
     static dropdownCache = {
         lines: null,
         workpieces: null,
+        workpieceGroups: null,
         machines: null,
         tools: null,
         dataLoaded: false,
@@ -25,15 +26,17 @@ class RecipeManager {
         // Start loading and store the promise
         this.dropdownCache.loading = (async () => {
             try {
-                const [linesResponse, workpiecesResponse, machinesResponse, toolsResponse] = await Promise.all([
+                const [linesResponse, workpiecesResponse, workpieceGroupsResponse, machinesResponse, toolsResponse] = await Promise.all([
                     fetch('/engineer/recipes/lines'),
                     fetch('/engineer/recipes/workpieces'),
+                    fetch('/engineer/recipes/workpiece-groups'),
                     fetch('/engineer/recipes/machines'),
                     fetch('/engineer/recipes/tools')
                 ]);
 
                 this.dropdownCache.lines = await linesResponse.json();
                 this.dropdownCache.workpieces = await workpiecesResponse.json();
+                this.dropdownCache.workpieceGroups = await workpieceGroupsResponse.json();
                 this.dropdownCache.machines = await machinesResponse.json();
                 this.dropdownCache.tools = await toolsResponse.json();
                 this.dropdownCache.dataLoaded = true;
@@ -71,6 +74,33 @@ class RecipeManager {
     async initialize() {
         await RecipeManager.loadData();
         this.setupDropdowns();
+        this.setupRecipeTypeToggle();
+    }
+
+    setupRecipeTypeToggle() {
+        const recipeTypeRadios = document.querySelectorAll(`input[name="${this.prefix}RecipeType"]`);
+        const workpieceContainer = document.getElementById(this.prefix + 'WorkpieceContainer');
+        const workpieceGroupContainer = document.getElementById(this.prefix + 'WorkpieceGroupContainer');
+        const workpieceSelect = document.getElementById(this.prefix + 'Workpiece');
+        const workpieceGroupSelect = document.getElementById(this.prefix + 'WorkpieceGroup');
+
+        recipeTypeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'workpiece') {
+                    workpieceContainer.style.display = 'block';
+                    workpieceGroupContainer.style.display = 'none';
+                    workpieceSelect.required = true;
+                    workpieceGroupSelect.required = false;
+                    workpieceGroupSelect.value = '';
+                } else {
+                    workpieceContainer.style.display = 'none';
+                    workpieceGroupContainer.style.display = 'block';
+                    workpieceSelect.required = false;
+                    workpieceGroupSelect.required = true;
+                    workpieceSelect.value = '';
+                }
+            });
+        });
     }
 
     setupDropdowns() {
@@ -86,6 +116,7 @@ class RecipeManager {
 
         const lineSelect = document.getElementById(this.prefix + 'Line');
         const workpieceSelect = document.getElementById(this.prefix + 'Workpiece');
+        const workpieceGroupSelect = document.getElementById(this.prefix + 'WorkpieceGroup');
         const machineSelect = document.getElementById(this.prefix + 'Machine');
 
         // Populate line select
@@ -95,16 +126,18 @@ class RecipeManager {
                 lineSelect.appendChild(new Option(line.name, line.id));
             });
 
-            // When line changes, load filtered workpieces and machines
+            // When line changes, load filtered workpieces, groups, and machines
             lineSelect.addEventListener('change', (e) => {
                 const lineId = e.target.value || '';
                 this.fetchAndPopulateWorkpieces(lineId);
+                this.fetchAndPopulateWorkpieceGroups(lineId);
                 this.fetchAndPopulateMachines(lineId);
             });
         }
 
-        // Initially populate workpieces and machines (no filter)
+        // Initially populate workpieces, groups, and machines (no filter)
         this.fetchAndPopulateWorkpieces();
+        this.fetchAndPopulateWorkpieceGroups();
         this.fetchAndPopulateMachines();
     }
 
@@ -119,6 +152,20 @@ class RecipeManager {
             list.forEach(wp => workpieceSelect.appendChild(new Option(wp.name, wp.id)));
         } catch (e) {
             console.error('Error loading workpieces:', e);
+        }
+    }
+
+    async fetchAndPopulateWorkpieceGroups(lineId = '') {
+        const workpieceGroupSelect = document.getElementById(this.prefix + 'WorkpieceGroup');
+        if (!workpieceGroupSelect) return;
+        try {
+            const url = lineId ? `/engineer/recipes/workpiece-groups?line_id=${encodeURIComponent(lineId)}` : '/engineer/recipes/workpiece-groups';
+            const resp = await fetch(url);
+            const list = await resp.json();
+            workpieceGroupSelect.innerHTML = '<option value="">Select Workpiece Group</option>';
+            list.forEach(wg => workpieceGroupSelect.appendChild(new Option(wg.name, wg.id)));
+        } catch (e) {
+            console.error('Error loading workpiece groups:', e);
         }
     }
 
@@ -374,13 +421,28 @@ class RecipeManager {
         this.recipeForm.onsubmit = async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
+            
+            // Determine which type is selected
+            const recipeType = formData.get(this.prefix + 'RecipeType' || 'RecipeType');
+            
             const recipe = {
-                // name: formData.get('name'),
                 description: formData.get('description'),
                 cycle_time: formData.get('cycle_time') ? parseInt(formData.get('cycle_time')) : null,
-                workpiece_id: parseInt(formData.get('workpiece_id')),
                 machine_id: parseInt(formData.get('machine_id')),
             };
+
+            // Set either workpiece_id or workpiece_group_id based on selection
+            if (recipeType === 'workpiece') {
+                const workpieceId = formData.get('workpiece_id');
+                if (workpieceId) {
+                    recipe.workpiece_id = parseInt(workpieceId);
+                }
+            } else {
+                const workpieceGroupId = formData.get('workpiece_group_id');
+                if (workpieceGroupId) {
+                    recipe.workpiece_group_id = parseInt(workpieceGroupId);
+                }
+            }
 
             if (this.isEdit) {
                 recipe.id = parseInt(formData.get('recipe_id'));
@@ -595,16 +657,29 @@ class RecipeManager {
             lineSelect.value = lineId;
         }
 
-        // Populate workpieces and machines filtered by the selected line
+        // Determine recipe type and set radio button
+        const isGroup = recipeData.workpiece_group_id != null;
+        const recipeTypeRadio = document.querySelector(`input[name="${this.prefix}RecipeType"][value="${isGroup ? 'group' : 'workpiece'}"]`);
+        if (recipeTypeRadio) {
+            recipeTypeRadio.checked = true;
+            recipeTypeRadio.dispatchEvent(new Event('change'));
+        }
+
+        // Populate workpieces and groups filtered by the selected line
         await Promise.all([
             this.fetchAndPopulateWorkpieces(lineId),
+            this.fetchAndPopulateWorkpieceGroups(lineId),
             this.fetchAndPopulateMachines(lineId)
         ]);
 
-        // Set selected workpiece and machine after population
+        // Set selected workpiece or group after population
         if (recipeData.workpiece_id) {
             const wpSelect = document.getElementById(this.prefix + 'Workpiece');
             if (wpSelect) wpSelect.value = recipeData.workpiece_id;
+        }
+        if (recipeData.workpiece_group_id) {
+            const wgSelect = document.getElementById(this.prefix + 'WorkpieceGroup');
+            if (wgSelect) wgSelect.value = recipeData.workpiece_group_id;
         }
         if (recipeData.machine_id) {
             const mSelect = document.getElementById(this.prefix + 'Machine');
@@ -661,16 +736,29 @@ class RecipeManager {
             lineSelect.value = lineId;
         }
 
-        // Populate workpieces and machines filtered by the selected line
+        // Determine recipe type and set radio button
+        const isGroup = recipeData.workpiece_group_id != null;
+        const recipeTypeRadio = document.querySelector(`input[name="${this.prefix}RecipeType"][value="${isGroup ? 'group' : 'workpiece'}"]`);
+        if (recipeTypeRadio) {
+            recipeTypeRadio.checked = true;
+            recipeTypeRadio.dispatchEvent(new Event('change'));
+        }
+
+        // Populate workpieces, groups, and machines filtered by the selected line
         await Promise.all([
             this.fetchAndPopulateWorkpieces(lineId),
+            this.fetchAndPopulateWorkpieceGroups(lineId),
             this.fetchAndPopulateMachines(lineId)
         ]);
 
-        // Set selected workpiece and machine after population
+        // Set selected workpiece or group after population
         if (recipeData.workpiece_id) {
             const wpSelect = document.getElementById(this.prefix + 'Workpiece');
             if (wpSelect) wpSelect.value = recipeData.workpiece_id;
+        }
+        if (recipeData.workpiece_group_id) {
+            const wgSelect = document.getElementById(this.prefix + 'WorkpieceGroup');
+            if (wgSelect) wgSelect.value = recipeData.workpiece_group_id;
         }
         if (recipeData.machine_id) {
             const mSelect = document.getElementById(this.prefix + 'Machine');

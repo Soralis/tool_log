@@ -74,5 +74,24 @@
                 showToast('An error occurred during change over. Please try again.', 'error');
             });
         });
+
+        // Fetch recipes and populate the recipe select element
+        fetch('/api/recipes')
+            .then(response => response.json())
+            .then(recipes => {
+                recipes.forEach(recipe => {
+                    const option = document.createElement('option');
+                    option.value = recipe.id;
+                    // Display workpiece/group name with optional description
+                    const displayName = recipe.workpiece.name + (recipe.description ? ` - ${recipe.description}` : '');
+                    // Add indicator if it's a workpiece group
+                    const groupIndicator = recipe.workpiece.is_group ? ' 🗂️' : '';
+                    option.textContent = displayName + groupIndicator;
+                    recipeSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching recipes:', error);
+            });
     });
 </script>

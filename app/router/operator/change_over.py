@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 
 from app.database_config import get_session
-from app.models import LogDevice, Machine, Recipe, ChangeOver, User, Workpiece
+from app.models import LogDevice, Machine, Recipe, ChangeOver, User, Workpiece, WorkpieceGroup
 from auth import get_current_device, get_current_operator
 
 router = APIRouter()
@@ -19,16 +19,18 @@ async def get_recipes(machine_id: int, session: Session = Depends(get_session)):
     # Get all active recipes for the selected machine
     recipes = session.exec(select(Recipe)
                            .where(Recipe.machine_id == machine_id, Recipe.active)
-                           .join(Recipe.workpiece)
-                           .order_by(Workpiece.name)
+                           .outerjoin(Recipe.workpiece)
+                           .outerjoin(Recipe.workpiece_group)
+                           .order_by(Workpiece.name.asc().nullsfirst(), Recipe.workpiece_group_id)
                            ).all()
     recipes_json = [
         {
             "id": recipe.id,
             "description": recipe.description,
             "workpiece": {
-                "id": recipe.workpiece.id,
-                "name": recipe.workpiece.name
+                "id": recipe.workpiece.id if recipe.workpiece else recipe.workpiece_group.id,
+                "name": recipe.workpiece.name if recipe.workpiece else recipe.workpiece_group.name,
+                "is_group": recipe.workpiece_group_id is not None
             }
         } for recipe in recipes
     ]
@@ -71,5 +73,8 @@ async def perform_change_over(
     session.add(change_over)
     session.commit()
 
-    return {"message": "Change over successful", "machine": machine.name, "recipe": recipe.workpiece.name}
+    # Get the appropriate name (workpiece or group)
+    workpiece_name = recipe.workpiece.name if recipe.workpiece else (recipe.workpiece_group.name if recipe.workpiece_group else 'N/A')
+
+    return {"message": "Change over successful", "machine": machine.name, "recipe": workpiece_name}
 

@@ -17,7 +17,9 @@
     <div class="modal-content">
         <span class="close" data-modal="createModal">&times;</span>
         <h2>Add New {{ item_type.replace('_', ' ') }}</h2>
-        {% include 'engineer/partials/data_entry_modal.html.j2' with context %}
+        <div id="createFormContainer">
+            {% include 'engineer/partials/data_entry_modal.html.j2' with context %}
+        </div>
     </div>
 </div>
 

@@ -22,7 +22,8 @@ from .recipe import (
     Recipe, RecipeBase, RecipeCreate, RecipeUpdate, RecipeRead, RecipeFilter,
     ToolPosition, ToolPositionCreate, ToolPositionUpdate, ToolPositionRead
 )
-from .model_connections import RecipeTool, ToolAttributeValue, ToolAttributeValueCreate, ToolAttributeValueUpdate, ToolAttributeValueRead
+from .model_connections import (RecipeTool, ToolAttributeValue, ToolAttributeValueCreate, ToolAttributeValueUpdate, ToolAttributeValueRead,
+                                WorkpieceGroupMembership, WorkpieceLine, WorkpieceGroupLine)
 
 from .user import (User, UserBase, UserCreate, UserUpdate, UserRead, UserFilter, 
                    UserRole, Token, PaymentType,
@@ -31,7 +32,7 @@ from .user import (User, UserBase, UserCreate, UserUpdate, UserRead, UserFilter,
 from .change_over import ChangeOver, ChangeOverBase, ChangeOverCreate, ChangeOverUpdate, ChangeOverRead, ChangeOverFilter
 
 from .workpiece import (Workpiece, WorkpieceBase, WorkpieceCreate, WorkpieceUpdate, WorkpieceRead, WorkpieceFilter,
-                        WorkpieceGroup,
+                        WorkpieceGroup, WorkpieceGroupCreate, WorkpieceGroupUpdate, WorkpieceGroupRead, WorkpieceGroupFilter,
                         OrderCompletion, OrderCompletionCreate, OrderCompletionUpdate, OrderCompletionRead,
                         Production, ProductionCreate, ProductionUpdate, ProductionRead, ProductionFilter,
                         )
@@ -69,6 +70,7 @@ __all__ = [
     
     # Model Connections
     "RecipeTool", 'ToolAttributeValue', 'ToolAttributeValueCreate', 'ToolAttributeValueUpdate', 'ToolAttributeValueRead',
+    "WorkpieceGroupMembership", "WorkpieceLine", "WorkpieceGroupLine",
     
     # User
     "User", "UserBase", "UserCreate", "UserUpdate", "UserRead", "UserFilter", 
@@ -79,7 +81,8 @@ __all__ = [
     "ChangeOver", "ChangeOverBase", "ChangeOverCreate", "ChangeOverUpdate", "ChangeOverRead", "ChangeOverFilter",
     
     # Workpiece
-    "Workpiece", "WorkpieceBase", "WorkpieceCreate", "WorkpieceUpdate", "WorkpieceRead", "WorkpieceFilter", "WorkpieceGroup",
+    "Workpiece", "WorkpieceBase", "WorkpieceCreate", "WorkpieceUpdate", "WorkpieceRead", "WorkpieceFilter", 
+    "WorkpieceGroup", "WorkpieceGroupCreate", "WorkpieceGroupUpdate", "WorkpieceGroupRead", "WorkpieceGroupFilter",
     "OrderCompletion", "OrderCompletionCreate", "OrderCompletionUpdate", "OrderCompletionRead",
     "Production", "ProductionCreate", "ProductionUpdate", "ProductionRead", "ProductionFilter",
     

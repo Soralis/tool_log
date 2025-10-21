@@ -15,6 +15,8 @@ from app.models import ToolType, ToolTypeCreate, ToolTypeUpdate, ToolTypeRead, S
 from app.models import ChangeReason, ChangeReasonCreate, ChangeReasonUpdate, ChangeReasonRead, ChangeReasonFilter
 from app.models import ChangeOver, ChangeOverCreate, ChangeOverUpdate, ChangeOverRead, ChangeOverFilter
 from app.models import Workpiece, WorkpieceCreate, WorkpieceUpdate, WorkpieceRead, WorkpieceFilter
+from app.models import WorkpieceGroup, WorkpieceGroupCreate, WorkpieceGroupUpdate, WorkpieceGroupRead, WorkpieceGroupFilter
+from app.models import WorkpieceGroupMembership, WorkpieceLine, WorkpieceGroupLine
 from .generic_router import create_generic_router
 from .recipes import router as recipes_router
 from sqlmodel import Session
@@ -97,7 +99,41 @@ measureable_router = create_generic_router(Measureable, MeasureableRead, Measure
 change_reason_router = create_generic_router(ChangeReason, ChangeReasonRead, ChangeReasonCreate, ChangeReasonUpdate, ChangeReasonFilter, "Change_Reason", {"enum_fields": {"sentiment": Sentiment}})
 tool_orders_router = create_generic_router(ToolOrder, ToolOrderRead, ToolOrderCreate, ToolOrderUpdate, ToolOrderFilter, "Tool_Order")
 change_over_router = create_generic_router(ChangeOver, ChangeOverRead, ChangeOverCreate, ChangeOverUpdate, ChangeOverFilter, "Change_Over")
-workpiece_router = create_generic_router(Workpiece, WorkpieceRead, WorkpieceCreate, WorkpieceUpdate, WorkpieceFilter, "Workpiece")
+
+# Define many-to-many relationships for workpiece
+workpiece_m2m = {
+    "groups": {
+        "junction_model": WorkpieceGroupMembership,
+        "target_model": WorkpieceGroup,
+        "source_fk": "workpiece_id",
+        "target_fk": "group_id"
+    },
+    "lines": {
+        "junction_model": WorkpieceLine,
+        "target_model": Line,
+        "source_fk": "workpiece_id",
+        "target_fk": "line_id"
+    }
+}
+
+# Define many-to-many relationships for workpiece_group
+workpiece_group_m2m = {
+    "workpieces": {
+        "junction_model": WorkpieceGroupMembership,
+        "target_model": Workpiece,
+        "source_fk": "group_id",
+        "target_fk": "workpiece_id"
+    },
+    "lines": {
+        "junction_model": WorkpieceGroupLine,
+        "target_model": Line,
+        "source_fk": "group_id",
+        "target_fk": "line_id"
+    }
+}
+
+workpiece_router = create_generic_router(Workpiece, WorkpieceRead, WorkpieceCreate, WorkpieceUpdate, WorkpieceFilter, "Workpiece", many_to_many=workpiece_m2m)
+workpiece_group_router = create_generic_router(WorkpieceGroup, WorkpieceGroupRead, WorkpieceGroupCreate, WorkpieceGroupUpdate, WorkpieceGroupFilter, "Workpiece_Group", many_to_many=workpiece_group_m2m)
 
 # Include the generic routers
 router.include_router(users_router, prefix="/users", tags=["users"])
@@ -115,6 +151,7 @@ router.include_router(tool_type_router, prefix="/tool_types", tags=["tool_types"
 router.include_router(measureable_router, prefix="/measureable", tags=["measureable"])
 router.include_router(change_over_router, prefix="/change_overs", tags=["change_overs"])
 router.include_router(workpiece_router, prefix="/workpieces", tags=["workpieces"])
+router.include_router(workpiece_group_router, prefix="/workpiece_groups", tags=["workpiece_groups"])
 
 router.include_router(recipes_router, prefix="/recipes", tags=["recipes"])
 

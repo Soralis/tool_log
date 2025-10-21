@@ -6,7 +6,7 @@ from app.templates.jinja_functions import templates
 from sqlmodel import Session, select
 from sqlalchemy import or_
 from sqlalchemy.orm import selectinload
-from app.models import Recipe, RecipeRead, ToolPosition, Workpiece, Machine, Tool, User, Line
+from app.models import Recipe, RecipeRead, ToolPosition, Workpiece, Machine, Tool, User, Line, WorkpieceGroup
 from app.models.model_connections import WorkpieceLine
 from app.database_config import get_session
 from auth import get_current_operator
@@ -32,22 +32,30 @@ async def get_item_list(request: Request,
     offset = int(params.get("offset", 0))
     limit = int(params.get("limit", 25))
 
-    # Base statement: only active recipes, joined to machine and workpiece for ordering and searching
+    # Base statement: only active recipes, joined to machine
+    # Use outer joins for workpiece and workpiece_group since only one will be present
     statement = (select(Recipe)
                  .where(Recipe.active == True)
                  .join(Recipe.machine)
-                 .join(Recipe.workpiece)
-                 .order_by(Workpiece.name, Machine.name)
+                 .outerjoin(Recipe.workpiece)
+                 .outerjoin(Recipe.workpiece_group)
+                 .order_by(
+                     # Order by workpiece name if exists, otherwise workpiece_group name, then machine name
+                     Workpiece.name.asc().nullsfirst(),
+                     WorkpieceGroup.name.asc().nullsfirst(),
+                     Machine.name
+                 )
                  .offset(offset)
                  .limit(limit))
 
-    # Apply text search (searches description, workpiece name and machine name) - case insensitive
+    # Apply text search (searches description, workpiece name, workpiece_group name, and machine name) - case insensitive
     if search:
         like_term = f"%{search}%"
         statement = statement.where(
             or_(
                 Recipe.description.ilike(like_term),
                 Workpiece.name.ilike(like_term),
+                WorkpieceGroup.name.ilike(like_term),
                 Machine.name.ilike(like_term)
             )
         )
@@ -61,8 +69,8 @@ async def get_item_list(request: Request,
                 # Join to WorkpieceLine for workpiece line filtering, or use machine.line_id
                 statement = statement.where(or_(WorkpieceLine.line_id.in_(vals), Machine.line_id.in_(vals)))
                 statement = statement.outerjoin(WorkpieceLine, Workpiece.id == WorkpieceLine.workpiece_id)
-            # Direct recipe fields (e.g., workpiece_id, machine_id) can be applied to Recipe
-            elif key in ['workpiece_id', 'machine_id'] and hasattr(Recipe, key):
+            # Direct recipe fields (e.g., workpiece_id, workpiece_group_id, machine_id) can be applied to Recipe
+            elif key in ['workpiece_id', 'workpiece_group_id', 'machine_id'] and hasattr(Recipe, key):
                 statement = statement.where(getattr(Recipe, key).in_(vals))
             else:
                 # Fallback: attempt to apply on Recipe if attribute exists
@@ -72,30 +80,23 @@ async def get_item_list(request: Request,
     items = session.exec(statement).fetchall()
     has_more = len(items) == limit
 
-    # Dynamically trim items based on RecipeRead model fields
-    fields = list(RecipeRead.__fields__.keys())
-    def trim_item(item, fields):
-        trimmed = {}
-        for field in fields:
-            if "__" in field:
-                parts = field.split("__")
-                value = item
-                for part in parts:
-                    value = getattr(value, part, None)
-                    if value is None:
-                        break
-                trimmed[field] = value
-            else:
-                trimmed[field] = getattr(item, field, None)
-        return trimmed
-    items = [trim_item(item, fields) for item in items]
+    # Transform items to include workpiece or group name
+    trimmed_items = []
+    for item in items:
+        trimmed = {
+            'id': item.id,
+            'workpiece__name': item.workpiece.name if item.workpiece else (item.workpiece_group.name if item.workpiece_group else 'N/A'),
+            'machine__name': item.machine.name if item.machine else 'N/A',
+            'active': item.active
+        }
+        trimmed_items.append(trimmed)
 
     # For full page load or htmx partials, return the list partial
     return templates.TemplateResponse(
         request=request,
         name="engineer/partials/list.html.j2",
         context={
-            "items": items,
+            "items": trimmed_items,
             'item_type': 'Recipe',
             "has_more": has_more,
             "next_offset": offset + limit,
@@ -131,13 +132,16 @@ async def get_filter(request: Request, session: Session = Depends(get_session)):
     )
 
 @router.get("/workpieces")
-async def get_workpieces(q: str = "", line_id: int = None, session: Session = Depends(get_session)):
+async def get_workpieces(q: str = "", line_id: int = None, group_id: int = None, session: Session = Depends(get_session)):
     query = select(Workpiece)
     if q:
         like_term = f"%{q}%"
         query = query.where(Workpiece.name.ilike(like_term))
     if line_id:
         query = query.join(WorkpieceLine).where(WorkpieceLine.line_id == line_id)
+    if group_id:
+        # Use the many-to-many relationship through workpiece.groups
+        query = query.join(Workpiece.groups).where(WorkpieceGroup.id == group_id)
     workpieces = session.exec(query).all()
     return workpieces
 
@@ -160,6 +164,22 @@ async def get_lines(q: str = "", session: Session = Depends(get_session)):
         query = query.where(Line.name.ilike(like_term))
     lines = session.exec(query).all()
     return lines
+
+@router.get("/workpiece-groups")
+async def get_workpiece_groups(q: str = "", line_id: int = None, session: Session = Depends(get_session)):
+    query = select(WorkpieceGroup)
+    if q:
+        like_term = f"%{q}%"
+        query = query.where(WorkpieceGroup.name.ilike(like_term))
+    if line_id:
+        # Filter groups that have workpieces associated with the specified line
+        # Use the many-to-many relationship through workpieces
+        query = (query.join(WorkpieceGroup.workpieces)
+                      .join(WorkpieceLine, WorkpieceLine.workpiece_id == Workpiece.id)
+                      .where(WorkpieceLine.line_id == line_id)
+                      .distinct())
+    groups = session.exec(query).all()
+    return groups
 
 @router.get("/tools")
 async def get_tools(q: str = "", session: Session = Depends(get_session)):
@@ -215,6 +235,13 @@ async def get_recipe(recipe_id: int,
             # Get first line from workpiece's many-to-many relationship
             if recipe.workpiece.lines:
                 line_id = recipe.workpiece.lines[0].id
+        elif getattr(recipe, "workpiece_group", None) and recipe.workpiece_group:
+            # Get first line from any workpiece in the group (many-to-many relationship)
+            if recipe.workpiece_group.workpieces:
+                for workpiece in recipe.workpiece_group.workpieces:
+                    if workpiece.lines:
+                        line_id = workpiece.lines[0].id
+                        break
         elif getattr(recipe, "machine", None) and recipe.machine:
             line_id = recipe.machine.line_id
     except Exception:
@@ -225,6 +252,7 @@ async def get_recipe(recipe_id: int,
         "id": recipe.id,
         "description": recipe.description,
         "workpiece_id": recipe.workpiece_id,
+        "workpiece_group_id": recipe.workpiece_group_id,
         "machine_id": recipe.machine_id,
         "line_id": line_id,
         "cycle_time": recipe.cycle_time,
@@ -302,9 +330,15 @@ async def update_recipe(
     recipe_data = body['recipe']
     
     # Update recipe fields
+    # Handle XOR constraint: if setting workpiece_id, clear workpiece_group_id and vice versa
     for key, value in recipe_data.items():
         if key != 'id':  # Don't update the ID
             setattr(recipe, key, value)
+            # Enforce XOR: if setting one, explicitly clear the other
+            if key == 'workpiece_id' and value is not None:
+                recipe.workpiece_group_id = None
+            elif key == 'workpiece_group_id' and value is not None:
+                recipe.workpiece_id = None
     
     # Get existing tool positions
     tool_positions_query = select(ToolPosition).where(

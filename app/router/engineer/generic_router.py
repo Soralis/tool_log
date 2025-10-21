@@ -15,6 +15,7 @@ from app.models import Measureable,MeasureableCreate, MeasureableRead
 from app.models import Machine, MachineCreate, MachineRead
 from app.models import Line, LineCreate, LineRead
 from app.models import Workpiece, WorkpieceCreate, WorkpieceRead
+from app.models import WorkpieceGroup, WorkpieceGroupCreate, WorkpieceGroupRead
 from app.models import User, UserCreate, UserRead
 from app.models import Shift, ShiftCreate, ShiftRead
 from app.models import Tool, ToolCreate, ToolRead, ToolAttribute, ToolAttributeCreate, ToolAttributeRead
@@ -26,6 +27,7 @@ from app.models import ToolType, ToolTypeCreate, ToolTypeRead
 from app.models import ToolSetting, ToolSettingCreate, ToolSettingRead
 from app.models import Recipe, RecipeCreate, RecipeRead
 from app.models import ChangeReason, ChangeReasonCreate, ChangeReasonRead
+from app.models import WorkpieceGroupMembership, WorkpieceLine, WorkpieceGroupLine, RecipeTool
 from typing import Type, Dict, Any, ForwardRef, get_origin, get_args, List, Optional, Callable
 from auth import get_current_operator
 
@@ -49,6 +51,11 @@ model_mapping = {
     'recipe': {"model": Recipe, "create": RecipeCreate, "read": RecipeRead},
     'shift': {"model": Shift, "create": ShiftCreate, "read": ShiftRead},
     'workpiece': {"model": Workpiece, "create": WorkpieceCreate, "read": WorkpieceRead},
+    'workpiecegroup': {"model": WorkpieceGroup, "create": WorkpieceGroupCreate, "read": WorkpieceGroupRead},
+    'workpiecegroupmembership': {"model": WorkpieceGroupMembership, "create": WorkpieceGroupMembership, "read": WorkpieceGroupMembership},
+    'workpieceline': {"model": WorkpieceLine, "create": WorkpieceLine, "read": WorkpieceLine},
+    'workpiecegroupline': {"model": WorkpieceGroupLine, "create": WorkpieceGroupLine, "read": WorkpieceGroupLine},
+    'recipetool': {"model": RecipeTool, "create": RecipeTool, "read": RecipeTool},
 }
 
 def create_generic_router(
@@ -59,7 +66,8 @@ def create_generic_router(
     filter_model: Type[SQLModel],
     item_type: str,
     extra_context: Dict[str, Any] = None,
-    fixed_field_callback: Optional[Callable[[], List[Dict[str, Any]]]] = None
+    fixed_field_callback: Optional[Callable[[], List[Dict[str, Any]]]] = None,
+    many_to_many: Optional[Dict[str, Dict[str, Any]]] = None
 ):
     router = APIRouter()
     # Store the last search value per-router so we can reset pagination when the search changes
@@ -71,12 +79,49 @@ def create_generic_router(
         'form_action': f'/engineer/{item_type.lower()}s',
         'relationship_options': {},
         'children': {},
+        'many_to_many': many_to_many or {},
     }
 
     def get_relations_and_children(id:int = None):
         relations = {}
         children = {}
+        m2m_relations = {}
+        
         with Session(engine) as session:
+            # Handle many-to-many relationships
+            if router.context.get('many_to_many'):
+                for m2m_field, m2m_config in router.context['many_to_many'].items():
+                    junction_model = m2m_config['junction_model']
+                    target_model = m2m_config['target_model']
+                    source_fk = m2m_config['source_fk']
+                    target_fk = m2m_config['target_fk']
+                    
+                    # Get all available options for the dropdown (always, even when id is None)
+                    all_target_items = session.exec(select(target_model)).all()
+                    relations[m2m_field] = sorted(
+                        [{"id": item.id, "name": getattr(item, "name", str(item.id))} for item in all_target_items],
+                        key=lambda x: str(x.get('name', ''))
+                    )
+                    
+                    # If we have an id, get the currently selected items
+                    if id:
+                        junction_items = session.exec(
+                            select(junction_model).where(getattr(junction_model, source_fk) == id)
+                        ).all()
+                        
+                        target_ids = [getattr(item, target_fk) for item in junction_items]
+                        
+                        if target_ids:
+                            target_items = session.exec(
+                                select(target_model).where(target_model.id.in_(target_ids))
+                            ).all()
+                            m2m_relations[m2m_field] = [
+                                {"id": item.id, "name": getattr(item, "name", str(item.id))}
+                                for item in target_items
+                            ]
+                        else:
+                            m2m_relations[m2m_field] = []
+            
             for field_name, field in create_model.model_fields.items():
                 if field_name != "id":
                     field_type = field.annotation
@@ -122,6 +167,19 @@ def create_generic_router(
                                     {field: getattr(item, field) for field in related_read_model.model_fields.keys()}
                                     for item in related_items
                                 ]
+        # Mark which items are currently selected in m2m relationships
+        for m2m_field in m2m_relations:
+            if m2m_field in relations:
+                selected_ids = {item['id'] for item in m2m_relations[m2m_field]}
+                for item in relations[m2m_field]:
+                    item['selected'] = item['id'] in selected_ids
+        
+        # Remove many-to-many fields from children and relations to avoid conflicts
+        if router.context.get('many_to_many'):
+            for m2m_field in router.context['many_to_many'].keys():
+                if m2m_field in children:
+                    del children[m2m_field]
+        
         for childname in children:
             if relations.get(childname):
                 del relations[childname]
@@ -130,6 +188,9 @@ def create_generic_router(
         for relation in relations:
             relations[relation] = sorted(relations[relation], key=lambda x: str(x.get('name', '')))
         
+        print(f"DEBUG - many_to_many keys: {list(router.context.get('many_to_many', {}).keys())}")
+        print(f"DEBUG - children keys before removal: {list(children.keys())}")
+        print(f"DEBUG - relations keys: {list(relations.keys())}")
 
         return relations, children
     
@@ -148,6 +209,7 @@ def create_generic_router(
     @router.get("/{field_name}/referred_form", response_class=HTMLResponse)
     async def get_referred_form(field_name: str, request: Request):
         referred_child = router.context['children'].get(field_name)
+        
         if not referred_child:
             raise HTTPException(status_code=404, detail="Referred Child not found")
         
@@ -398,6 +460,7 @@ def create_generic_router(
     async def get_item_info(item_id: int, request: Request):
         context = router.context.copy()
         context['relationship_options'], context['children'] = get_relations_and_children(item_id)
+        context['many_to_many'] = many_to_many or {}
         
         with Session(engine) as session:
             db_item = session.exec(select(model).where(model.id == item_id)).one_or_none()
@@ -459,13 +522,21 @@ def create_generic_router(
         form_data = await request.form()
         form_dict: Dict[str, Any] = {}
         references_dict: Dict[str, Any] = {}
+        m2m_dict: Dict[str, List[int]] = {}
 
         for field_name in create_model.model_fields.keys():
+            # Skip many-to-many fields - they'll be handled separately
+            if router.context.get('many_to_many') and field_name in router.context['many_to_many']:
+                if f"{field_name}[]" in form_data:
+                    m2m_dict[field_name] = [int(x) for x in form_data.getlist(f"{field_name}[]")]
+                continue
+                
             if field_name in form_data:
                 # Handle regular fields
                 form_dict[field_name] = form_data[field_name]
             elif f"{field_name}[]" in form_data:
                 if form_data.get(f"{field_name}[]"):
+                    # For regular list fields (children)
                     form_dict[field_name] = json.loads(form_data.get(f"{field_name}[]"))
             if f"{field_name}_new" in form_data:
                 # Handle array fields
@@ -474,7 +545,12 @@ def create_generic_router(
         # Validate the data manually
         try:
             validated_data = create_model(**form_dict)
-            item = model(**validated_data.model_dump())
+            # Exclude many-to-many fields from model creation
+            model_data = validated_data.model_dump()
+            if router.context.get('many_to_many'):
+                for m2m_field in router.context['many_to_many'].keys():
+                    model_data.pop(m2m_field, None)
+            item = model(**model_data)
         except ValidationError as e:
             raise HTTPException(status_code=422, detail=str(e))
 
@@ -491,8 +567,24 @@ def create_generic_router(
                 session.commit()
                 session.refresh(item)
             except Exception as e:
-                # return JSONResponse(content={'message': f'{item_type} Database conflict: {str(e)}'}, status_code=status.HTTP_409_CONFLICT)
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+            
+            # Handle many-to-many relationships
+            if m2m_dict and router.context.get('many_to_many'):
+                for m2m_field, target_ids in m2m_dict.items():
+                    m2m_config = router.context['many_to_many'][m2m_field]
+                    junction_model = m2m_config['junction_model']
+                    source_fk = m2m_config['source_fk']
+                    target_fk = m2m_config['target_fk']
+                    
+                    # Create junction records
+                    for target_id in target_ids:
+                        junction_data = {
+                            source_fk: item.id,
+                            target_fk: target_id
+                        }
+                        new_junction = junction_model(**junction_data)
+                        session.add(new_junction)
             
             # Handle references to new related items
             for relation_name, new_items in references_dict.items():
@@ -580,6 +672,30 @@ def create_generic_router(
                         setattr(item, key, value)
             except ValidationError as e:
                 raise HTTPException(status_code=422, detail=str(e))
+
+            # Handle many-to-many relationships
+            if router.context.get('many_to_many'):
+                for m2m_field, m2m_config in router.context['many_to_many'].items():
+                    if m2m_field in existing_relations:
+                        junction_model = m2m_config['junction_model']
+                        source_fk = m2m_config['source_fk']
+                        target_fk = m2m_config['target_fk']
+                        
+                        # Delete all existing junction records for this item
+                        existing_junctions = session.exec(
+                            select(junction_model).where(getattr(junction_model, source_fk) == item_id)
+                        ).all()
+                        for junction_item in existing_junctions:
+                            session.delete(junction_item)
+                        
+                        # Create new junction records
+                        for target_id in existing_relations[m2m_field]:
+                            junction_data = {
+                                source_fk: item_id,
+                                target_fk: target_id
+                            }
+                            new_junction = junction_model(**junction_data)
+                            session.add(new_junction)
 
             # Update existing relations
             for relation_name, relation_ids in existing_relations.items():
