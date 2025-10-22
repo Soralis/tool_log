@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 
-from auth import get_current_operator
+from auth import get_current_operator, get_current_device
 
 from datetime import datetime, timedelta
 
 from app.database_config import get_session
-from app.models import ToolLife, Machine, ToolPosition, ChangeReason, User
+from app.models import ToolLife, Machine, ToolPosition, ChangeReason, User, LogDevice, Recipe, Note
 
 router = APIRouter()
 
@@ -67,47 +68,75 @@ async def get_change_reasons(
 
 
 @router.post("/")
-async def create_tool_life(
+async def log_tool_life(
     request: Request,
-    db: Session = Depends(get_session),
-    current_operator: User = Depends(get_current_operator)
+    current_operator: User = Depends(get_current_operator),
+    device: LogDevice = Depends(get_current_device),
+    session: Session = Depends(get_session)
 ):
-    form_data: dict = await request.json()
+    form_data = await request.json()
 
-    toolposition: ToolPosition = db.exec(select(ToolPosition)
-                           .where(ToolPosition.id == int(form_data.pop('tool_position_id')))
-                           ).one_or_none()
+    machine_id = int(form_data['machine_id'])
+    tool_position_id = int(form_data['tool_position_id'])
+    change_reason_id = int(form_data['change_reason_id'])
+    reached_life = int(form_data['reached_life'])
 
-    machine: Machine = db.exec(select(Machine)
-                           .where(Machine.id == int(form_data.pop('machine_id')))
-                           ).one_or_none()
+    # Get machine and verify it belongs to the device
+    machine = session.get(Machine, machine_id)
+    if not machine or machine.id not in [m.id for m in device.machines]:
+        raise HTTPException(status_code=400, detail="Invalid machine selection")
 
-    try:
-        db_tool_life = ToolLife(
-            user_id = current_operator.id,
-            reached_life = int(form_data.pop('reached_life', 0)),
-            tool_settings = toolposition.tool_settings,
-            tool_count = toolposition.tool_count,
-            machine_id = machine.id,
-            machine_channel = int(form_data.pop('machine_channel')),
-            recipe_id = machine.current_recipe_id,
-            tool_position_id = toolposition.id,
-            tool_id = toolposition.tool_id,
-            change_reason_id = int(form_data.pop('change_reason_id')),
-            cycle_time = machine.current_recipe.cycle_time,
-            )
-        
-        additional_measurements = {}
-        for key, value in form_data.items():
-            if key.endswith('_ms'):
-                additional_measurements[key.rstrip('_ms')] = value
+    # Get tool position with recipe loaded
+    tool_position = session.exec(
+        select(ToolPosition)
+        .where(ToolPosition.id == tool_position_id)
+        .options(
+            selectinload(ToolPosition.recipe).selectinload(Recipe.workpiece),
+            selectinload(ToolPosition.recipe).selectinload(Recipe.workpiece_group)
+        )
+    ).first()
+    
+    if not tool_position:
+        raise HTTPException(status_code=404, detail="Tool position not found")
 
-        db_tool_life.additional_measurements = additional_measurements
+    # Determine workpiece_id or workpiece_group_id from the recipe
+    workpiece_id = None
+    workpiece_group_id = None
+    if tool_position.recipe:
+        workpiece_id = tool_position.recipe.workpiece_id
+        workpiece_group_id = tool_position.recipe.workpiece_group_id
 
-        db.add(db_tool_life)
-        db.commit()
-        db.refresh(db_tool_life)
-        return db_tool_life
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+    # Create tool life record
+    tool_life = ToolLife(
+        tool_id=tool_position.tool_id,
+        tool_position_id=tool_position_id,
+        recipe_id=tool_position.recipe_id,
+        machine_id=machine_id,
+        user_id=current_operator.id,
+        change_reason_id=change_reason_id,
+        reached_life=reached_life,
+        machine_channel=int(form_data.get('machine_channel', 0)),
+        tool_settings=tool_position.tool_settings,
+        tool_count=tool_position.tool_count,
+        cycle_time=tool_position.recipe.cycle_time if tool_position.recipe else None,
+        workpiece_id=workpiece_id,
+        workpiece_group_id=workpiece_group_id
+    )
+
+    session.add(tool_life)
+    session.commit()
+
+    # Get the workpiece/group name for the response
+    workpiece_name = 'N/A'
+    if tool_position.recipe:
+        if tool_position.recipe.workpiece:
+            workpiece_name = tool_position.recipe.workpiece.name
+        elif tool_position.recipe.workpiece_group:
+            workpiece_name = tool_position.recipe.workpiece_group.name
+
+    return {
+        "message": "Tool life logged successfully",
+        "tool_position": tool_position.name,
+        "reached_life": reached_life,
+        "workpiece": workpiece_name
+    }

@@ -2,12 +2,13 @@ from fastapi import APIRouter, Request, Depends, Query, WebSocket
 from typing import List
 import json
 from sqlmodel import Session, select, func, and_
+from sqlalchemy.orm import selectinload
 from datetime import datetime, timedelta
 from app.broadcast import broadcast
 
 from app.templates.jinja_functions import templates
 from app.database_config import get_session
-from app.models import Workpiece, Machine, ToolConsumption, Recipe, ChangeOver, Tool, ToolOrder, OrderDelivery, Line
+from app.models import Workpiece, WorkpieceGroup, Machine, ToolConsumption, Recipe, ChangeOver, Tool, ToolOrder, OrderDelivery, Line
 from collections import defaultdict
 
 router = APIRouter()
@@ -15,14 +16,22 @@ router = APIRouter()
 
 @router.get("/api/filter-options")
 async def get_filter_options(request: Request, db: Session = Depends(get_session)):
-    """Get available filter options (lines, products, and operations)"""
+    """Get available filter options (lines, products including groups, and operations)"""
+    
     # Fetch lines
     lines_db = db.exec(select(Line)).all()
     lines = [{ "id": l.id, "name": l.name } for l in lines_db]
     
-    # Fetch products with associated line
+    # Fetch products with associated lines
     products_db = db.exec(select(Workpiece)).all()
-    products = [{ "id": wp.id, "name": wp.name, "line_id": wp.line_id } for wp in products_db]
+    products = [{ 
+        "id": wp.id, 
+        "name": wp.name, 
+        "line_ids": [line.id for line in wp.lines] if wp.lines else [],
+    } for wp in products_db]
+    
+    # Sort products alphabetically
+    products = sorted(products, key=lambda x: x['name'])
 
     # Fetch operations with associated line
     operations_db = db.exec(select(Machine)).all()
@@ -47,11 +56,12 @@ async def dashboard(request: Request):
 @router.get("/api/filter")
 async def get_dashboard_filter(request: Request, 
                               db: Session = Depends(get_session),
-                              selected_products: List[int] = Query(None),
+                              selected_products: List[str] = Query(None),
                               selected_operations: List[int] = Query(None),
                               start_date: str = Query(None),
                               end_date: str = Query(None)):
     """Get filtered dashboard content"""
+    
     # Construct query with filters
     query = select(ToolConsumption)
     if start_date:
@@ -75,7 +85,10 @@ async def machine_status_websocket(websocket: WebSocket):
     await websocket.accept()
     # Send initial data to the client
     session = next(get_session())
-    machines = session.exec(select(Machine)).all()
+    machines = session.exec(select(Machine).options(
+        selectinload(Machine.current_recipe).selectinload(Recipe.workpiece),
+        selectinload(Machine.current_recipe).selectinload(Recipe.workpiece_group)
+    )).all()
 
     # get the most current changeover for each machine
     subq = (select(ChangeOver.machine_id,
@@ -97,17 +110,29 @@ async def machine_status_websocket(websocket: WebSocket):
     changeovers = session.exec(stmt).all()
     changeovers = {changeover.machine_id: changeover for changeover in changeovers}
 
-    machines = [{"machine_id": machine.id,
-                 "machine_name": machine.name,
-                 "current_workpiece": machine.current_recipe.workpiece.name if machine.current_recipe and machine.current_recipe.workpiece else None,
-                 "timestamp": changeovers[machine.id].timestamps.strftime("%Y-%m-%d %H:%M") if machine.current_recipe else None
-                 } for machine in machines]
+    # Determine workpiece or group name for each machine
+    machines_data = []
+    for machine in machines:
+        current_workpiece = None
+        if machine.current_recipe:
+            if machine.current_recipe.workpiece:
+                current_workpiece = machine.current_recipe.workpiece.name
+            elif machine.current_recipe.workpiece_group:
+                current_workpiece = machine.current_recipe.workpiece_group.name
+        
+        machines_data.append({
+            "machine_id": machine.id,
+            "machine_name": machine.name,
+            "current_workpiece": current_workpiece,
+            "timestamp": changeovers[machine.id].timestamps.strftime("%Y-%m-%d %H:%M") if machine.id in changeovers else None
+        })
+    
     # sort machines by machine name
-    machines = sorted(machines, key=lambda x: x['machine_name'])
+    machines_data = sorted(machines_data, key=lambda x: x['machine_name'])
 
     initial_data = {
         "op": "initial",
-        "data": machines
+        "data": machines_data
     }
     await websocket.send_text(json.dumps(initial_data))
 
@@ -115,17 +140,25 @@ async def machine_status_websocket(websocket: WebSocket):
     async with broadcast.subscribe("machine_status") as subscriber:
         async for event in subscriber:
             message = json.loads(event.message)
-            # get the current workpiece from the database
+            # get the current workpiece or workpiece group from the database
             session = next(get_session())
-            recipe = session.exec(select(Recipe).where(Recipe.id == message['data']['current_recipe_id'])).one_or_none()
+            recipe = session.exec(
+                select(Recipe)
+                .where(Recipe.id == message['data']['current_recipe_id'])
+                .options(
+                    selectinload(Recipe.workpiece),
+                    selectinload(Recipe.workpiece_group)
+                )
+            ).one_or_none()
+            
             if recipe is None:
                 workpiece_name = "No Recipe selected"
+            elif recipe.workpiece:
+                workpiece_name = recipe.workpiece.name
+            elif recipe.workpiece_group:
+                workpiece_name = recipe.workpiece_group.name
             else:
-                workpiece = session.exec(select(Workpiece).where(Workpiece.id == recipe.workpiece_id)).one_or_none()
-                if workpiece is None:
-                    workpiece_name = "Unknown"
-                else:
-                    workpiece_name = workpiece.name
+                workpiece_name = "Unknown"
 
             msg = {
                 "op": message['op'],

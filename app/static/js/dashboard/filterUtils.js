@@ -106,8 +106,6 @@ export function setupFilterClickHandlers() {
             }
         });
     });
-
-    
 }
 
 // Handle line tab clicks to show/hide products and operations
