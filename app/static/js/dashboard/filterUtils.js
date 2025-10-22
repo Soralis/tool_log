@@ -121,11 +121,13 @@ export function setupLineTabHandlers() {
                     lbl.classList.remove('hidden');
                 });
             } else {
-                document.querySelectorAll('#product-select label[data-line]').forEach(lbl => {
-                    lbl.classList.toggle('hidden', lbl.getAttribute('data-line') != lineId);
+                document.querySelectorAll('#product-select label[data-lines]').forEach(lbl => {
+                    const lineIds = JSON.parse(lbl.getAttribute('data-lines') || '[]');
+                    lbl.classList.toggle('hidden', !lineIds.includes(parseInt(lineId)));
                 });
-                document.querySelectorAll('#operation-select label[data-line]').forEach(lbl => {
-                    lbl.classList.toggle('hidden', lbl.getAttribute('data-line') != lineId);
+                document.querySelectorAll('#operation-select label[data-lines]').forEach(lbl => {
+                    const lineIds = JSON.parse(lbl.getAttribute('data-lines') || '[]');
+                    lbl.classList.toggle('hidden', !lineIds.includes(parseInt(lineId)));
                 });
             }
         });
@@ -135,8 +137,13 @@ export function setupLineTabHandlers() {
 function populateOptions(type_name, selected, data) {
     const Select = document.getElementById(`${type_name}-select`);
     const sortedSelect = data.sort((a, b) => a.name.localeCompare(b.name));
-    Select.innerHTML = sortedSelect.map(item => `
-        <label class="px-4 py-2 text-left rounded-md bg-gray-700 text-gray-100 hover:bg-gray-600 transition-colors cursor-pointer ${selected.includes(item.id.toString()) ? 'bg-indigo-600 hover:bg-indigo-700' : ''}" data-value="${item.id}" data-line="${item.line_id}">
+    console.log(`Populating ${type_name} options...`, Select, sortedSelect, selected);
+    Select.innerHTML = sortedSelect.map(item => {
+        // Handle both single line_id and multiple line_ids
+        const lineIds = item.line_ids || (item.line_id ? [item.line_id] : []);
+        const lineAttribute = lineIds.length > 0 ? `data-lines='${JSON.stringify(lineIds)}'` : '';
+        return `
+        <label class="px-4 py-2 text-left rounded-md bg-gray-700 text-gray-100 hover:bg-gray-600 transition-colors cursor-pointer ${selected.includes(item.id.toString()) ? 'bg-indigo-600 hover:bg-indigo-700' : ''}" data-value="${item.id}" ${lineAttribute}>
             <input type="checkbox"
                     name="selected_${type_name}s"
                     value="${item.id}"
@@ -144,7 +151,8 @@ function populateOptions(type_name, selected, data) {
                     ${selected.includes(item.id.toString()) ? 'checked' : ''}>
             ${item.name}
         </label>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Load filter options into the modal
@@ -169,9 +177,9 @@ export async function loadFilterOptions() {
         // Populate lines (tabs)
         const lineSelect = document.getElementById('line-select');
         console.log("Loading filter options for line select...", lineSelect);
-        const sortedLines = data.lines.sort((a, b) => a.name.localeCompare(b.name));
-        sortedLines.unshift({ id: 'all', name: 'All Lines' }); // Add "All Lines" option
-        lineSelect.innerHTML = sortedLines.map(line => `
+        const sorted_data = data.lines.sort((a, b) => a.name.localeCompare(b.name));
+        sorted_data.unshift({ id: 'all', name: 'All Lines' }); // Add "All Lines" option
+        lineSelect.innerHTML = sorted_data.map(line => `
             <label class="px-4 py-2 text-left rounded-md bg-gray-700 text-gray-100 hover:bg-gray-600 cursor-pointer transition-colors flex items-center justify-between" data-value="${line.id}">
                 <input type="radio"
                        name="selected_line"
