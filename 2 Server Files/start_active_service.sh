@@ -25,6 +25,14 @@ fi
 
 echo "Active service detected: $ACTIVE_SERVICE"
 
+# Set correct permissions for Nginx to serve static files
+echo "Setting permissions for static files..."
+sudo chmod 755 /home/logdeviceserver
+sudo chmod 755 /home/logdeviceserver/tool_log
+sudo chmod 755 "/home/logdeviceserver/tool_log/$ACTIVE_APP_DIR"
+sudo chmod 755 "/home/logdeviceserver/tool_log/$ACTIVE_APP_DIR/app"
+sudo chmod -R 755 "/home/logdeviceserver/tool_log/$ACTIVE_APP_DIR/app/static"
+
 # Update static file location in Nginx to point to active deployment
 sudo sed -i "s|alias /home/logdeviceserver/tool_log/app_[bg][lr][eu][ee]n/app/static/;|alias /home/logdeviceserver/tool_log/$ACTIVE_APP_DIR/app/static/;|" "$NGINX_CONFIG"
 

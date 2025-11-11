@@ -114,6 +114,14 @@ pip install -r requirements.txt
 # Run database migrations
 alembic upgrade head
 
+# Set correct permissions for Nginx to serve static files
+echo "Setting permissions for static files..."
+sudo chmod 755 /home/logdeviceserver
+sudo chmod 755 /home/logdeviceserver/tool_log
+sudo chmod 755 "$NEW_DIR"
+sudo chmod 755 "$NEW_DIR/app"
+sudo chmod -R 755 "$NEW_DIR/app/static"
+
 # Deactivate the virtual environment
 deactivate
 
