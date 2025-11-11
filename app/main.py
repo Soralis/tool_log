@@ -196,6 +196,7 @@ async def authenticate_operator_route(request: Request):
 async def monitoring_dashboard(request: Request):
     return templates.TemplateResponse("monitoring.html.j2", {"request": request})
 
+
 # Create the scheduler
 scheduler = AsyncIOScheduler()
 
