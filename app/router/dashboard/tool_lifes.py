@@ -32,14 +32,6 @@ def define_machine_colors(machines):
         num_machines = len(machines_in_line)
         for i, machine in enumerate(machines_in_line):
             if f"{line_name}_{machine.name}" not in machine_colors:
-                # # Generate a color based on the index
-                # hue = 0  # Use a single hue for all lines
-                # saturation = "0%"  # Grayscale
-                # lightness = (50 * i / num_machines) + 40  # valid values range from 40 to 90
-                # machine_colors[f"{line_name}_{machine.name}"] = [
-                #     f"hsl({hue}, {saturation}, {lightness}%)",
-                #     f"hsla({hue}, {saturation}, {lightness}%, 0.5)"
-                # ]
                 machine_colors[f"{line_name}_{machine.name}"] = [f"hsl({int(360 * i / num_machines)}, 75%, 50%)", f"hsla({int(360 * i / num_machines)}, 75%, 50%, 0.5)"]
 
     return machine_colors
@@ -178,17 +170,23 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
     
     return data
 
-async def send_tool_data(websocket: WebSocket, db: Session):
+async def send_tool_data(websocket: WebSocket, ws_id: int, db: Session):
     global websocket_filters
-    latest_start_date = websocket_filters[websocket].get("latest_start_date")
-    latest_end_date = websocket_filters[websocket].get("latest_end_date")
-    selected_operations = websocket_filters[websocket].get("selected_operations")
-    selected_products = websocket_filters[websocket].get("selected_products")
-    last_filter_update = websocket_filters[websocket].get("last_filter_update")
+    
+    # Check if this websocket still exists
+    if ws_id not in websocket_filters:
+        return
+    
+    latest_start_date = websocket_filters[ws_id].get("latest_start_date")
+    latest_end_date = websocket_filters[ws_id].get("latest_end_date")
+    selected_operations = websocket_filters[ws_id].get("selected_operations")
+    selected_products = websocket_filters[ws_id].get("selected_products")
+    last_filter_update = websocket_filters[ws_id].get("last_filter_update")
 
     await asyncio.sleep(1)  # Wait for any additional filters to be sent
-    if last_filter_update != websocket_filters[websocket].get("last_filter_update"):
-        # Filters have been updated, skip this update
+    
+    # Check again if connection still exists and filters haven't changed
+    if ws_id not in websocket_filters or last_filter_update != websocket_filters[ws_id].get("last_filter_update"):
         return
     # Filters have not been updated, proceed with sending data
 
@@ -206,12 +204,29 @@ async def send_tool_data(websocket: WebSocket, db: Session):
 
     except RuntimeError as e:
         if "close message has been sent" in str(e):
-            print("Websocket closed")
-            return  # Exit if the websocket is closed
+            return
         raise
     except Exception as e:
-        print(f"Error in send_tool_data: {e}")
+        print(f"Error in send_tool_data for WebSocket {ws_id}: {e}")
 
+async def periodic_data_sender(websocket: WebSocket, ws_id: int, db: Session):
+    """Send data periodically every X seconds"""
+    while True:
+        try:
+            # Check if websocket still exists
+            if ws_id not in websocket_filters:
+                break
+                
+            await asyncio.sleep(30)  # Wait 30 seconds between updates
+            
+            # Check again before sending
+            if ws_id in websocket_filters:
+                await send_tool_data(websocket, ws_id, db)
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            print(f"Error in periodic_data_sender for WebSocket {ws_id}: {e}")
+            break
 
 @router.get("/toolLifes")
 async def tools(request: Request, db: Session = Depends(get_session)):
@@ -545,18 +560,15 @@ async def get_tool_details(
 
     return details
 
-
-async def periodic_data_sender(websocket: WebSocket, db: Session):
-    while True:
-        await asyncio.sleep(30)
-        await send_tool_data(websocket, db)
-
 @router.websocket("/ws/toolLifes")
-async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_session)):
+async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_session)):
     global websocket_filters
     await websocket.accept()
-
-    websocket_filters[websocket] = {
+    
+    # Use a unique ID instead of the websocket object as key
+    ws_id = id(websocket)
+    
+    websocket_filters[ws_id] = {
         'latest_start_date': datetime.strptime("2020-01-01", "%Y-%m-%d"),
         'latest_end_date': datetime.today(),
         'selected_operations': [],
@@ -565,7 +577,7 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
     }
 
     # Start the periodic data sending task
-    data_sender_task = asyncio.create_task(periodic_data_sender(websocket, db))
+    data_sender_task = asyncio.create_task(periodic_data_sender(websocket, ws_id, db))
 
     try:
         while True:
@@ -574,13 +586,13 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
                 message = await websocket.receive_text()
                 filters = json.loads(message)
 
-                websocket_filters[websocket]['latest_start_date'] = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
-                websocket_filters[websocket]['latest_end_date'] = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
-                websocket_filters[websocket]['selected_operations'] = [int(op) for op in filters.get('selectedOperations', [])]
-                websocket_filters[websocket]['selected_products'] = [int(product) for product in filters.get('selectedProducts', [])]
-                websocket_filters[websocket]['last_filter_update'] = datetime.now()
+                websocket_filters[ws_id]['latest_start_date'] = datetime.fromisoformat(filters['startDate']) if filters.get('startDate') and filters['startDate'] != 'null' else None
+                websocket_filters[ws_id]['latest_end_date'] = datetime.fromisoformat(filters['endDate']) if filters.get('endDate') and filters['endDate'] != 'null' else None
+                websocket_filters[ws_id]['selected_operations'] = [int(op) for op in filters.get('selectedOperations', [])]
+                websocket_filters[ws_id]['selected_products'] = [int(product) for product in filters.get('selectedProducts', [])]
+                websocket_filters[ws_id]['last_filter_update'] = datetime.now()
 
-                asyncio.create_task(send_tool_data(websocket, db))
+                asyncio.create_task(send_tool_data(websocket, ws_id, db))
 
             except asyncio.TimeoutError:
                 # No message received within the timeout period
@@ -591,13 +603,16 @@ async def websocket_tools(websocket: WebSocket, db: Session = Depends(get_sessio
                 raise
 
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        print(f"WebSocket {ws_id} error: {e}")
     finally:
         # Signal the filter processing task to exit
-        # await filter_queue.put(None)
-        # filter_task.cancel()
         data_sender_task.cancel()
-        del websocket_filters[websocket]
+        
+        # Clean up with safety check
+        if ws_id in websocket_filters:
+            del websocket_filters[ws_id]
+            print(f"Cleaned up WebSocket {ws_id}. Remaining connections: {len(websocket_filters)}")
+        
         try:
             await websocket.close()
         except:
