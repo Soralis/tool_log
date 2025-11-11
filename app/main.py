@@ -201,6 +201,7 @@ async def monitoring_dashboard(request: Request):
 scheduler = AsyncIOScheduler()
 
 def schedule_tasks():
+    """Schedule background tasks for heartbeat monitoring and cleanup"""
     scheduler.add_job(heartbeat, 'interval', minutes=1)
     scheduler.add_job(delete_old_heartbeats, CronTrigger(hour=0, minute=0))
 
