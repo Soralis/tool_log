@@ -19,21 +19,13 @@ server {
     
     location /static/ {
         alias /home/logdeviceserver/tool_log/app_green/app/static/;
-        try_files $uri @static_blue;
-        expires 30d;
-        add_header Cache-Control "public, immutable";
-        access_log off;
-    }
-    
-    location @static_blue {
-        alias /home/logdeviceserver/tool_log/app_blue/app/static/;
         expires 30d;
         add_header Cache-Control "public, immutable";
         access_log off;
     }
     
     location /monitoring/ws {
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://127.0.0.1:8001;
         include /etc/nginx/proxy_params;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -44,7 +36,7 @@ server {
     }
     
     location / {
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://127.0.0.1:8001;
         include /etc/nginx/proxy_params;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
