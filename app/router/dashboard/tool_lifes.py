@@ -7,7 +7,7 @@ from app.templates.jinja_functions import templates
 from datetime import datetime
 from sqlmodel import Session, select
 import locale
-from app.database_config import get_session
+from app.database_config import get_session, engine
 from app.models import Tool, ToolLife, Recipe, Machine, ToolPosition, ToolConsumption, Line
 from typing import Dict, List, Optional
 from .utils import get_condensed_data
@@ -170,7 +170,7 @@ async def get_tool_life_data(db: Session, start_date: Optional[datetime] = None,
     
     return data
 
-async def send_tool_data(websocket: WebSocket, ws_id: int, db: Session):
+async def send_tool_data(websocket: WebSocket, ws_id: int):
     global websocket_filters
     
     # Check if this websocket still exists
@@ -191,16 +191,17 @@ async def send_tool_data(websocket: WebSocket, ws_id: int, db: Session):
     # Filters have not been updated, proceed with sending data
 
     try:
-        # Get filtered graphs and data
-        graphs = await get_tool_life_graphs(db, latest_start_date, latest_end_date, selected_operations, selected_products)
-        data = await get_tool_life_data(db, latest_start_date, latest_end_date, selected_operations, selected_products)
+        with Session(engine) as db:
+            # Get filtered graphs and data
+            graphs = await get_tool_life_graphs(db, latest_start_date, latest_end_date, selected_operations, selected_products)
+            data = await get_tool_life_data(db, latest_start_date, latest_end_date, selected_operations, selected_products)
 
-        # Send both graphs and data
-        response = {
-            "graphs": graphs,
-            "data": data
-        }
-        await websocket.send_text(json.dumps(response))
+            # Send both graphs and data
+            response = {
+                "graphs": graphs,
+                "data": data
+            }
+            await websocket.send_text(json.dumps(response))
 
     except RuntimeError as e:
         if "close message has been sent" in str(e):
@@ -209,7 +210,7 @@ async def send_tool_data(websocket: WebSocket, ws_id: int, db: Session):
     except Exception as e:
         print(f"Error in send_tool_data for WebSocket {ws_id}: {e}")
 
-async def periodic_data_sender(websocket: WebSocket, ws_id: int, db: Session):
+async def periodic_data_sender(websocket: WebSocket, ws_id: int):
     """Send data periodically every X seconds"""
     while True:
         try:
@@ -221,7 +222,7 @@ async def periodic_data_sender(websocket: WebSocket, ws_id: int, db: Session):
             
             # Check again before sending
             if ws_id in websocket_filters:
-                await send_tool_data(websocket, ws_id, db)
+                await send_tool_data(websocket, ws_id)
         except asyncio.CancelledError:
             break
         except Exception as e:
@@ -561,7 +562,7 @@ async def get_tool_details(
     return details
 
 @router.websocket("/ws/toolLifes")
-async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_session)):
+async def websocket_endpoint(websocket: WebSocket):
     global websocket_filters
     await websocket.accept()
     
@@ -577,7 +578,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_ses
     }
 
     # Start the periodic data sending task
-    data_sender_task = asyncio.create_task(periodic_data_sender(websocket, ws_id, db))
+    data_sender_task = asyncio.create_task(periodic_data_sender(websocket, ws_id))
 
     try:
         while True:
@@ -592,7 +593,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_ses
                 websocket_filters[ws_id]['selected_products'] = [int(product) for product in filters.get('selectedProducts', [])]
                 websocket_filters[ws_id]['last_filter_update'] = datetime.now()
 
-                asyncio.create_task(send_tool_data(websocket, ws_id, db))
+                asyncio.create_task(send_tool_data(websocket, ws_id))
 
             except asyncio.TimeoutError:
                 # No message received within the timeout period
