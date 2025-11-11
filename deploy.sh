@@ -15,7 +15,6 @@ ACTIVE_SERVICE=""
 NEW_SERVICE=""
 ACTIVE_DIR=""
 NEW_DIR=""
-
 REMOTE_COMMIT=""
 
 # Function to check for updates
