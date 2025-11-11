@@ -60,6 +60,7 @@ server {
     location / {
         proxy_pass http://127.0.0.1:8000;
         include /etc/nginx/proxy_params;
+        proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
         
@@ -78,4 +79,4 @@ EOF"
 # Enable site and reload
 sudo ln -sf "$SITE_CONF" /etc/nginx/sites-enabled/tool_log
 sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -s reload
+sudo nginx -t && sudo systemctl reload nginx
