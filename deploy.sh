@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "DEBUG: Running deploy.sh version 20250728.1"
+echo "DEBUG: Running deploy.sh version 20251111.1"
 
 # Define variables
 BASE_DIR="$HOME/tool_log"
