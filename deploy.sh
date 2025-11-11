@@ -40,7 +40,7 @@ send_error_message() {
 echo "Determining the active Service..."
 
 # Determine the active service by checking the Nginx configuration
-if grep -q 'proxy_pass http://127\.0\.0\.1:8000;' "$NGINX_CONFIG"; then
+if grep -q 'proxy_pass http://127\.0\.0\.1:8000' "$NGINX_CONFIG"; then
     echo "Detected active service on Port 8000" 
     ACTIVE_PORT="8000"
     NEW_PORT="8001"
@@ -48,7 +48,7 @@ if grep -q 'proxy_pass http://127\.0\.0\.1:8000;' "$NGINX_CONFIG"; then
     NEW_SERVICE="tool_log_green.service"
     ACTIVE_DIR="$BLUE_DIR"
     NEW_DIR="$GREEN_DIR"
-elif grep -q 'proxy_pass http://127\.0\.0\.1:8001;' "$NGINX_CONFIG"; then
+elif grep -q 'proxy_pass http://127\.0\.0\.1:8001' "$NGINX_CONFIG"; then
     echo "Detected active service on Port 8001"
     ACTIVE_PORT="8001"
     NEW_PORT="8000"
